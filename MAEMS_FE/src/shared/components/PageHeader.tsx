@@ -1,0 +1,14 @@
+type PageHeaderProps = {
+  title: string
+  subtitle?: string
+}
+
+export function PageHeader({ title, subtitle }: PageHeaderProps) {
+  return (
+    <header>
+      <h1>{title}</h1>
+      {subtitle && <p>{subtitle}</p>}
+    </header>
+  )
+}
+
