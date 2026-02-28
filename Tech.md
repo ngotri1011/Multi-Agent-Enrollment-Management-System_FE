@@ -12,3 +12,4 @@
 | Charts           | Recharts / ECharts                              |
 | File export      | jsPDF / file-saver / papaparse                  |
 | Rich Text        | TipTap (cho article management)                 |
+| CSS              | TailwindCSS                                     |
