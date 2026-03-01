@@ -1,8 +1,16 @@
-import { useState } from 'react'
+import { useAuthStore } from "../stores/authStore";
 
 export function useAuth() {
-  const [user, setUser] = useState<unknown>(null)
+  const { user, token, setAuth, logout, initAuth, isInitialized } =
+    useAuthStore();
 
-  return { user, setUser }
+  return {
+    user,
+    token,
+    isAuthenticated: !!token && !!user,
+    setAuth,
+    logout,
+    initAuth,
+    isInitialized,
+  };
 }
-
