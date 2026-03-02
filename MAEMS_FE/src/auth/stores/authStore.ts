@@ -3,9 +3,9 @@ import { persist } from "zustand/middleware";
 import {
   getStoredToken,
   setStoredToken,
-} from "../services/axios";
-import * as authApi from "../api/auth";
-import type { AuthUser } from "../types/auth";
+} from "../../services/axios";
+import * as authApi from "../../api/auth";
+import type { AuthUser } from "../../types/auth";
 
 type AuthState = {
   user: AuthUser | null;
