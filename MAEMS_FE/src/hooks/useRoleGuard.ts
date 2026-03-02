@@ -1,13 +1,11 @@
-import { useAuth } from './useAuth'
+import { useAuth } from "./useAuth";
+import type { AuthRole } from "../types/auth";
 
-export function useRoleGuard(allowedRoles: string[]) {
-  const { user } = useAuth()
+export function useRoleGuard(allowedRoles: AuthRole[]) {
+  const { user } = useAuth();
 
   const isAllowed =
-    user && typeof user === 'object' && 'role' in (user as Record<string, unknown>)
-      ? allowedRoles.includes(String((user as Record<string, unknown>).role))
-      : false
+    user && allowedRoles.includes(user.role);
 
-  return { isAllowed }
+  return { isAllowed, user };
 }
-
