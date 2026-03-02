@@ -22,3 +22,47 @@ export type LoginResponse = {
   refreshToken: string;
   user: AuthUser;
 };
+
+export type RegisterResponse = {
+  message: string;
+  username: string;
+  email: string;
+};
+
+export type UserProfile = {
+  username: string;
+  email: string;
+  role: AuthRole;
+  createdAt: string;
+};
+
+// API response wrapper
+export type ApiWrapper<T> = {
+  success: boolean;
+  message: string;
+  data: T;
+  errors: string[];
+};
+
+// API-specific raw shapes
+export type ApiLoginData = {
+  accessToken: string;
+  refreshToken: string;
+  user: { username: string; email: string; role: string };
+};
+
+export type ApiRegisterData = {
+  userId: number;
+  username: string;
+  email: string;
+  roleId: number;
+  createdAt: string;
+  isActive: boolean;
+};
+
+export type ApiProfileData = {
+  username: string;
+  email: string;
+  roleName: string;
+  createdAt: string;
+};

@@ -2,52 +2,16 @@ import { apiClient } from "../services/axios";
 import type {
   AuthRole,
   AuthUser,
+  ApiLoginData,
+  ApiProfileData,
+  ApiRegisterData,
+  ApiWrapper,
   LoginRequest,
   LoginResponse,
   RegisterRequest,
+  RegisterResponse,
+  UserProfile,
 } from "../types/auth";
-
-export type UserProfile = {
-  username: string;
-  email: string;
-  role: AuthRole;
-  createdAt: string;
-};
-
-export type RegisterResponse = {
-  message: string;
-  username: string;
-  email: string;
-};
-
-type ApiWrapper<T> = {
-  success: boolean;
-  message: string;
-  data: T;
-  errors: string[];
-};
-
-type ApiLoginData = {
-  accessToken: string;
-  refreshToken: string;
-  user: { username: string; email: string; role: string };
-};
-
-type ApiRegisterData = {
-  userId: number;
-  username: string;
-  email: string;
-  roleId: number;
-  createdAt: string;
-  isActive: boolean;
-};
-
-type ApiProfileData = {
-  username: string;
-  email: string;
-  roleName: string;
-  createdAt: string;
-};
 
 export async function login(data: LoginRequest): Promise<LoginResponse> {
   const res = await apiClient.post<ApiWrapper<ApiLoginData>>(

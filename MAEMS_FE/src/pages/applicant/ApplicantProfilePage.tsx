@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { Avatar, Badge, Card, Skeleton, Typography } from "antd";
 import { CalendarDays, Mail, ShieldCheck, User } from "lucide-react";
 import { DashboardLayout } from "../../components/DashboardLayout";
-import { getProfile, type UserProfile } from "../../api/auth";
+import { getProfile } from "../../api/auth";
+import type { UserProfile } from "../../types/auth";
 import { applicantMenu } from "./applicantMenu";
 
 const { Title, Text } = Typography;
