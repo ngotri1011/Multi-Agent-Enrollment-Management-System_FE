@@ -5,6 +5,14 @@ import type {
   CreateApplicantResponse,
 } from "../types/applicant";
 
+export async function getMyApplicant(): Promise<CreateApplicantResponse> {
+  // api/Applicants/me   
+  const res = await apiClient.get<ApiWrapper<CreateApplicantResponse>>(
+      "/api/Applicants/me"
+  );
+  return res.data.data;
+}
+
 export async function createApplicant(
   payload: CreateApplicantRequest
 ): Promise<CreateApplicantResponse> {
@@ -15,10 +23,12 @@ export async function createApplicant(
   return res.data.data;
 }
 
-export async function getMyApplicant(): Promise<CreateApplicantResponse> {
-    // api/Applicants/me   
-    const res = await apiClient.get<ApiWrapper<CreateApplicantResponse>>(
-        "/api/Applicants/me"
+export async function patchApplicant(
+    payload: CreateApplicantRequest
+): Promise<CreateApplicantResponse> {
+    const res = await apiClient.patch<ApiWrapper<CreateApplicantResponse>>(
+        "/api/Applicants/me",
+        payload
     );
     return res.data.data;
 }

@@ -3,20 +3,22 @@ import {
   Alert,
   Button,
   Card,
-  Checkbox,
   Divider,
   Form,
   Select,
   Spin,
   Tag,
   Typography,
+  Upload,
   message,
 } from "antd";
+import type { UploadFile } from "antd";
 import {
   ArrowLeft,
   Award,
-  FileText,
   GraduationCap,
+  Paperclip,
+  UploadCloud,
   User,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -34,17 +36,70 @@ import type { AdmissionType } from "../../types/admission_type";
 
 const { Title, Text } = Typography;
 
-const REQUIRED_DOCS = [
-  "Bản sao CMND/CCCD/hộ chiếu",
-  "Bản photo/scan các giấy tờ chứng nhận điều kiện xét tuyển thẳng (nếu có)",
-  "Bản photo/scan văn bằng, chứng chỉ tương ứng với phương thức đăng ký",
+type DocField = {
+  id: string;
+  label: string;
+  required: boolean;
+  accept: string;
+  hint?: string;
+};
+
+const DOC_FIELDS: DocField[] = [
+  {
+    id: "cccd_front",
+    label: "Ảnh chụp CCCD/CMND mặt trước",
+    required: true,
+    accept: "image/*,.pdf",
+  },
+  {
+    id: "cccd_back",
+    label: "Ảnh chụp CCCD/CMND mặt sau",
+    required: true,
+    accept: "image/*,.pdf",
+  },
+  {
+    id: "van_bang",
+    label: "Bản photo/scan văn bằng, chứng chỉ tương ứng với phương thức đăng ký",
+    required: true,
+    accept: "image/*,.pdf",
+  },
+  {
+    id: "chung_nhan_xt",
+    label: "Bản photo/scan các giấy tờ chứng nhận điều kiện xét tuyển thẳng",
+    required: false,
+    accept: "image/*,.pdf",
+    hint: "Áp dụng nếu đủ điều kiện xét tuyển thẳng",
+  },
+  {
+    id: "uu_tien_mat1",
+    label: "Đơn ĐK ưu tiên xét tuyển – Mặt 1 (Dành cho đối tượng thế hệ 1)",
+    required: false,
+    accept: "image/*,.pdf",
+  },
+  {
+    id: "uu_tien_mat2",
+    label: "Đơn ĐK ưu tiên xét tuyển – Mặt 2 (Dành cho đối tượng thế hệ 1)",
+    required: false,
+    accept: "image/*,.pdf",
+  },
+  {
+    id: "uu_tien_mat3",
+    label: "Đơn ĐK ưu tiên xét tuyển – Mặt 3 (Dành cho đối tượng thế hệ 1)",
+    required: false,
+    accept: "image/*,.pdf",
+  },
+  {
+    id: "bien_lai",
+    label: "Biên lai nộp phí đăng ký",
+    required: false,
+    accept: "image/*,.pdf",
+  },
 ];
 
 type FormValues = {
   programId: number;
   campusId: number;
   admissionTypeId: number;
-  confirmedDocs: string[];
 };
 
 function ApplicantInfoCard({ applicant }: { applicant: CreateApplicantResponse }) {
@@ -117,6 +172,11 @@ export function SubmitKhac() {
   const [admissionTypes, setAdmissionTypes] = useState<AdmissionType[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<Record<string, UploadFile[]>>({});
+
+  const handleFileChange = (id: string, fileList: UploadFile[]) => {
+    setUploadedFiles((prev) => ({ ...prev, [id]: fileList }));
+  };
 
   useEffect(() => {
     Promise.all([
@@ -145,8 +205,13 @@ export function SubmitKhac() {
   }, []);
 
   async function handleSubmit(values: FormValues) {
-    if (!values.confirmedDocs || values.confirmedDocs.length < REQUIRED_DOCS.length) {
-      messageApi.warning("Vui lòng xác nhận đã chuẩn bị đầy đủ tất cả tài liệu yêu cầu.");
+    const missingRequired = DOC_FIELDS.filter(
+      (f) => f.required && (!uploadedFiles[f.id] || uploadedFiles[f.id].length === 0)
+    );
+    if (missingRequired.length > 0) {
+      messageApi.warning(
+        `Vui lòng tải lên đầy đủ tài liệu bắt buộc: ${missingRequired.map((f) => f.label).join("; ")}`
+      );
       return;
     }
     setSubmitting(true);
@@ -187,7 +252,7 @@ export function SubmitKhac() {
               PT4 — Phương thức xét tuyển
             </Text>
             <Title level={4} className="!mb-0 !text-gray-800 !font-bold">
-              Xét tuyển thẳng
+              Xét tuyển thẳng / Phương thức khác
             </Title>
           </div>
         </div>
@@ -296,39 +361,62 @@ export function SubmitKhac() {
 
                 <Divider className="!my-5" />
 
-                <div className="flex items-center gap-2 mb-3">
-                  <FileText size={15} className="text-orange-500" />
+                <div className="flex items-center gap-2 mb-1">
+                  <Paperclip size={15} className="text-orange-500" />
                   <Text className="!text-gray-600 !font-semibold !text-sm uppercase tracking-wide">
-                    Tài liệu cần chuẩn bị
+                    Tài liệu đính kèm
                   </Text>
                 </div>
                 <Text className="text-gray-400 text-xs mb-4 block">
-                  Tick vào từng mục để xác nhận đã chuẩn bị. Nộp bản mềm (PDF/JPG/PNG) tại email tuyển sinh sau khi đăng ký.
+                  Tải lên bản scan/ảnh chụp rõ nét (JPG, PNG, PDF). Các mục <span className="text-red-500 font-medium">Bắt buộc</span> phải có trước khi nộp hồ sơ.
                 </Text>
 
-                <Form.Item
-                  name="confirmedDocs"
-                  rules={[
-                    {
-                      validator: (_, value) =>
-                        value && value.length === REQUIRED_DOCS.length
-                          ? Promise.resolve()
-                          : Promise.reject("Vui lòng xác nhận đủ tất cả tài liệu"),
-                    },
-                  ]}
-                >
-                  <Checkbox.Group className="flex flex-col gap-3 w-full">
-                    {REQUIRED_DOCS.map((doc) => (
-                      <div
-                        key={doc}
-                        className="flex items-start gap-3 p-3 rounded-lg bg-gray-50 border border-gray-100"
-                      >
-                        <Checkbox value={doc} className="mt-0.5" />
-                        <span className="text-sm text-gray-700 leading-snug">{doc}</span>
+                <div className="space-y-3 mb-6">
+                  {DOC_FIELDS.map((doc) => (
+                    <div
+                      key={doc.id}
+                      className={`p-3 rounded-lg border ${
+                        doc.required
+                          ? "bg-red-50/40 border-red-100"
+                          : "bg-gray-50 border-gray-100"
+                      }`}
+                    >
+                      <div className="flex items-start gap-2 mb-2">
+                        <span className="text-sm text-gray-700 flex-1 leading-snug">
+                          {doc.required && (
+                            <span className="text-red-500 mr-1">*</span>
+                          )}
+                          {doc.label}
+                        </span>
+                        {doc.required ? (
+                          <Tag color="red" className="!text-xs !shrink-0">Bắt buộc</Tag>
+                        ) : (
+                          <Tag className="!text-xs !shrink-0 !text-gray-400 !border-gray-200">Không bắt buộc</Tag>
+                        )}
                       </div>
-                    ))}
-                  </Checkbox.Group>
-                </Form.Item>
+                      {doc.hint && (
+                        <p className="text-xs text-gray-400 mb-2 italic">{doc.hint}</p>
+                      )}
+                      <Upload.Dragger
+                        accept={doc.accept}
+                        maxCount={1}
+                        beforeUpload={() => false}
+                        fileList={uploadedFiles[doc.id] ?? []}
+                        onChange={({ fileList }) => handleFileChange(doc.id, fileList)}
+                        className="!rounded-lg"
+                      >
+                        <div className="flex flex-col items-center gap-1 py-2 px-2">
+                          <UploadCloud size={22} className="text-gray-300" />
+                          <p className="text-xs text-gray-500 text-center leading-snug">
+                            Kéo thả file vào đây hoặc{" "}
+                            <span className="text-orange-500 font-medium">nhấn để chọn</span>
+                          </p>
+                          <p className="text-xs text-gray-400">JPG, PNG, PDF</p>
+                        </div>
+                      </Upload.Dragger>
+                    </div>
+                  ))}
+                </div>
 
                 <div className="rounded-lg bg-amber-50 border border-amber-100 p-3 mb-6 text-xs text-amber-700">
                   <strong>Lưu ý:</strong> Lệ phí đăng ký xét tuyển: <strong>200.000 đồng</strong>. Đăng ký chỉ hợp lệ khi Trường nhận được đầy đủ hồ sơ và tiền đăng ký.
