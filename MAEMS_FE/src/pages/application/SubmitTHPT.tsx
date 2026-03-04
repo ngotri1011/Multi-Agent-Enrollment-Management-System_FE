@@ -209,8 +209,13 @@ export function SubmitTHPT() {
       });
       messageApi.success("Đăng ký xét tuyển theo điểm thi THPT thành công!");
       setTimeout(() => navigate("/applicant/applications"), 1200);
-    } catch {
-      messageApi.error("Đăng ký thất bại. Vui lòng thử lại.");
+    } catch (err: unknown) {
+      const errData = (err as { response?: { data?: { message?: string; errors?: string[] } } }).response?.data;
+      const msg =
+        errData?.message ||
+        (errData?.errors?.length ? errData.errors.join("; ") : null) ||
+        "Đăng ký thất bại. Vui lòng thử lại.";
+      messageApi.error(msg);
     } finally {
       setSubmitting(false);
     }

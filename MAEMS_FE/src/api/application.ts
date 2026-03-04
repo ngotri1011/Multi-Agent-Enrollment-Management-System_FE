@@ -20,3 +20,12 @@ export async function submitApplication(payload: CreateApplicationRequest) {
   );
   return res.data.data;
 }
+
+export async function submitApplicationDocument(id: string, payload: FormData) {
+  const res = await apiClient.post(`/api/Applications/${id}/documents`, payload, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+  return res.data.data;
+}
