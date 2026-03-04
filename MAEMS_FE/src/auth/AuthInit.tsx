@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useAuthStore } from "./stores/authStore";
+import { useAuthStore } from "../stores/authStore";
 
 export function AuthInit() {
   const initAuth = useAuthStore((s) => s.initAuth);

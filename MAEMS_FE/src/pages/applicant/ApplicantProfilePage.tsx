@@ -29,7 +29,7 @@ import {
 import dayjs from "dayjs";
 import { DashboardLayout } from "../../components/DashboardLayout";
 import { getProfile } from "../../api/auth";
-import { createApplicant, getMyApplicant } from "../../api/applicant";
+import { createApplicant, getMyApplicant, patchApplicant } from "../../api/applicant";
 import type { UserProfile } from "../../types/auth";
 import type { CreateApplicantRequest, CreateApplicantResponse } from "../../types/applicant";
 import { applicantMenu } from "./applicantMenu";
@@ -90,6 +90,7 @@ export function ApplicantProfilePage() {
   const [applicant, setApplicant] = useState<CreateApplicantResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [form] = Form.useForm<ApplicantFormValues>();
   const [messageApi, contextHolder] = message.useMessage();
 
@@ -106,6 +107,27 @@ export function ApplicantProfilePage() {
 
   const initial = profile?.username?.charAt(0).toUpperCase() ?? "U";
 
+  function handleStartEdit() {
+    if (!applicant) return;
+    form.setFieldsValue({
+      fullName: applicant.fullName,
+      gender: applicant.gender,
+      dateOfBirth: dayjs(applicant.dateOfBirth),
+      highSchoolName: applicant.highSchoolName,
+      highSchoolDistrict: applicant.highSchoolDistrict,
+      highSchoolProvince: applicant.highSchoolProvince,
+      graduationYear: applicant.graduationYear,
+      idIssueNumber: applicant.idIssueNumber,
+      idIssueDate: dayjs(applicant.idIssueDate),
+      idIssuePlace: applicant.idIssuePlace,
+      contactName: applicant.contactName,
+      contactPhone: applicant.contactPhone,
+      contactEmail: applicant.contactEmail,
+      contactAddress: applicant.contactAddress,
+    });
+    setIsEditing(true);
+  }
+
   async function handleSubmit(values: ApplicantFormValues) {
     setSubmitting(true);
     try {
@@ -115,12 +137,21 @@ export function ApplicantProfilePage() {
         idIssueDate: values.idIssueDate.format("YYYY-MM-DD"),
         allowShare: true,
       };
-      const response = await createApplicant(payload);
-      setApplicant(response);
-      messageApi.success("Hồ sơ thí sinh đã được tạo thành công!");
-      form.resetFields();
+      if (isEditing && applicant) {
+        const response = await patchApplicant(payload);
+        setApplicant(response);
+        setIsEditing(false);
+        messageApi.success("Hồ sơ thí sinh đã được cập nhật!");
+      } else {
+        const response = await createApplicant(payload);
+        setApplicant(response);
+        messageApi.success("Hồ sơ thí sinh đã được tạo thành công!");
+        form.resetFields();
+      }
     } catch {
-      messageApi.error("Tạo hồ sơ thất bại. Vui lòng thử lại.");
+      messageApi.error(
+        isEditing ? "Cập nhật hồ sơ thất bại. Vui lòng thử lại." : "Tạo hồ sơ thất bại. Vui lòng thử lại."
+      );
     } finally {
       setSubmitting(false);
     }
@@ -199,7 +230,7 @@ export function ApplicantProfilePage() {
       </Card>
 
       {/* Applicant info — read-only if already submitted */}
-      {!loading && applicant ? (
+      {!loading && applicant && !isEditing ? (
         <Card
           className="rounded-2xl border border-green-100 shadow-sm max-w-3xl"
           styles={{ body: { padding: "32px" } }}
@@ -208,16 +239,25 @@ export function ApplicantProfilePage() {
             <Title level={5} className="!mb-0 !text-gray-800">
               Thông tin thí sinh
             </Title>
-            <Tag
-              icon={<CheckCircle2 size={13} />}
-              color="success"
-              className="flex items-center gap-1 !rounded-full !px-3"
-            >
-              Đã có hồ sơ
-            </Tag>
+            <div className="flex items-center gap-3">
+              <Tag
+                icon={<CheckCircle2 size={13} />}
+                color="success"
+                className="flex items-center gap-1 !rounded-full !px-3"
+              >
+                Đã có hồ sơ
+              </Tag>
+              <Button
+                size="small"
+                onClick={handleStartEdit}
+                className="!rounded-lg"
+              >
+                Sửa
+              </Button>
+            </div>
           </div>
           <Text className="text-gray-400 text-sm">
-            Thông tin đã được lưu. Liên hệ hỗ trợ nếu cần chỉnh sửa.
+            Thông tin đã được lưu. Nhấn <strong>Sửa</strong> nếu cần chỉnh sửa.
           </Text>
 
           <Divider className="!my-5" />
@@ -272,16 +312,18 @@ export function ApplicantProfilePage() {
           </div>
         </Card>
       ) : !loading ? (
-        /* Creation form */
+        /* Creation / Edit form */
         <Card
           className="rounded-2xl border border-gray-100 shadow-sm max-w-3xl"
           styles={{ body: { padding: "32px" } }}
         >
           <Title level={5} className="!mb-1 !text-gray-800">
-            Thông tin thí sinh
+            {isEditing ? "Chỉnh sửa thông tin thí sinh" : "Thông tin thí sinh"}
           </Title>
           <Text className="text-gray-400 text-sm">
-            Điền đầy đủ thông tin để hoàn thiện hồ sơ đăng ký xét tuyển.
+            {isEditing
+              ? "Cập nhật thông tin hồ sơ thí sinh của bạn."
+              : "Điền đầy đủ thông tin để hoàn thiện hồ sơ đăng ký xét tuyển."}
           </Text>
 
           <Divider className="!my-5" />
@@ -479,7 +521,17 @@ export function ApplicantProfilePage() {
 
             <Divider className="!my-5" />
 
-            <div className="flex justify-end pt-2">
+            <div className="flex justify-end gap-3 pt-2">
+              {isEditing && (
+                <Button
+                  size="large"
+                  className="!rounded-lg px-8"
+                  onClick={() => setIsEditing(false)}
+                  disabled={submitting}
+                >
+                  Hủy
+                </Button>
+              )}
               <Button
                 type="primary"
                 htmlType="submit"
@@ -487,7 +539,7 @@ export function ApplicantProfilePage() {
                 className="!bg-orange-500 !border-orange-500 hover:!bg-orange-600 hover:!border-orange-600 !rounded-lg px-8"
                 size="large"
               >
-                Lưu hồ sơ
+                {isEditing ? "Cập nhật" : "Lưu hồ sơ"}
               </Button>
             </div>
           </Form>

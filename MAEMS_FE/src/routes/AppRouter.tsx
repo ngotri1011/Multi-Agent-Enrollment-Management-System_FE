@@ -13,7 +13,9 @@ import { ApplicationDetail } from "../pages/application/ApplicationDetail";
 import { ApplicationList } from "../pages/application/ApplicationList";
 import { SubmitApplication } from "../pages/application/SubmitApplication";
 import { SubmitHocBa } from "../pages/application/SubmitHocBa";
-import { SubmitXetTuyenKhac } from "../pages/application/SubmitXetTuyenKhac";
+import { SubmitDGNL } from "../pages/application/SubmitDGNL";
+import { SubmitTHPT } from "../pages/application/SubmitTHPT";
+import { SubmitKhac } from "../pages/application/SubmitKhac";
 import { ArticleDetail } from "../pages/articles/ArticleDetail";
 import { ArticleEditor } from "../pages/articles/ArticleEditor";
 import { ArticleList } from "../pages/articles/ArticleList";
@@ -76,7 +78,7 @@ export function AppRouter() {
         path="/applicant/submit-application/danh-gia-nang-luc"
         element={
           <RoleGuard allowedRoles={["applicant"]}>
-            <SubmitXetTuyenKhac />
+            <SubmitDGNL />
           </RoleGuard>
         }
       />
@@ -84,7 +86,7 @@ export function AppRouter() {
         path="/applicant/submit-application/tot-nghiep-thpt"
         element={
           <RoleGuard allowedRoles={["applicant"]}>
-            <SubmitXetTuyenKhac />
+            <SubmitTHPT />
           </RoleGuard>
         }
       />
@@ -92,7 +94,7 @@ export function AppRouter() {
         path="/applicant/submit-application/phuong-thuc-khac"
         element={
           <RoleGuard allowedRoles={["applicant"]}>
-            <SubmitXetTuyenKhac />
+            <SubmitKhac />
           </RoleGuard>
         }
       />

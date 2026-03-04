@@ -3,24 +3,24 @@ import {
   Alert,
   Button,
   Card,
-  Checkbox,
   Divider,
   Form,
   Select,
   Spin,
   Tag,
   Typography,
+  Upload,
   message,
 } from "antd";
+import type { UploadFile } from "antd";
 import {
   ArrowLeft,
-  Award,
-  FileCheck2,
-  FileText,
   GraduationCap,
+  Paperclip,
+  UploadCloud,
   User,
 } from "lucide-react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "../../components/DashboardLayout";
 import { applicantMenu } from "../applicant/applicantMenu";
 import { getMyApplicant } from "../../api/applicant";
@@ -35,71 +35,63 @@ import type { AdmissionType } from "../../types/admission_type";
 
 const { Title, Text } = Typography;
 
-type RouteConfig = {
-  pt: string;
-  icon: React.ReactNode;
-  title: string;
-  typeFilter: (t: AdmissionType) => boolean;
-  requiredDocs: string[];
+type DocField = {
+  id: string;
+  label: string;
+  required: boolean;
+  accept: string;
+  hint?: string;
 };
 
-const COMMON_DOCS = ["Bản sao CMND/CCCD/hộ chiếu"];
-
-const ROUTE_CONFIG: Record<string, RouteConfig> = {
-  "danh-gia-nang-luc": {
-    pt: "PT2",
-    icon: <FileCheck2 size={20} className="text-orange-500" />,
-    title: "Xét kết quả thi Đánh giá năng lực",
-    typeFilter: (t) =>
-      t.type === "PT2" || t.admissionTypeName?.toLowerCase().includes("năng lực"),
-    requiredDocs: [
-      ...COMMON_DOCS,
-      "Bản sao Giấy chứng nhận kết quả thi ĐGNL của ĐHQG Hà Nội hoặc ĐHQG TP.HCM năm 2025",
-    ],
+const DOC_FIELDS: DocField[] = [
+  {
+    id: "cccd_front",
+    label: "Ảnh chụp CCCD/CMND mặt trước",
+    required: true,
+    accept: "image/*,.pdf",
   },
-  "tot-nghiep-thpt": {
-    pt: "PT3",
-    icon: <GraduationCap size={20} className="text-orange-500" />,
-    title: "Xét kết quả thi tốt nghiệp THPT",
-    typeFilter: (t) =>
-      t.type === "PT3" || t.admissionTypeName?.toLowerCase().includes("tốt nghiệp"),
-    requiredDocs: [
-      ...COMMON_DOCS,
-      "Bản sao Giấy chứng nhận kết quả kỳ thi tốt nghiệp THPT năm 2025",
-    ],
+  {
+    id: "cccd_back",
+    label: "Ảnh chụp CCCD/CMND mặt sau",
+    required: true,
+    accept: "image/*,.pdf",
   },
-  "phuong-thuc-khac": {
-    pt: "PT4",
-    icon: <Award size={20} className="text-orange-500" />,
-    title: "Xét tuyển thẳng",
-    typeFilter: (t) => {
-      const name = t.admissionTypeName?.toLowerCase() ?? "";
-      return (
-        t.type === "PT4" ||
-        name.includes("thẳng") ||
-        name.includes("xét thẳng") ||
-        name.includes("ưu tiên") ||
-        name.includes("khác")
-      );
-    },
-    requiredDocs: [
-      ...COMMON_DOCS,
-      "Bản photo/scan các giấy tờ chứng nhận điều kiện xét tuyển thẳng (nếu có)",
-      "Bản photo/scan văn bằng, chứng chỉ tương ứng với phương thức đăng ký",
-    ],
+  {
+    id: "chung_nhan_thpt",
+    label: "Bản sao Giấy chứng nhận kết quả kỳ thi tốt nghiệp THPT năm 2026",
+    required: true,
+    accept: "image/*,.pdf",
   },
-};
-
-function getRouteKey(pathname: string): string {
-  const segments = pathname.split("/");
-  return segments[segments.length - 1] ?? "phuong-thuc-khac";
-}
+  {
+    id: "uu_tien_mat1",
+    label: "Đơn ĐK ưu tiên xét tuyển – Mặt 1 (Dành cho đối tượng thế hệ 1)",
+    required: false,
+    accept: "image/*,.pdf",
+  },
+  {
+    id: "uu_tien_mat2",
+    label: "Đơn ĐK ưu tiên xét tuyển – Mặt 2 (Dành cho đối tượng thế hệ 1)",
+    required: false,
+    accept: "image/*,.pdf",
+  },
+  {
+    id: "uu_tien_mat3",
+    label: "Đơn ĐK ưu tiên xét tuyển – Mặt 3 (Dành cho đối tượng thế hệ 1)",
+    required: false,
+    accept: "image/*,.pdf",
+  },
+  {
+    id: "bien_lai",
+    label: "Biên lai nộp phí đăng ký",
+    required: false,
+    accept: "image/*,.pdf",
+  },
+];
 
 type FormValues = {
   programId: number;
   campusId: number;
   admissionTypeId: number;
-  confirmedDocs: string[];
 };
 
 function ApplicantInfoCard({ applicant }: { applicant: CreateApplicantResponse }) {
@@ -161,14 +153,10 @@ function ApplicantInfoCard({ applicant }: { applicant: CreateApplicantResponse }
   );
 }
 
-export function SubmitXetTuyenKhac() {
+export function SubmitTHPT() {
   const navigate = useNavigate();
-  const location = useLocation();
   const [form] = Form.useForm<FormValues>();
   const [messageApi, contextHolder] = message.useMessage();
-
-  const routeKey = getRouteKey(location.pathname);
-  const config = ROUTE_CONFIG[routeKey] ?? ROUTE_CONFIG["phuong-thuc-khac"];
 
   const [applicant, setApplicant] = useState<CreateApplicantResponse | null>(null);
   const [programs, setPrograms] = useState<Program[]>([]);
@@ -176,6 +164,11 @@ export function SubmitXetTuyenKhac() {
   const [admissionTypes, setAdmissionTypes] = useState<AdmissionType[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<Record<string, UploadFile[]>>({});
+
+  const handleFileChange = (id: string, fileList: UploadFile[]) => {
+    setUploadedFiles((prev) => ({ ...prev, [id]: fileList }));
+  };
 
   useEffect(() => {
     Promise.all([
@@ -187,17 +180,23 @@ export function SubmitXetTuyenKhac() {
       setApplicant(applicantData);
       setPrograms(programsData ?? []);
       setCampuses(campusesData ?? []);
-      setAdmissionTypes((admTypesData ?? []).filter(config.typeFilter));
+      setAdmissionTypes(
+        (admTypesData ?? []).filter(
+          (t) => t.type === "PT3" || t.admissionTypeName?.toLowerCase().includes("tốt nghiệp")
+        )
+      );
       setLoading(false);
     });
-    // Reset form when route changes
-    form.resetFields();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [routeKey]);
+  }, []);
 
   async function handleSubmit(values: FormValues) {
-    if (!values.confirmedDocs || values.confirmedDocs.length < config.requiredDocs.length) {
-      messageApi.warning("Vui lòng xác nhận đã chuẩn bị đầy đủ tất cả tài liệu yêu cầu.");
+    const missingRequired = DOC_FIELDS.filter(
+      (f) => f.required && (!uploadedFiles[f.id] || uploadedFiles[f.id].length === 0)
+    );
+    if (missingRequired.length > 0) {
+      messageApi.warning(
+        `Vui lòng tải lên đầy đủ tài liệu bắt buộc: ${missingRequired.map((f) => f.label).join("; ")}`
+      );
       return;
     }
     setSubmitting(true);
@@ -208,10 +207,15 @@ export function SubmitXetTuyenKhac() {
         campusId: values.campusId,
         admissionTypeId: values.admissionTypeId,
       });
-      messageApi.success("Đăng ký xét tuyển thành công!");
+      messageApi.success("Đăng ký xét tuyển theo điểm thi THPT thành công!");
       setTimeout(() => navigate("/applicant/applications"), 1200);
-    } catch {
-      messageApi.error("Đăng ký thất bại. Vui lòng thử lại.");
+    } catch (err: unknown) {
+      const errData = (err as { response?: { data?: { message?: string; errors?: string[] } } }).response?.data;
+      const msg =
+        errData?.message ||
+        (errData?.errors?.length ? errData.errors.join("; ") : null) ||
+        "Đăng ký thất bại. Vui lòng thử lại.";
+      messageApi.error(msg);
     } finally {
       setSubmitting(false);
     }
@@ -231,14 +235,14 @@ export function SubmitXetTuyenKhac() {
 
         <div className="flex items-center gap-3 mb-8">
           <div className="w-10 h-10 rounded-xl bg-orange-50 border border-orange-200 flex items-center justify-center">
-            {config.icon}
+            <GraduationCap size={20} className="text-orange-500" />
           </div>
           <div>
             <Text className="text-xs text-gray-400 uppercase tracking-wider">
-              {config.pt} — Phương thức xét tuyển
+              PT3 — Phương thức xét tuyển
             </Text>
             <Title level={4} className="!mb-0 !text-gray-800 !font-bold">
-              {config.title}
+              Xét kết quả thi tốt nghiệp THPT
             </Title>
           </div>
         </div>
@@ -271,7 +275,6 @@ export function SubmitXetTuyenKhac() {
 
             <div className="rounded-2xl bg-white border border-gray-100 shadow-sm p-6 md:p-8">
               <Form form={form} layout="vertical" onFinish={handleSubmit} requiredMark={false}>
-                {/* Applicant info (read-only) */}
                 {applicant ? (
                   <ApplicantInfoCard applicant={applicant} />
                 ) : (
@@ -284,7 +287,6 @@ export function SubmitXetTuyenKhac() {
 
                 <Divider className="!my-5" />
 
-                {/* Enrollment info */}
                 <div className="flex items-center gap-2 mb-4">
                   <GraduationCap size={15} className="text-orange-500" />
                   <Text className="!text-gray-600 !font-semibold !text-sm uppercase tracking-wide">
@@ -336,7 +338,7 @@ export function SubmitXetTuyenKhac() {
                     rules={[{ required: true, message: "Vui lòng chọn phương thức" }]}
                   >
                     <Select
-                      placeholder="Chọn phương thức"
+                      placeholder="Chọn phương thức thi THPT"
                       size="large"
                       className="w-full"
                       options={admissionTypes.map((a) => ({
@@ -349,40 +351,62 @@ export function SubmitXetTuyenKhac() {
 
                 <Divider className="!my-5" />
 
-                {/* Required documents */}
-                <div className="flex items-center gap-2 mb-3">
-                  <FileText size={15} className="text-orange-500" />
+                <div className="flex items-center gap-2 mb-1">
+                  <Paperclip size={15} className="text-orange-500" />
                   <Text className="!text-gray-600 !font-semibold !text-sm uppercase tracking-wide">
-                    Tài liệu cần chuẩn bị
+                    Tài liệu đính kèm
                   </Text>
                 </div>
                 <Text className="text-gray-400 text-xs mb-4 block">
-                  Tick vào từng mục để xác nhận đã chuẩn bị. Nộp bản mềm (PDF/JPG/PNG) tại email tuyển sinh sau khi đăng ký.
+                  Tải lên bản scan/ảnh chụp rõ nét (JPG, PNG, PDF). Các mục <span className="text-red-500 font-medium">Bắt buộc</span> phải có trước khi nộp hồ sơ.
                 </Text>
 
-                <Form.Item
-                  name="confirmedDocs"
-                  rules={[
-                    {
-                      validator: (_, value) =>
-                        value && value.length === config.requiredDocs.length
-                          ? Promise.resolve()
-                          : Promise.reject("Vui lòng xác nhận đủ tất cả tài liệu"),
-                    },
-                  ]}
-                >
-                  <Checkbox.Group className="flex flex-col gap-3 w-full">
-                    {config.requiredDocs.map((doc) => (
-                      <div
-                        key={doc}
-                        className="flex items-start gap-3 p-3 rounded-lg bg-gray-50 border border-gray-100"
-                      >
-                        <Checkbox value={doc} className="mt-0.5" />
-                        <span className="text-sm text-gray-700 leading-snug">{doc}</span>
+                <div className="space-y-3 mb-6">
+                  {DOC_FIELDS.map((doc) => (
+                    <div
+                      key={doc.id}
+                      className={`p-3 rounded-lg border ${
+                        doc.required
+                          ? "bg-red-50/40 border-red-100"
+                          : "bg-gray-50 border-gray-100"
+                      }`}
+                    >
+                      <div className="flex items-start gap-2 mb-2">
+                        <span className="text-sm text-gray-700 flex-1 leading-snug">
+                          {doc.required && (
+                            <span className="text-red-500 mr-1">*</span>
+                          )}
+                          {doc.label}
+                        </span>
+                        {doc.required ? (
+                          <Tag color="red" className="!text-xs !shrink-0">Bắt buộc</Tag>
+                        ) : (
+                          <Tag className="!text-xs !shrink-0 !text-gray-400 !border-gray-200">Không bắt buộc</Tag>
+                        )}
                       </div>
-                    ))}
-                  </Checkbox.Group>
-                </Form.Item>
+                      {doc.hint && (
+                        <p className="text-xs text-gray-400 mb-2 italic">{doc.hint}</p>
+                      )}
+                      <Upload.Dragger
+                        accept={doc.accept}
+                        maxCount={1}
+                        beforeUpload={() => false}
+                        fileList={uploadedFiles[doc.id] ?? []}
+                        onChange={({ fileList }) => handleFileChange(doc.id, fileList)}
+                        className="!rounded-lg"
+                      >
+                        <div className="flex flex-col items-center gap-1 py-2 px-2">
+                          <UploadCloud size={22} className="text-gray-300" />
+                          <p className="text-xs text-gray-500 text-center leading-snug">
+                            Kéo thả file vào đây hoặc{" "}
+                            <span className="text-orange-500 font-medium">nhấn để chọn</span>
+                          </p>
+                          <p className="text-xs text-gray-400">JPG, PNG, PDF</p>
+                        </div>
+                      </Upload.Dragger>
+                    </div>
+                  ))}
+                </div>
 
                 <div className="rounded-lg bg-amber-50 border border-amber-100 p-3 mb-6 text-xs text-amber-700">
                   <strong>Lưu ý:</strong> Lệ phí đăng ký xét tuyển: <strong>200.000 đồng</strong>. Đăng ký chỉ hợp lệ khi Trường nhận được đầy đủ hồ sơ và tiền đăng ký.
@@ -397,7 +421,7 @@ export function SubmitXetTuyenKhac() {
                   disabled={!applicant}
                   className="!bg-orange-500 !border-orange-500 hover:!bg-orange-600 !rounded-xl !h-12 !font-semibold"
                 >
-                  Nộp hồ sơ xét tuyển
+                  Nộp hồ sơ xét tuyển điểm thi THPT
                 </Button>
               </Form>
             </div>
