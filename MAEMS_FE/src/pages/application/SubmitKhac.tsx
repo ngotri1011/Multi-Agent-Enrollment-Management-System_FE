@@ -15,12 +15,11 @@ import {
 import {
   ArrowLeft,
   Award,
-  FileCheck2,
   FileText,
   GraduationCap,
   User,
 } from "lucide-react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "../../components/DashboardLayout";
 import { applicantMenu } from "../applicant/applicantMenu";
 import { getMyApplicant } from "../../api/applicant";
@@ -35,65 +34,11 @@ import type { AdmissionType } from "../../types/admission_type";
 
 const { Title, Text } = Typography;
 
-type RouteConfig = {
-  pt: string;
-  icon: React.ReactNode;
-  title: string;
-  typeFilter: (t: AdmissionType) => boolean;
-  requiredDocs: string[];
-};
-
-const COMMON_DOCS = ["Bản sao CMND/CCCD/hộ chiếu"];
-
-const ROUTE_CONFIG: Record<string, RouteConfig> = {
-  "danh-gia-nang-luc": {
-    pt: "PT2",
-    icon: <FileCheck2 size={20} className="text-orange-500" />,
-    title: "Xét kết quả thi Đánh giá năng lực",
-    typeFilter: (t) =>
-      t.type === "PT2" || t.admissionTypeName?.toLowerCase().includes("năng lực"),
-    requiredDocs: [
-      ...COMMON_DOCS,
-      "Bản sao Giấy chứng nhận kết quả thi ĐGNL của ĐHQG Hà Nội hoặc ĐHQG TP.HCM năm 2025",
-    ],
-  },
-  "tot-nghiep-thpt": {
-    pt: "PT3",
-    icon: <GraduationCap size={20} className="text-orange-500" />,
-    title: "Xét kết quả thi tốt nghiệp THPT",
-    typeFilter: (t) =>
-      t.type === "PT3" || t.admissionTypeName?.toLowerCase().includes("tốt nghiệp"),
-    requiredDocs: [
-      ...COMMON_DOCS,
-      "Bản sao Giấy chứng nhận kết quả kỳ thi tốt nghiệp THPT năm 2025",
-    ],
-  },
-  "phuong-thuc-khac": {
-    pt: "PT4",
-    icon: <Award size={20} className="text-orange-500" />,
-    title: "Xét tuyển thẳng",
-    typeFilter: (t) => {
-      const name = t.admissionTypeName?.toLowerCase() ?? "";
-      return (
-        t.type === "PT4" ||
-        name.includes("thẳng") ||
-        name.includes("xét thẳng") ||
-        name.includes("ưu tiên") ||
-        name.includes("khác")
-      );
-    },
-    requiredDocs: [
-      ...COMMON_DOCS,
-      "Bản photo/scan các giấy tờ chứng nhận điều kiện xét tuyển thẳng (nếu có)",
-      "Bản photo/scan văn bằng, chứng chỉ tương ứng với phương thức đăng ký",
-    ],
-  },
-};
-
-function getRouteKey(pathname: string): string {
-  const segments = pathname.split("/");
-  return segments[segments.length - 1] ?? "phuong-thuc-khac";
-}
+const REQUIRED_DOCS = [
+  "Bản sao CMND/CCCD/hộ chiếu",
+  "Bản photo/scan các giấy tờ chứng nhận điều kiện xét tuyển thẳng (nếu có)",
+  "Bản photo/scan văn bằng, chứng chỉ tương ứng với phương thức đăng ký",
+];
 
 type FormValues = {
   programId: number;
@@ -161,14 +106,10 @@ function ApplicantInfoCard({ applicant }: { applicant: CreateApplicantResponse }
   );
 }
 
-export function SubmitXetTuyenKhac() {
+export function SubmitKhac() {
   const navigate = useNavigate();
-  const location = useLocation();
   const [form] = Form.useForm<FormValues>();
   const [messageApi, contextHolder] = message.useMessage();
-
-  const routeKey = getRouteKey(location.pathname);
-  const config = ROUTE_CONFIG[routeKey] ?? ROUTE_CONFIG["phuong-thuc-khac"];
 
   const [applicant, setApplicant] = useState<CreateApplicantResponse | null>(null);
   const [programs, setPrograms] = useState<Program[]>([]);
@@ -187,16 +128,24 @@ export function SubmitXetTuyenKhac() {
       setApplicant(applicantData);
       setPrograms(programsData ?? []);
       setCampuses(campusesData ?? []);
-      setAdmissionTypes((admTypesData ?? []).filter(config.typeFilter));
+      setAdmissionTypes(
+        (admTypesData ?? []).filter((t) => {
+          const name = t.admissionTypeName?.toLowerCase() ?? "";
+          return (
+            t.type === "PT4" ||
+            name.includes("thẳng") ||
+            name.includes("xét thẳng") ||
+            name.includes("ưu tiên") ||
+            name.includes("khác")
+          );
+        })
+      );
       setLoading(false);
     });
-    // Reset form when route changes
-    form.resetFields();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [routeKey]);
+  }, []);
 
   async function handleSubmit(values: FormValues) {
-    if (!values.confirmedDocs || values.confirmedDocs.length < config.requiredDocs.length) {
+    if (!values.confirmedDocs || values.confirmedDocs.length < REQUIRED_DOCS.length) {
       messageApi.warning("Vui lòng xác nhận đã chuẩn bị đầy đủ tất cả tài liệu yêu cầu.");
       return;
     }
@@ -208,7 +157,7 @@ export function SubmitXetTuyenKhac() {
         campusId: values.campusId,
         admissionTypeId: values.admissionTypeId,
       });
-      messageApi.success("Đăng ký xét tuyển thành công!");
+      messageApi.success("Đăng ký xét tuyển thẳng thành công!");
       setTimeout(() => navigate("/applicant/applications"), 1200);
     } catch {
       messageApi.error("Đăng ký thất bại. Vui lòng thử lại.");
@@ -231,14 +180,14 @@ export function SubmitXetTuyenKhac() {
 
         <div className="flex items-center gap-3 mb-8">
           <div className="w-10 h-10 rounded-xl bg-orange-50 border border-orange-200 flex items-center justify-center">
-            {config.icon}
+            <Award size={20} className="text-orange-500" />
           </div>
           <div>
             <Text className="text-xs text-gray-400 uppercase tracking-wider">
-              {config.pt} — Phương thức xét tuyển
+              PT4 — Phương thức xét tuyển
             </Text>
             <Title level={4} className="!mb-0 !text-gray-800 !font-bold">
-              {config.title}
+              Xét tuyển thẳng
             </Title>
           </div>
         </div>
@@ -271,7 +220,6 @@ export function SubmitXetTuyenKhac() {
 
             <div className="rounded-2xl bg-white border border-gray-100 shadow-sm p-6 md:p-8">
               <Form form={form} layout="vertical" onFinish={handleSubmit} requiredMark={false}>
-                {/* Applicant info (read-only) */}
                 {applicant ? (
                   <ApplicantInfoCard applicant={applicant} />
                 ) : (
@@ -284,7 +232,6 @@ export function SubmitXetTuyenKhac() {
 
                 <Divider className="!my-5" />
 
-                {/* Enrollment info */}
                 <div className="flex items-center gap-2 mb-4">
                   <GraduationCap size={15} className="text-orange-500" />
                   <Text className="!text-gray-600 !font-semibold !text-sm uppercase tracking-wide">
@@ -336,7 +283,7 @@ export function SubmitXetTuyenKhac() {
                     rules={[{ required: true, message: "Vui lòng chọn phương thức" }]}
                   >
                     <Select
-                      placeholder="Chọn phương thức"
+                      placeholder="Chọn phương thức xét tuyển thẳng"
                       size="large"
                       className="w-full"
                       options={admissionTypes.map((a) => ({
@@ -349,7 +296,6 @@ export function SubmitXetTuyenKhac() {
 
                 <Divider className="!my-5" />
 
-                {/* Required documents */}
                 <div className="flex items-center gap-2 mb-3">
                   <FileText size={15} className="text-orange-500" />
                   <Text className="!text-gray-600 !font-semibold !text-sm uppercase tracking-wide">
@@ -365,14 +311,14 @@ export function SubmitXetTuyenKhac() {
                   rules={[
                     {
                       validator: (_, value) =>
-                        value && value.length === config.requiredDocs.length
+                        value && value.length === REQUIRED_DOCS.length
                           ? Promise.resolve()
                           : Promise.reject("Vui lòng xác nhận đủ tất cả tài liệu"),
                     },
                   ]}
                 >
                   <Checkbox.Group className="flex flex-col gap-3 w-full">
-                    {config.requiredDocs.map((doc) => (
+                    {REQUIRED_DOCS.map((doc) => (
                       <div
                         key={doc}
                         className="flex items-start gap-3 p-3 rounded-lg bg-gray-50 border border-gray-100"
@@ -397,7 +343,7 @@ export function SubmitXetTuyenKhac() {
                   disabled={!applicant}
                   className="!bg-orange-500 !border-orange-500 hover:!bg-orange-600 !rounded-xl !h-12 !font-semibold"
                 >
-                  Nộp hồ sơ xét tuyển
+                  Nộp hồ sơ xét tuyển thẳng
                 </Button>
               </Form>
             </div>
