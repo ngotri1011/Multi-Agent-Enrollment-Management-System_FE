@@ -1,4 +1,4 @@
-import { Button, Dropdown, Layout, Space, Typography } from "antd";
+import { Avatar, Button, Dropdown, Layout, Space, Typography } from "antd";
 import type { MenuProps } from "antd";
 import { LayoutDashboard, LogOut } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
@@ -69,9 +69,18 @@ export function AppHeader() {
           </Space>
           {isAuthenticated && user ? (
             <Dropdown menu={{ items: userMenuItems }} trigger={["click"]}>
-              <Button type="text" className="!text-gray-700 hover:!text-orange-500">
-                {user.username}
-              </Button>
+              <button className="flex items-center gap-2 px-2 py-1 rounded-full hover:bg-orange-50 transition-colors cursor-pointer border-none bg-transparent">
+                <Avatar
+                  size={32}
+                  src={user.photoURL}
+                  className="!bg-orange-500 !text-white font-bold flex-shrink-0"
+                >
+                  {user.username?.charAt(0).toUpperCase()}
+                </Avatar>
+                <span className="text-sm font-medium text-gray-700 max-md:hidden">
+                  {user.username}
+                </span>
+              </button>
             </Dropdown>
           ) : (
             <Link to="/auth">
