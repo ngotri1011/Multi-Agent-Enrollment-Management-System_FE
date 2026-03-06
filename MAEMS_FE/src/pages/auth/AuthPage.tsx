@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Button, Form, Input, Layout, message, Tabs, Typography } from "antd";
+import { Button, Divider, Form, Input, Layout, message, Tabs, Typography } from "antd";
 import { useNavigate } from "react-router-dom";
 import { AppHeader } from "../../components/AppHeader";
+import { GoogleLoginButton } from "../../components/GoogleLoginButton";
 import { useAuth } from "../../hooks/useAuth";
 import * as authApi from "../../api/auth";
 import type { AuthRole } from "../../types/auth";
@@ -141,6 +142,10 @@ export function AuthPage() {
                           Đăng nhập
                         </Button>
                       </Form.Item>
+                      <Divider plain className="!my-4 !text-gray-400">
+                        hoặc
+                      </Divider>
+                      <GoogleLoginButton />
                     </Form>
                   ),
                 },
@@ -217,6 +222,10 @@ export function AuthPage() {
                           Đăng ký
                         </Button>
                       </Form.Item>
+                      <Divider plain className="!my-4 !text-gray-400">
+                        hoặc
+                      </Divider>
+                      <GoogleLoginButton />
                     </Form>
                   ),
                 },

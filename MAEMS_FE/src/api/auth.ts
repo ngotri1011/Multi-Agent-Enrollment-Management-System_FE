@@ -59,6 +59,23 @@ export async function getProfile(): Promise<UserProfile | null> {
   }
 }
 
+export async function googleLogin(idToken: string): Promise<LoginResponse> {
+  const res = await apiClient.post<ApiWrapper<ApiLoginData>>(
+    "/api/Users/google-login",
+    { idToken }
+  );
+  const { accessToken, refreshToken, user } = res.data.data;
+  return {
+    token: accessToken,
+    refreshToken,
+    user: {
+      username: user.username,
+      email: user.email,
+      role: (user.role?.toLowerCase() ?? "applicant") as AuthRole,
+    },
+  };
+}
+
 export async function getCurrentUser(): Promise<AuthUser | null> {
   const profile = await getProfile();
   if (!profile) return null;

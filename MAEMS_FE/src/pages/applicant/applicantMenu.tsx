@@ -10,19 +10,19 @@ export const applicantMenu: SidebarMenuItem[] = [
   },
   {
     key: "applications",
-    label: "Hồ sơ của tôi",
+    label: "Đơn đăng ký của tôi",
     icon: <FileText size={16} />,
     path: "/applicant/applications",
   },
   {
     key: "submit",
-    label: "Nộp hồ sơ",
+    label: "Đăng ký ngành xét tuyển",
     icon: <FilePlus size={16} />,
     path: "/applicant/submit-application",
   },
   {
     key: "profile",
-    label: "Hồ sơ cá nhân",
+    label: "Nộp hồ sơ cá nhân",
     icon: <User size={16} />,
     path: "/applicant/profile",
   },

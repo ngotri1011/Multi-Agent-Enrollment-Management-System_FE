@@ -4,6 +4,7 @@ export type AuthUser = {
   username: string;
   email: string;
   role: AuthRole;
+  photoURL?: string | null;
 };
 
 export type LoginRequest = {

@@ -15,7 +15,6 @@ import {
 import type { UploadFile } from "antd";
 import {
   ArrowLeft,
-  BookOpen,
   GraduationCap,
   Paperclip,
   UploadCloud,
@@ -58,23 +57,10 @@ const DOC_FIELDS: DocField[] = [
     accept: "image/*,.pdf",
   },
   {
-    id: "hoc_ba_lop11",
-    label: "Học bạ hoặc bảng điểm cả năm lớp 11",
+    id: "chung_nhan_thpt",
+    label: "Bản sao Giấy chứng nhận kết quả kỳ thi tốt nghiệp THPT năm 2026",
     required: true,
     accept: "image/*,.pdf",
-  },
-  {
-    id: "hoc_ba_lop12",
-    label: "Học bạ hoặc bảng điểm HK1/cả năm lớp 12",
-    required: true,
-    accept: "image/*,.pdf",
-  },
-  {
-    id: "school_rank",
-    label: "Ảnh xác nhận xếp hạng học sinh THPT 2026 (SchoolRank)",
-    required: true,
-    accept: "image/*,.pdf",
-    hint: "Chứng nhận từ SchoolRank.fpt.edu.vn năm 2026",
   },
   {
     id: "uu_tien_mat1",
@@ -167,7 +153,7 @@ function ApplicantInfoCard({ applicant }: { applicant: CreateApplicantResponse }
   );
 }
 
-export function SubmitHocBa() {
+export function SubmitTHPT() {
   const navigate = useNavigate();
   const [form] = Form.useForm<FormValues>();
   const [messageApi, contextHolder] = message.useMessage();
@@ -196,7 +182,7 @@ export function SubmitHocBa() {
       setCampuses(campusesData ?? []);
       setAdmissionTypes(
         (admTypesData ?? []).filter(
-          (t) => t.type === "PT1" || t.admissionTypeName?.toLowerCase().includes("học bạ")
+          (t) => t.type === "PT3" || t.admissionTypeName?.toLowerCase().includes("tốt nghiệp")
         )
       );
       setLoading(false);
@@ -221,7 +207,7 @@ export function SubmitHocBa() {
         campusId: values.campusId,
         admissionTypeId: values.admissionTypeId,
       });
-      messageApi.success("Đăng ký xét tuyển theo học bạ thành công!");
+      messageApi.success("Đăng ký xét tuyển theo điểm thi THPT thành công!");
       setTimeout(() => navigate("/applicant/applications"), 1200);
     } catch (err: unknown) {
       const errData = (err as { response?: { data?: { message?: string; errors?: string[] } } }).response?.data;
@@ -249,12 +235,14 @@ export function SubmitHocBa() {
 
         <div className="flex items-center gap-3 mb-8">
           <div className="w-10 h-10 rounded-xl bg-orange-50 border border-orange-200 flex items-center justify-center">
-            <BookOpen size={20} className="text-orange-500" />
+            <GraduationCap size={20} className="text-orange-500" />
           </div>
           <div>
-            <Text className="text-xs text-gray-400 uppercase tracking-wider">PT1 — Phương thức xét tuyển</Text>
+            <Text className="text-xs text-gray-400 uppercase tracking-wider">
+              PT3 — Phương thức xét tuyển
+            </Text>
             <Title level={4} className="!mb-0 !text-gray-800 !font-bold">
-              Xét kết quả học tập cấp THPT (Học bạ)
+              Xét kết quả thi tốt nghiệp THPT
             </Title>
           </div>
         </div>
@@ -346,11 +334,11 @@ export function SubmitHocBa() {
 
                   <Form.Item
                     name="admissionTypeId"
-                    label={<Text strong>Phương thức xét tuyển</Text>}
+                    label={<Text strong>Phương thức xét tuyển cụ thể</Text>}
                     rules={[{ required: true, message: "Vui lòng chọn phương thức" }]}
                   >
                     <Select
-                      placeholder="Chọn phương thức học bạ"
+                      placeholder="Chọn phương thức thi THPT"
                       size="large"
                       className="w-full"
                       options={admissionTypes.map((a) => ({
@@ -433,7 +421,7 @@ export function SubmitHocBa() {
                   disabled={!applicant}
                   className="!bg-orange-500 !border-orange-500 hover:!bg-orange-600 !rounded-xl !h-12 !font-semibold"
                 >
-                  Nộp hồ sơ xét học bạ
+                  Nộp hồ sơ xét tuyển điểm thi THPT
                 </Button>
               </Form>
             </div>

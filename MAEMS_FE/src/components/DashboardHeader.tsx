@@ -21,6 +21,7 @@ export function DashboardHeader() {
       <Space size="middle" className="items-center">
         <Avatar
           size={36}
+          src={user?.photoURL}
           className="!bg-orange-500 !text-white font-bold select-none flex-shrink-0"
         >
           {initial}
