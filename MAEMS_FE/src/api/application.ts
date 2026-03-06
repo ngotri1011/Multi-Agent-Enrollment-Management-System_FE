@@ -12,7 +12,15 @@ export async function fetchMyApplications(): Promise<Application[]> {
   return res.data.data;
 }
 
-//Lấy thông tin chi tiết đơn ĐK ngành đào tạo theo ID
+//Lấy danh sách đơn ĐK ngành đào tạo của tất cả người dùng (role officer)
+export async function fetchAllApplications(): Promise<Application[]> {
+  const res = await apiClient.get<ApiWrapper<Application[]>>(
+    "/api/Applications/all",
+  );
+  return res.data.data;
+}
+
+//Lấy thông tin chi tiết đơn ĐK ngành đào tạo theo ID (role officer)
 export async function fetchApplicationDetail(id: number): Promise<Application> {
   const res = await apiClient.get<ApiWrapper<Application>>(
     `/api/Applications/${id}`,
@@ -55,4 +63,19 @@ export async function submitApplicationDocuments(id: number, payload: FormData):
     },
   });
   return res.data.data;
+}
+
+// Phê duyệt hồ sơ (role officer)
+export async function approveApplication(id: number): Promise<void> {
+  await apiClient.post(`/api/Applications/${id}/approve`);
+}
+
+// Từ chối hồ sơ (role officer)
+export async function rejectApplication(id: number, reason: string): Promise<void> {
+  await apiClient.post(`/api/Applications/${id}/reject`, { reason });
+}
+
+// Yêu cầu bổ sung tài liệu (role officer)
+export async function requestAdditionalDocuments(id: number, note: string): Promise<void> {
+  await apiClient.post(`/api/Applications/${id}/request-documents`, { note });
 }

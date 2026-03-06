@@ -4,7 +4,9 @@ import { RoleGuard } from "./RoleGuard";
 import { ApplicantDashboard } from "../pages/applicant/ApplicantDashboard";
 import { ApplicantProfilePage } from "../pages/applicant/ApplicantProfilePage";
 import { AdminDashboard } from "../pages/admin/AdminDashboard";
-import { StaffDashboard } from "../pages/staff/StaffDashboard";
+import { OfficerDashboard } from "../pages/officer/OfficerDashboard";
+import { OfficerApplications } from "../pages/officer/OfficerApplications";
+import { OfficerApplicationDetail } from "../pages/officer/OfficerApplicationDetail";
 import { QaDashboard } from "../pages/qa/QaDashboard";
 // feature pages
 import { AgentDashboard } from "../pages/agents/AgentDashboard";
@@ -107,27 +109,51 @@ export function AppRouter() {
         }
       />
 
-      {/* staff */}
+      {/* officer */}
       <Route
-        path="/staff/dashboard"
+        path="/officer/dashboard"
         element={
-          <RoleGuard allowedRoles={["staff"]}>
-            <StaffDashboard />
+          <RoleGuard allowedRoles={["officer"]}>
+            <OfficerDashboard />
           </RoleGuard>
         }
       />
       <Route
-        path="/staff/agents/dashboard"
+        path="/officer/review-applications"
         element={
-          <RoleGuard allowedRoles={["staff"]}>
+          <RoleGuard allowedRoles={["officer"]}>
+            <OfficerApplications />
+          </RoleGuard>
+        }
+      />
+      <Route
+        path="/officer/review-applications"
+        element={
+          <RoleGuard allowedRoles={["officer"]}>
+            <OfficerApplications />
+          </RoleGuard>
+        }
+      />
+      <Route
+        path="/officer/applications/:id"
+        element={
+          <RoleGuard allowedRoles={["officer"]}>
+            <OfficerApplicationDetail />
+          </RoleGuard>
+        }
+      />
+      <Route
+        path="/officer/agents/dashboard"
+        element={
+          <RoleGuard allowedRoles={["officer"]}>
             <AgentDashboard />
           </RoleGuard>
         }
       />
       <Route
-        path="/staff/agents/performance"
+        path="/officer/agents/performance"
         element={
-          <RoleGuard allowedRoles={["staff"]}>
+          <RoleGuard allowedRoles={["officer"]}>
             <AgentPerformance />
           </RoleGuard>
         }

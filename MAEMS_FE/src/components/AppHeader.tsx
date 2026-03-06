@@ -11,7 +11,7 @@ const { Text } = Typography;
 const roleDashboard: Record<AuthRole, string> = {
   applicant: "/applicant/dashboard",
   admin: "/admin/dashboard",
-  staff: "/staff/dashboard",
+  officer: "/officer/dashboard",
   qa: "/qa/dashboard",
   guest: "/",
 };

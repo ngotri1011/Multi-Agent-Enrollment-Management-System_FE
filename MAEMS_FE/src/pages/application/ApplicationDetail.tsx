@@ -416,6 +416,25 @@ export function ApplicationDetail() {
             <div className="lg:col-span-2 flex flex-col gap-4">
               <PipelineCard status={app.status} />
 
+              {/* Agent Notes */}
+              {app.notes && (
+                <Card
+                  className="rounded-2xl border border-indigo-100 shadow-sm"
+                  styles={{ body: { padding: "20px 24px" } }}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <Bot size={15} className="text-indigo-500" />
+                    <Text className="text-sm font-semibold text-gray-600 uppercase tracking-wide">
+                      Agent Notes
+                    </Text>
+                  </div>
+                  <Divider className="!my-3" />
+                  <Text className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                    {app.notes}
+                  </Text>
+                </Card>
+              )}
+
               {/* Documents */}
               <Card
                 className="rounded-2xl border border-gray-100 shadow-sm"

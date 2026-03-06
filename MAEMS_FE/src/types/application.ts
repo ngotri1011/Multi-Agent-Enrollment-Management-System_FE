@@ -1,7 +1,12 @@
 export type ApplicationStatus = 'draft' | 'submitted' | 'approved' | 'rejected' | 'under_review'
 
 export type Application = {
-  applicationId: string
+  applicationId: number
+  applicantId: number
+  programId: number
+  enrollmentYearId: number
+  campusId: number
+  admissionTypeId: number
   applicantName: string
   programName: string
   enrollmentYear: string
@@ -10,6 +15,10 @@ export type Application = {
   status: ApplicationStatus
   submittedAt: string
   lastUpdated: string
+  assignedOfficerId : number | null
+  assignedOfficerName: string | null
+  notes: string | null
+  requiresReview: boolean
   documents: Document[]
 }
 

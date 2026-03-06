@@ -39,7 +39,7 @@ const { Title, Text } = Typography;
 const roleLabel: Record<string, string> = {
   applicant: "Thí sinh",
   admin: "Quản trị viên",
-  staff: "Nhân viên",
+  officer: "Nhân viên",
   qa: "Kiểm duyệt viên",
 };
 
