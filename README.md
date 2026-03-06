@@ -133,7 +133,9 @@ Create a `.env` file in the `MAEMS_FE/` directory:
 ```env
 VITE_MAEMS_API_URL=<your-backend-api-url>
 ```
-Create firebase.ts file in src directory
+4. **Create the Firebase configuration file:**
+
+Create a file named `firebase.ts` inside the `src` directory. This file should contain your Firebase project configuration and initialization code.
 
 4. **Start the development server:**
 
