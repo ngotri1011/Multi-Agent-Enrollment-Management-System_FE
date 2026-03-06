@@ -303,11 +303,6 @@ export function OfficerApplications() {
             <Tag color={cfg.color} className="text-xs">
               {cfg.label}
             </Tag>
-            {isEscalated(record) && (
-              <Tag color="red" className="text-xs">
-                Leo thang
-              </Tag>
-            )}
             {isMissingDocs(record) && (
               <Tag color="orange" className="text-xs">
                 Thiếu tài liệu
