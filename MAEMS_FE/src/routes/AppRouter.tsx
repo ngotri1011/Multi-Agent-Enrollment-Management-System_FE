@@ -26,6 +26,11 @@ import { RuleConfigPage } from "../pages/eligibility/RuleConfigPage";
 import { ReviewEvaluationPage } from "../pages/qa/ReviewEvaluationPage";
 import { ReportDashboard } from "../pages/reports/ReportDashboard";
 import { AdminApplicationList } from "../pages/admin/AdminApplicationList";
+import { AdminStudentManagement } from "../pages/admin/AdminStudentManagement";
+import { AdminProgramManagement } from "../pages/admin/AdminProgramManagement";
+import { AdminPaymentManagement } from "../pages/admin/AdminPaymentManagement";
+import { AdminReports } from "../pages/admin/AdminReports";
+import { AdminSettings } from "../pages/admin/AdminSettnigs";
 
 export function AppRouter() {
   return (
@@ -165,7 +170,7 @@ export function AppRouter() {
         path="/admin/reports"
         element={
           <RoleGuard allowedRoles={["admin"]}>
-            <ReportDashboard />
+            <AdminReports />
           </RoleGuard>
         }
       />
@@ -206,6 +211,38 @@ export function AppRouter() {
         element={
           <RoleGuard allowedRoles={["admin"]}>
             <AdminApplicationList />
+          </RoleGuard>
+        }
+      />
+      <Route
+        path="/admin/students"
+        element={
+          <RoleGuard allowedRoles={["admin"]}>
+            <AdminStudentManagement />
+          </RoleGuard>
+        }
+      />
+      <Route
+        path="/admin/programs"
+        element={
+          <RoleGuard allowedRoles={["admin"]}>
+            <AdminProgramManagement />
+          </RoleGuard>
+        }
+      />
+      <Route
+        path="/admin/payments"
+        element={
+          <RoleGuard allowedRoles={["admin"]}>
+            <AdminPaymentManagement />
+          </RoleGuard>
+        }
+      />
+      <Route
+        path="/admin/settings"
+        element={
+          <RoleGuard allowedRoles={["admin"]}>
+            <AdminSettings />
           </RoleGuard>
         }
       />

@@ -21,51 +21,12 @@ import {
   DollarSign,
   FileText,
 } from "lucide-react";
-import { DashboardLayout } from "../../components/DashboardLayout";
 import type { ColumnsType } from "antd/es/table";
-import type { SidebarMenuItem } from "../../components/DashboardSidebar";
+import { AdminLayout } from "../../components/layouts/AdminLayout";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 
-const menuItems: SidebarMenuItem[] = [
-  {
-    key: "dashboard",
-    label: "Tổng quan",
-    icon: <LayoutDashboard size={16} />,
-    path: "/admin/dashboard",
-  },
-  {
-    key: "applications",
-    label: "Hồ sơ xét duyệt",
-    icon: <BarChart2 size={16} />,
-    path: "/admin/applications",
-  },
-  {
-    key: "programs",
-    label: "Chương trình đào tạo",
-    icon: <ShieldCheck size={16} />,
-    path: "/admin/programs",
-  },
-  {
-    key: "payments",
-    label: "Thanh toán",
-    icon: <DollarSign size={16} />,
-    path: "/admin/payments",
-  },
-  {
-    key: "reports",
-    label: "Báo cáo",
-    icon: <FileText size={16} />,
-    path: "/admin/reports",
-  },
-  {
-    key: "settings",
-    label: "Cài đặt hệ thống",
-    icon: <FileText size={16} />,
-    path: "/admin/settings",
-  },
-];
 
 interface Student {
   key: string;
@@ -263,7 +224,7 @@ const columns: ColumnsType<Student> = [
 
 export function AdminStudentManagement() {
   return (
-    <DashboardLayout menuItems={menuItems}>
+    <AdminLayout>
       <Title level={4}>Student Management</Title>
       <Text type="secondary">
         View and manage enrolled students.
@@ -343,6 +304,6 @@ export function AdminStudentManagement() {
           pagination={false}
         />
       </Card>
-    </DashboardLayout>
+    </AdminLayout>
   );
 }

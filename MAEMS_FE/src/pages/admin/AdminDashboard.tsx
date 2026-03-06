@@ -10,49 +10,9 @@ import {
   TrendingUp,
   User,
 } from "lucide-react";
-import { DashboardLayout } from "../../components/DashboardLayout";
-import type { SidebarMenuItem } from "../../components/DashboardSidebar";
+import { AdminLayout } from "../../components/layouts/AdminLayout";
 
 const { Title, Text } = Typography;
-
-const menuItems: SidebarMenuItem[] = [
-  {
-    key: "dashboard",
-    label: "Tổng quan",
-    icon: <LayoutDashboard size={16} />,
-    path: "/admin/dashboard",
-  },
-  {
-    key: "applications",
-    label: "Hồ sơ xét duyệt",
-    icon: <BarChart2 size={16} />,
-    path: "/admin/applications",
-  },
-  {
-    key: "programs",
-    label: "Chương trình đào tạo",
-    icon: <ShieldCheck size={16} />,
-    path: "/admin/programs",
-  },
-  {
-    key: "payments",
-    label: "Thanh toán",
-    icon: <DollarSign size={16} />,
-    path: "/admin/payments",
-  },
-  {
-    key: "reports",
-    label: "Báo cáo",
-    icon: <FileText size={16} />,
-    path: "/admin/reports",
-  },
-  {
-    key: "settings",
-    label: "Cài đặt hệ thống",
-    icon: <FileText size={16} />,
-    path: "/admin/settings",
-  },
-];
 
 const stats = [
   { label: "Tổng sinh viên", value: "—", color: "text-orange-500", icon: <User size={20} /> },
@@ -91,7 +51,7 @@ const activities = [
 
 export function AdminDashboard() {
   return (
-    <DashboardLayout menuItems={menuItems}>
+    <AdminLayout>
       <Title level={4} className="!mb-6 !text-gray-700 !font-semibold">
         Tổng quan hệ thống
       </Title>
@@ -205,6 +165,6 @@ export function AdminDashboard() {
           ))}
         </div>
       </Card>
-    </DashboardLayout>
+    </AdminLayout>
   );
 }
