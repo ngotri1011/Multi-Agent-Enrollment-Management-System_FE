@@ -1,8 +1,7 @@
 import axios, { type InternalAxiosRequestConfig } from "axios";
 
 const baseURL =
-  import.meta.env.VITE_MAEMS_API_URL ||
-  "https://maemsapi20260225151542-gtb3g6g9crgvcchd.southeastasia-01.azurewebsites.net";
+  import.meta.env.VITE_MAEMS_API_URL;
 
 export const apiClient = axios.create({
   baseURL,
