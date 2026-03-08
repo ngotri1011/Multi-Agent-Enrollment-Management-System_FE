@@ -387,7 +387,7 @@ export function OfficerDashboard() {
                         <Cell key={index} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value: number) => [`${value} hồ sơ`]} />
+                    <Tooltip formatter={(value) => [`${value} hồ sơ`]} />
                     <Legend
                       iconType="circle"
                       iconSize={8}
@@ -436,7 +436,7 @@ export function OfficerDashboard() {
                       allowDecimals={false}
                     />
                     <Tooltip
-                      formatter={(value: number) => [`${value} hồ sơ`, "Số lượng"]}
+                      formatter={(value) => [`${value} hồ sơ`, "Số lượng"]}
                       cursor={{ fill: "#f9fafb" }}
                     />
                     <Bar

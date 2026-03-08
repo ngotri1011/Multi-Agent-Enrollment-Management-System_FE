@@ -335,7 +335,7 @@ function ApplicationCard({
   docCountLoading: boolean;
   onUploadDoc: (app: Application) => void;
   onSubmitFinal: (app: Application) => void;
-  submittingId: string | null;
+  submittingId: number | null;
 }) {
   const navigate = useNavigate();
   const pipeline = getPipeline(app.status);
@@ -515,12 +515,13 @@ export function ApplicationList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [uploadTarget, setUploadTarget] = useState<Application | null>(null);
-  const [submittingId, setSubmittingId] = useState<string | null>(null);
+  const [submittingId, setSubmittingId] = useState<number | null>(null);
   // docCountMap: applicationId → số tài liệu thực tế từ detail API
   const [docCountMap, setDocCountMap] = useState<Record<string, number>>({});
   const [docCountsLoading, setDocCountsLoading] = useState<Record<string, boolean>>({});
 
   async function loadDocCounts(appList: Application[]) {
+    if (!appList?.length) return;
     // Đánh dấu tất cả đang loading
     const initLoading = Object.fromEntries(appList.map((a) => [a.applicationId, true]));
     setDocCountsLoading(initLoading);
@@ -547,8 +548,9 @@ export function ApplicationList() {
     setLoading(true);
     fetchMyApplications()
       .then((appList) => {
-        setApps(appList);
-        loadDocCounts(appList);
+        const list = appList ?? [];
+        setApps(list);
+        loadDocCounts(list);
       })
       .catch(() => setError("Không thể tải danh sách đơn đăng ký."))
       .finally(() => setLoading(false));

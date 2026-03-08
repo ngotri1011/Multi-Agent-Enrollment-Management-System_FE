@@ -1,7 +1,6 @@
 import {
   Button,
   Col,
-  Collapse,
   Form,
   Input,
   Layout,
@@ -17,7 +16,6 @@ import { AppHeader } from "../../components/AppHeader";
 
 const { Content, Footer } = Layout;
 const { Title, Paragraph, Text } = Typography;
-const { Panel } = Collapse;
 const { Option } = Select;
 
 export function AdmissionPage() {
