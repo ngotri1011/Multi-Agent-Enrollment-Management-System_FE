@@ -95,11 +95,20 @@ export function HomePage() {
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{
-            backgroundImage: "url('https://fpt.ai/wp-content/uploads/2026/02/67fd2b492003effefd407f34_Agentic-AI-Multi-Agent.jpg')",
+            backgroundImage: "url('')",
             backgroundColor: "#1a1a2e",
           }}
         />
         <div className="absolute inset-0 bg-gradient-to-br from-orange-900/80 via-orange-800/60 to-gray-900/80" />
+
+        {/* Dot pattern overlay */}
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.12) 1px, transparent 1px)",
+            backgroundSize: "28px 28px",
+          }}
+        />
 
         <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
           <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-4 py-2 mb-6">

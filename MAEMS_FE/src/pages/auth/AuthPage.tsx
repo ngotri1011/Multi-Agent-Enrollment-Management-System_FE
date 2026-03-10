@@ -72,12 +72,39 @@ export function AuthPage() {
   };
 
   return (
-    <Layout className="min-h-screen bg-gradient-to-br from-orange-200 via-amber-50 to-gray-50">
-      <AppHeader />
+    <Layout
+      className="min-h-screen relative overflow-hidden"
+      style={{
+        background: "linear-gradient(135deg, #ff6a00 0%, #ee7f1a 25%, #f97316 50%, #c2410c 75%, #7c2d12 100%)",
+      }}
+    >
+      {/* Dark overlay */}
+      <div className="absolute inset-0 bg-black/60 z-0" />
 
-      <Content className="w-full py-8 px-6 md:px-10 pb-16 box-border text-gray-900 max-md:px-4">
-        <div className="max-w-md mx-auto mt-8 md:mt-12">
-          <div className="rounded-2xl bg-white border border-orange-200/20 shadow-[0_4px_6px_-1px_rgba(0,0,0,0.08),0_2px_4px_-2px_rgba(0,0,0,0.05)] p-6 md:p-8">
+      {/* Dot pattern overlay */}
+      <div
+        className="absolute inset-0 z-0"
+        style={{
+          backgroundImage: `radial-gradient(circle, rgba(255,255,255,0.13) 1px, transparent 1px)`,
+          backgroundSize: "28px 28px",
+        }}
+      />
+
+      {/* Vignette glow at center */}
+      <div
+        className="absolute inset-0 z-0"
+        style={{
+          background:
+            "radial-gradient(ellipse 70% 60% at 50% 50%, rgba(251,146,60,0.08) 0%, transparent 70%)",
+        }}
+      />
+
+      <div className="relative z-10 flex flex-col min-h-screen">
+        <AppHeader />
+
+        <Content className="w-full py-8 px-6 md:px-10 pb-16 box-border max-md:px-4 flex-1">
+          <div className="max-w-md mx-auto mt-8 md:mt-12">
+            <div className="rounded-2xl bg-white/95 backdrop-blur-md border border-white/30 shadow-[0_8px_32px_rgba(0,0,0,0.35)] p-6 md:p-8">
             <Title level={3} className="!text-slate-900 !mb-6 !text-center">
               Tài khoản
             </Title>
@@ -234,6 +261,7 @@ export function AuthPage() {
           </div>
         </div>
       </Content>
+      </div>
     </Layout>
   );
 }
