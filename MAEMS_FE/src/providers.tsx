@@ -8,4 +8,3 @@ type AppProvidersProps = {
 export function AppProviders({ children }: AppProvidersProps) {
   return <BrowserRouter>{children}</BrowserRouter>
 }
-
