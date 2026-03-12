@@ -104,7 +104,7 @@ export function AuthPage() {
 
         <Content className="w-full py-8 px-6 md:px-10 pb-16 box-border max-md:px-4 flex-1">
           <div className="max-w-md mx-auto mt-8 md:mt-12">
-            <div className="rounded-2xl bg-white/95 backdrop-blur-md border border-white/30 shadow-[0_8px_32px_rgba(0,0,0,0.35)] p-6 md:p-8">
+            <div className="rounded-2xl bg-white/75 backdrop-blur-sm border border-orange-200/30 shadow-[0_8px_40px_rgba(0,0,0,0.45)] p-6 md:p-8">
             <Title level={3} className="!text-slate-900 !mb-6 !text-center">
               Tài khoản
             </Title>
