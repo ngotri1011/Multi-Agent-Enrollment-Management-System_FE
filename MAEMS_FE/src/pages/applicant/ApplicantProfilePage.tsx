@@ -18,6 +18,7 @@ import {
   Modal,
   Spin,
   Empty,
+  Tooltip,
 } from "antd";
 import type { UploadFile } from "antd";
 import {
@@ -33,6 +34,8 @@ import {
   Paperclip,
   UploadCloud,
   FileText,
+  Eye,
+  FileImage,
 } from "lucide-react";
 import dayjs from "dayjs";
 import { DashboardLayout } from "../../components/DashboardLayout";
@@ -40,16 +43,28 @@ import { getProfile } from "../../api/auth";
 import { createApplicant, getMyApplicant, patchApplicant, uploadApplicantDocuments, getApplicantDocuments } from "../../api/applicants";
 import type { UserProfile } from "../../types/auth";
 import type { CreateApplicantRequest, CreateApplicantResponse } from "../../types/applicant";
+import type { Document as ApplicantDocument } from "../../types/document";
 import { applicantMenu } from "./applicantMenu";
 
 const { Title, Text } = Typography;
 
-interface ApplicantDocumentItem {
-  documentId?: number | string;
-  documentType?: string;
-  fileName?: string;
-  fileUrl?: string;
-  uploadedAt?: string;
+const IMAGE_FORMATS = ["jpg", "jpeg", "png", "gif", "webp", "bmp", "svg"];
+
+function isImageFormat(fileFormat?: string) {
+  return IMAGE_FORMATS.includes((fileFormat ?? "").toLowerCase());
+}
+
+const VERIFICATION_BADGE: Record<string, { color: string; label: string }> = {
+  PENDING:  { color: "orange",  label: "Chờ duyệt" },
+  APPROVED: { color: "success", label: "Đã duyệt" },
+  VERIFIED: { color: "success", label: "Đã duyệt" },
+  REJECTED: { color: "error",   label: "Từ chối" },
+  FAILED:   { color: "error",   label: "Từ chối" },
+};
+
+function getVerificationBadge(result?: string | null) {
+  if (!result) return { color: "default", label: "—" };
+  return VERIFICATION_BADGE[result.toUpperCase()] ?? { color: "default", label: result };
 }
 
 const DOC_TYPE_OPTIONS = [
@@ -125,17 +140,18 @@ export function ApplicantProfilePage() {
   const [messageApi, contextHolder] = message.useMessage();
 
   // Document state
-  const [documents, setDocuments] = useState<ApplicantDocumentItem[]>([]);
+  const [documents, setDocuments] = useState<ApplicantDocument[]>([]);
   const [docsLoading, setDocsLoading] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
+  const [previewDoc, setPreviewDoc] = useState<ApplicantDocument | null>(null);
 
   async function loadDocuments() {
     setDocsLoading(true);
     try {
       const docs = await getApplicantDocuments();
-      setDocuments(docs as unknown as ApplicantDocumentItem[]);
+      setDocuments(docs);
     } catch {
       setDocuments([]);
     } finally {
@@ -436,41 +452,152 @@ export function ApplicantProfilePage() {
               className="py-6"
             />
           ) : (
-            <div className="flex flex-col gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
               {documents.map((doc, idx) => {
                 const typeLabel = DOC_TYPE_OPTIONS.find((o) => o.value === doc.documentType)?.label ?? doc.documentType ?? "Tài liệu";
+                const isImage = isImageFormat(doc.fileFormat);
+                const badge = getVerificationBadge(doc.verificationResult);
                 return (
-                  <div
-                    key={doc.documentId ?? idx}
-                    className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 bg-gray-50 hover:bg-orange-50 hover:border-orange-100 transition-colors"
-                  >
-                    <FileText size={18} className="text-orange-400 shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <Text className="text-sm font-medium text-gray-700 block truncate">
-                        {doc.fileName ?? typeLabel}
-                      </Text>
-                      <Text className="text-xs text-gray-400">
-                        {typeLabel}
-                        {doc.uploadedAt ? ` · ${new Date(doc.uploadedAt).toLocaleDateString("vi-VN")}` : ""}
-                      </Text>
+                  <Tooltip key={doc.documentId ?? idx} title="Nhấn để xem chi tiết">
+                    <div
+                      className="group relative flex flex-col rounded-xl border border-gray-100 bg-white overflow-hidden cursor-pointer hover:border-orange-300 hover:shadow-md transition-all"
+                      onClick={() => setPreviewDoc(doc)}
+                    >
+                      {/* Thumbnail area */}
+                      <div className="relative w-full h-24 bg-gray-50 flex items-center justify-center overflow-hidden">
+                        {isImage ? (
+                          <img
+                            src={doc.filePath}
+                            alt={doc.fileName}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLImageElement).style.display = "none";
+                              (e.currentTarget.nextElementSibling as HTMLElement | null)?.style.setProperty("display", "flex");
+                            }}
+                          />
+                        ) : null}
+                        <div
+                          className="w-full h-full items-center justify-center flex-col gap-1"
+                          style={{ display: isImage ? "none" : "flex" }}
+                        >
+                          <FileText size={28} className="text-orange-300" />
+                          <span className="text-xs text-gray-400 uppercase">{doc.fileFormat ?? "file"}</span>
+                        </div>
+                        {/* Hover overlay */}
+                        <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <Eye size={20} className="text-white" />
+                        </div>
+                        {/* Verification badge */}
+                        <div className="absolute top-1.5 right-1.5">
+                          <Tag color={badge.color} className="!text-[10px] !px-1.5 !py-0 !leading-4 !m-0 !rounded-full">
+                            {badge.label}
+                          </Tag>
+                        </div>
+                      </div>
+
+                      {/* Info */}
+                      <div className="px-2.5 py-2">
+                        <p className="text-xs font-medium text-gray-700 truncate leading-tight" title={doc.fileName}>
+                          {doc.fileName || typeLabel}
+                        </p>
+                        <p className="text-[10px] text-gray-400 truncate mt-0.5 leading-tight flex items-center gap-1">
+                          <FileImage size={10} className="shrink-0" />
+                          {typeLabel}
+                        </p>
+                        {doc.uploadedAt && (
+                          <p className="text-[10px] text-gray-300 mt-0.5 leading-tight">
+                            {new Date(doc.uploadedAt).toLocaleDateString("vi-VN")}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                    {doc.fileUrl && (
-                      <a
-                        href={doc.fileUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-orange-500 hover:underline shrink-0"
-                      >
-                        Xem
-                      </a>
-                    )}
-                  </div>
+                  </Tooltip>
                 );
               })}
             </div>
           )}
         </Card>
       )}
+
+      {/* Document preview modal */}
+      <Modal
+        open={!!previewDoc}
+        onCancel={() => setPreviewDoc(null)}
+        footer={null}
+        destroyOnClose
+        width={720}
+        title={
+          previewDoc && (
+            <div className="flex items-center gap-2 pr-4">
+              <FileText size={16} className="text-orange-500 shrink-0" />
+              <span className="text-sm font-semibold text-gray-800 truncate">
+                {previewDoc.fileName || DOC_TYPE_OPTIONS.find((o) => o.value === previewDoc.documentType)?.label || "Tài liệu"}
+              </span>
+              {previewDoc.verificationResult && (() => {
+                const b = getVerificationBadge(previewDoc.verificationResult);
+                return <Tag color={b.color} className="!rounded-full !ml-1">{b.label}</Tag>;
+              })()}
+            </div>
+          )
+        }
+      >
+        {previewDoc && (
+          <div className="flex flex-col gap-4 pt-2">
+            {/* Preview area */}
+            <div className="rounded-xl overflow-hidden border border-gray-100 bg-gray-50 flex items-center justify-center min-h-[320px]">
+              {isImageFormat(previewDoc.fileFormat) ? (
+                <img
+                  src={previewDoc.filePath}
+                  alt={previewDoc.fileName}
+                  className="max-w-full max-h-[480px] object-contain"
+                />
+              ) : (
+                <iframe
+                  src={previewDoc.filePath}
+                  title={previewDoc.fileName}
+                  className="w-full h-[480px] border-0"
+                />
+              )}
+            </div>
+
+            {/* Meta info */}
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <Text className="!text-xs !text-gray-400 block">Loại tài liệu</Text>
+                <Text className="!text-sm !text-gray-700 !font-medium">
+                  {DOC_TYPE_OPTIONS.find((o) => o.value === previewDoc.documentType)?.label ?? previewDoc.documentType ?? "—"}
+                </Text>
+              </div>
+              <div>
+                <Text className="!text-xs !text-gray-400 block">Định dạng</Text>
+                <Text className="!text-sm !text-gray-700 !font-medium uppercase">
+                  {previewDoc.fileFormat ?? "—"}
+                </Text>
+              </div>
+              <div>
+                <Text className="!text-xs !text-gray-400 block">Ngày tải lên</Text>
+                <Text className="!text-sm !text-gray-700 !font-medium">
+                  {previewDoc.uploadedAt ? new Date(previewDoc.uploadedAt).toLocaleDateString("vi-VN", { year: "numeric", month: "long", day: "numeric" }) : "—"}
+                </Text>
+              </div>
+              {previewDoc.verificationDetails && (
+                <div className="col-span-2">
+                  <Text className="!text-xs !text-gray-400 block">Ghi chú duyệt</Text>
+                  <Text className="!text-sm !text-gray-700">{previewDoc.verificationDetails}</Text>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end">
+              <a href={previewDoc.filePath} target="_blank" rel="noopener noreferrer">
+                <Button icon={<Eye size={14} />} className="!rounded-lg !border-orange-200 !text-orange-600 hover:!bg-orange-50">
+                  Mở trong tab mới
+                </Button>
+              </a>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       {/* Upload modal */}
       <Modal

@@ -4,6 +4,7 @@ import type {
   CreateApplicantRequest,
   CreateApplicantResponse,
 } from "../types/applicant";
+import type { Document } from "../types/document";
 
 // Lấy hồ sơ cá nhân
 export async function getMyApplicant(): Promise<CreateApplicantResponse> {

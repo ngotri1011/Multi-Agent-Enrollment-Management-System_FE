@@ -32,7 +32,7 @@ import {
 } from "lucide-react";
 import { DashboardLayout } from "../../components/DashboardLayout";
 import { applicantMenu } from "../applicant/applicantMenu";
-import { fetchMyApplicationDetail } from "../../api/applications";
+import { fetchApplicationDetail } from "../../api/applications";
 import type { Application, ApplicationStatus, Document } from "../../types/application";
 
 const { Title, Text } = Typography;
@@ -315,8 +315,8 @@ export function ApplicationDetail() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!id) return;
-    fetchMyApplicationDetail(Number(id))
+      if (!id) return;
+      fetchApplicationDetail(Number(id))
       .then(setApp)
       .catch(() => setError("Không thể tải chi tiết đơn đăng ký."))
       .finally(() => setLoading(false));
