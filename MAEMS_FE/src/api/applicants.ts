@@ -5,6 +5,7 @@ import type {
   CreateApplicantResponse,
 } from "../types/applicant";
 
+// Lấy hồ sơ cá nhân
 export async function getMyApplicant(): Promise<CreateApplicantResponse> {
   // api/Applicants/me   
   const res = await apiClient.get<ApiWrapper<CreateApplicantResponse>>(
@@ -13,6 +14,7 @@ export async function getMyApplicant(): Promise<CreateApplicantResponse> {
   return res.data.data;
 }
 
+// Tạo hồ sơ cá nhân
 export async function createApplicant(
   payload: CreateApplicantRequest
 ): Promise<CreateApplicantResponse> {
@@ -23,6 +25,7 @@ export async function createApplicant(
   return res.data.data;
 }
 
+// Cập nhật hồ sơ cá nhân
 export async function patchApplicant(
     payload: CreateApplicantRequest
 ): Promise<CreateApplicantResponse> {
@@ -30,5 +33,20 @@ export async function patchApplicant(
         "/api/Applicants/me",
         payload
     );
+    return res.data.data;
+}
+
+//Upload tài liệu đính kèm
+export async function uploadApplicantDocuments(payload: FormData): Promise<Document[]> {
+    const res = await apiClient.post<ApiWrapper<Document[]>>(`/api/Applicants/me/documents`, payload, {
+        headers: {
+            "Content-Type": "multipart/form-data",
+        },
+    });
+    return res.data.data;
+}
+//Xem tài liệu đã upload
+export async function getApplicantDocuments(): Promise<Document[]> {
+    const res = await apiClient.get<ApiWrapper<Document[]>>(`/api/Applicants/me/documents`);
     return res.data.data;
 }

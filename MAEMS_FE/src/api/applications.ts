@@ -28,13 +28,7 @@ export async function fetchApplicationDetail(id: number): Promise<Application> {
   return res.data.data;
 }
 
-//Lấy thông tin chi tiết đơn ĐK ngành đào tạo của tôi
-export async function fetchMyApplicationDetail(id: number): Promise<Application> {
-  const res = await apiClient.get<ApiWrapper<Application>>(
-    `/api/Applications/me/${id}/with-documents`,
-  );
-  return res.data.data;
-}
+
 
 //Nộp đơn ĐK ngành đào tạo
 export async function submitApplication(payload: CreateApplicationRequest): Promise<CreateApplicationResponse> {
@@ -55,15 +49,6 @@ export async function submitApplicationFinal(id: number): Promise<CreateApplicat
   return res.data.data;
 }
 
-//Nộp tài liệu đính kèm
-export async function submitApplicationDocuments(id: number, payload: FormData): Promise<Document[]> {
-  const res = await apiClient.post<ApiWrapper<Document[]>>(`/api/Applications/${id}/documents`, payload, {
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
-  });
-  return res.data.data;
-}
 
 // Phê duyệt hồ sơ (role officer)
 export async function approveApplication(id: number): Promise<void> {

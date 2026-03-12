@@ -24,6 +24,7 @@ import { getPrograms } from "../../api/programs";
 import { getCampuses } from "../../api/campuses";
 import { getAdmissionTypes } from "../../api/admission_types";
 import { submitApplication } from "../../api/applications";
+import { getProgramAdmissionConfigsFilter } from "../../api/program.admission.configs";
 import type { CreateApplicantResponse } from "../../types/applicant";
 import type { Program } from "../../types/program";
 import type { Campus } from "../../types/campus";
@@ -105,6 +106,9 @@ export function SubmitTHPT() {
   const [admissionTypes, setAdmissionTypes] = useState<AdmissionType[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [configId, setConfigId] = useState<number | null>(null);
+  const [configLoading, setConfigLoading] = useState(false);
+  const [configError, setConfigError] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -125,15 +129,38 @@ export function SubmitTHPT() {
     });
   }, []);
 
-  async function handleSubmit(values: FormValues) {
+  async function handleValuesChange(_: Partial<FormValues>, all: FormValues) {
+    const { programId, campusId, admissionTypeId } = all;
+    if (!programId || !campusId || !admissionTypeId) {
+      setConfigId(null);
+      setConfigError(null);
+      return;
+    }
+    setConfigLoading(true);
+    setConfigError(null);
+    setConfigId(null);
+    try {
+      const configs = await getProgramAdmissionConfigsFilter(programId, campusId, admissionTypeId);
+      if (configs && configs.length > 0) {
+        setConfigId(configs[0].configId);
+      } else {
+        setConfigError("Không tìm thấy cấu hình xét tuyển phù hợp với lựa chọn này.");
+      }
+    } catch {
+      setConfigError("Không thể kiểm tra cấu hình xét tuyển. Vui lòng thử lại.");
+    } finally {
+      setConfigLoading(false);
+    }
+  }
+
+  async function handleSubmit() {
+    if (!configId) {
+      messageApi.error("Không có cấu hình xét tuyển hợp lệ. Vui lòng kiểm tra lại lựa chọn.");
+      return;
+    }
     setSubmitting(true);
     try {
-      await submitApplication({
-        programId: values.programId,
-        enrollmentYearId: 1,
-        campusId: values.campusId,
-        admissionTypeId: values.admissionTypeId,
-      });
+      await submitApplication({ configId });
       messageApi.success("Đăng ký xét tuyển theo điểm thi THPT thành công! Vui lòng nộp tài liệu trong trang đơn đăng ký.");
       setTimeout(() => navigate("/applicant/applications"), 1500);
     } catch (err: unknown) {
@@ -197,7 +224,7 @@ export function SubmitTHPT() {
             )}
 
             <div className="rounded-2xl bg-white border border-gray-100 shadow-sm p-6 md:p-8">
-              <Form form={form} layout="vertical" onFinish={handleSubmit} requiredMark={false}>
+              <Form form={form} layout="vertical" onFinish={handleSubmit} onValuesChange={handleValuesChange} requiredMark={false}>
                 {applicant ? (
                   <ApplicantInfoCard applicant={applicant} />
                 ) : (
@@ -272,6 +299,24 @@ export function SubmitTHPT() {
                   </Form.Item>
                 </div>
 
+                {configLoading && (
+                  <div className="rounded-lg bg-gray-50 border border-gray-200 p-3 mb-4 text-xs text-gray-500 flex items-center gap-2">
+                    <Spin size="small" />
+                    Đang kiểm tra cấu hình xét tuyển...
+                  </div>
+                )}
+                {!configLoading && configError && (
+                  <Alert type="error" showIcon className="mb-4 rounded-lg" message={configError} />
+                )}
+                {!configLoading && configId && (
+                  <Alert
+                    type="success"
+                    showIcon
+                    className="mb-4 rounded-lg"
+                    message={`Cấu hình xét tuyển hợp lệ (ID: ${configId}). Bạn có thể tiến hành đăng ký.`}
+                  />
+                )}
+
                 <div className="rounded-lg bg-blue-50 border border-blue-100 p-3 mb-6 text-xs text-blue-700">
                   Sau khi đăng ký, bạn cần <strong>nộp tài liệu</strong> trong trang{" "}
                   <span className="font-semibold">Đơn đăng ký của tôi</span> để hoàn tất hồ sơ.
@@ -283,7 +328,7 @@ export function SubmitTHPT() {
                   size="large"
                   block
                   loading={submitting}
-                  disabled={!applicant}
+                  disabled={!applicant || !configId || configLoading}
                   className="!bg-orange-500 !border-orange-500 hover:!bg-orange-600 !rounded-xl !h-12 !font-semibold"
                 >
                   Đăng ký xét tuyển điểm thi THPT

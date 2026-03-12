@@ -35,10 +35,7 @@ export type Document = {
 }
 
 export type CreateApplicationRequest = {
-  programId: number
-  enrollmentYearId: number
-  campusId: number
-  admissionTypeId: number
+  configId: number
 }
 
 export type CreateApplicationResponse = {

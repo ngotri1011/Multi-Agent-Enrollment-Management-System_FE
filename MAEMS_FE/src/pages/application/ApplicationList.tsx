@@ -1,22 +1,17 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Button,
   Card,
   Divider,
   Empty,
-  Form,
-  Modal,
-  Select,
   Spin,
   Tag,
   Tooltip,
   Typography,
-  Upload,
   message,
   Popconfirm,
 } from "antd";
-import type { UploadFile } from "antd";
 import {
   Bot,
   CalendarDays,
@@ -29,15 +24,13 @@ import {
   Hash,
   Loader2,
   MapPin,
-  Paperclip,
   PlusCircle,
   SendHorizonal,
-  UploadCloud,
   XCircle,
 } from "lucide-react";
 import { DashboardLayout } from "../../components/DashboardLayout";
 import { applicantMenu } from "../applicant/applicantMenu";
-import { fetchMyApplications, fetchMyApplicationDetail, submitApplicationDocuments, submitApplicationFinal } from "../../api/applications";
+import { fetchMyApplications, submitApplicationFinal } from "../../api/applications";
 import type { Application, ApplicationStatus } from "../../types/application";
 
 const { Title, Text } = Typography;
@@ -176,164 +169,14 @@ function relativeTime(iso: string) {
   return formatDate(iso);
 }
 
-// ─── Document type options ────────────────────────────────────────────────────
-
-const DOC_TYPE_OPTIONS = [
-  { value: "CCCD_FRONT",    label: "CCCD/CMND mặt trước" },
-  { value: "CCCD_BACK",     label: "CCCD/CMND mặt sau" },
-  { value: "HOC_BA",        label: "Học bạ / Bảng điểm" },
-  { value: "DGNL",          label: "Giấy chứng nhận ĐGNL" },
-  { value: "THPT",          label: "Giấy chứng nhận tốt nghiệp THPT" },
-  { value: "SCHOOL_RANK",   label: "Xác nhận xếp hạng SchoolRank" },
-  { value: "UU_TIEN",       label: "Đơn ưu tiên xét tuyển" },
-  { value: "BIEN_LAI",      label: "Biên lai nộp phí" },
-  { value: "VAN_BANG",      label: "Văn bằng / Chứng chỉ" },
-  { value: "KHAC",          label: "Tài liệu khác" },
-];
-
-// ─── Upload document modal ────────────────────────────────────────────────────
-
-interface UploadDocModalProps {
-  app: Application;
-  open: boolean;
-  onClose: () => void;
-  onSuccess: () => void;
-}
-
-function UploadDocModal({ app, open, onClose, onSuccess }: UploadDocModalProps) {
-  const [form] = Form.useForm();
-  const [fileList, setFileList] = useState<UploadFile[]>([]);
-  const [uploading, setUploading] = useState(false);
-  const [messageApi, contextHolder] = message.useMessage();
-  const isMounted = useRef(true);
-
-  useEffect(() => {
-    isMounted.current = true;
-    return () => { isMounted.current = false; };
-  }, []);
-
-  function handleClose() {
-    form.resetFields();
-    setFileList([]);
-    onClose();
-  }
-
-  async function handleUpload() {
-    let values: { documentType: string };
-    try {
-      values = await form.validateFields();
-    } catch {
-      return;
-    }
-    if (fileList.length === 0) {
-      messageApi.warning("Vui lòng chọn file cần tải lên.");
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append("documentType", values.documentType);
-    const rawFile = fileList[0].originFileObj as File;
-    formData.append("file", rawFile);
-
-    setUploading(true);
-    try {
-      await submitApplicationDocuments(Number(app.applicationId), formData);
-      messageApi.success("Tải lên tài liệu thành công!");
-      if (isMounted.current) {
-        handleClose();
-        onSuccess();
-      }
-    } catch (err: unknown) {
-      const errData = (err as { response?: { data?: { message?: string } } }).response?.data;
-      messageApi.error(errData?.message ?? "Tải lên thất bại. Vui lòng thử lại.");
-    } finally {
-      if (isMounted.current) setUploading(false);
-    }
-  }
-
-  return (
-    <Modal
-      open={open}
-      onCancel={handleClose}
-      title={
-        <div className="flex flex-col gap-0.5">
-          <span className="text-base font-bold text-gray-800">Nộp tài liệu</span>
-          <span className="text-xs text-gray-400 font-normal">
-            {app.programName} &nbsp;·&nbsp; #{app.applicationId}
-          </span>
-        </div>
-      }
-      footer={null}
-      destroyOnClose
-      width={480}
-    >
-      {contextHolder}
-      <Form form={form} layout="vertical" requiredMark={false} className="mt-4">
-        <Form.Item
-          name="documentType"
-          label={<Text strong>Loại tài liệu</Text>}
-          rules={[{ required: true, message: "Vui lòng chọn loại tài liệu" }]}
-        >
-          <Select
-            placeholder="Chọn loại tài liệu"
-            size="large"
-            options={DOC_TYPE_OPTIONS}
-          />
-        </Form.Item>
-
-        <Form.Item label={<Text strong>File tài liệu</Text>}>
-          <Upload.Dragger
-            accept="image/*,.pdf"
-            maxCount={1}
-            beforeUpload={() => false}
-            fileList={fileList}
-            onChange={({ fileList: fl }) => setFileList(fl)}
-            className="!rounded-xl"
-          >
-            <div className="flex flex-col items-center gap-1.5 py-4">
-              <UploadCloud size={28} className="text-gray-300" />
-              <Text className="text-sm text-gray-500">
-                Kéo thả file vào đây hoặc{" "}
-                <span className="text-orange-500 font-medium">nhấn để chọn</span>
-              </Text>
-              <Text className="text-xs text-gray-400">JPG, PNG, PDF — tối đa 10 MB</Text>
-            </div>
-          </Upload.Dragger>
-        </Form.Item>
-
-        <div className="flex gap-2 justify-end mt-2">
-          <Button onClick={handleClose} className="!rounded-xl">
-            Hủy
-          </Button>
-          <Button
-            type="primary"
-            loading={uploading}
-            onClick={handleUpload}
-            icon={<UploadCloud size={14} />}
-            className="!rounded-xl !bg-orange-500 !border-orange-500 hover:!bg-orange-600"
-          >
-            Tải lên
-          </Button>
-        </div>
-      </Form>
-    </Modal>
-  );
-}
-
 // ─── Application card ─────────────────────────────────────────────────────────
 
 function ApplicationCard({
   app,
-  docCount,
-  docCountLoading,
-  onUploadDoc,
   onSubmitFinal,
   submittingId,
 }: {
   app: Application;
-  docCount: number;
-  docCountLoading: boolean;
-  onUploadDoc: (app: Application) => void;
   onSubmitFinal: (app: Application) => void;
   submittingId: number | null;
 }) {
@@ -343,7 +186,6 @@ function ApplicationCard({
   const sc = statusConfig[app.status];
   const isAiProcessing = app.status === "under_review" || app.status === "submitted";
   const canSubmitFinal = app.status === "draft";
-  const hasDocuments = docCount > 0;
   const isSubmitting = submittingId === app.applicationId;
 
   return (
@@ -397,71 +239,33 @@ function ApplicationCard({
                 Cập nhật: {relativeTime(app.lastUpdated)}
               </Text>
             )}
-            <div className="flex items-center gap-1 text-gray-400">
-              <Paperclip size={12} />
-              {docCountLoading ? (
-                <span className="text-[11px] text-gray-300 italic">Đang kiểm tra…</span>
-              ) : (
-                <Text className={`text-[11px] font-medium ${hasDocuments ? "text-green-600" : "text-orange-500"}`}>
-                  {docCount} tài liệu đính kèm
-                </Text>
-              )}
-            </div>
           </div>
         </div>
 
         {/* Action buttons */}
         <div className="flex items-center gap-2 shrink-0 flex-wrap">
-          <Tooltip title="Tải lên tài liệu cho đơn này">
-            <Button
-              icon={<UploadCloud size={14} />}
-              className="!rounded-xl !border-orange-200 !text-orange-600 hover:!bg-orange-50"
-              onClick={() => onUploadDoc(app)}
-            >
-              Nộp tài liệu
-            </Button>
-          </Tooltip>
-
           {canSubmitFinal && (
-            hasDocuments ? (
-              <Popconfirm
-                title="Xác nhận nộp đơn đăng ký"
-                description={
-                  <span className="text-xs text-gray-500">
-                    Sau khi nộp, đơn sẽ được gửi đến hệ thống xét duyệt.<br />
-                    Bạn sẽ không thể chỉnh sửa sau khi xác nhận.
-                  </span>
-                }
-                okText="Xác nhận nộp"
-                cancelText="Hủy"
-                okButtonProps={{ className: "!bg-green-600 !border-green-600" }}
-                onConfirm={() => onSubmitFinal(app)}
+            <Popconfirm
+              title="Xác nhận nộp đơn đăng ký"
+              description={
+                <span className="text-xs text-gray-500">
+                  Sau khi nộp, đơn sẽ được gửi đến hệ thống xét duyệt.<br />
+                  Bạn sẽ không thể chỉnh sửa sau khi xác nhận.
+                </span>
+              }
+              okText="Xác nhận nộp"
+              cancelText="Hủy"
+              okButtonProps={{ className: "!bg-green-600 !border-green-600" }}
+              onConfirm={() => onSubmitFinal(app)}
+            >
+              <Button
+                icon={<SendHorizonal size={14} />}
+                loading={isSubmitting}
+                className="!rounded-xl !border-green-400 !text-green-600 hover:!bg-green-50"
               >
-                <Button
-                  icon={<SendHorizonal size={14} />}
-                  loading={isSubmitting}
-                  className="!rounded-xl !border-green-400 !text-green-600 hover:!bg-green-50"
-                >
-                  Nộp đơn
-                </Button>
-              </Popconfirm>
-            ) : (
-              <Tooltip
-                title={
-                  docCountLoading
-                    ? "Đang kiểm tra tài liệu…"
-                    : "Bạn cần nộp ít nhất 1 tài liệu trước khi nộp đơn"
-                }
-              >
-                <Button
-                  icon={<SendHorizonal size={14} />}
-                  disabled
-                  className="!rounded-xl !cursor-not-allowed"
-                >
-                  Nộp đơn
-                </Button>
-              </Tooltip>
-            )
+                Nộp đơn
+              </Button>
+            </Popconfirm>
           )}
 
           <Button
@@ -514,49 +318,16 @@ export function ApplicationList() {
   const [apps, setApps] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [uploadTarget, setUploadTarget] = useState<Application | null>(null);
   const [submittingId, setSubmittingId] = useState<number | null>(null);
-  // docCountMap: applicationId → số tài liệu thực tế từ detail API
-  const [docCountMap, setDocCountMap] = useState<Record<string, number>>({});
-  const [docCountsLoading, setDocCountsLoading] = useState<Record<string, boolean>>({});
-
-  async function loadDocCounts(appList: Application[]) {
-    if (!appList?.length) return;
-    // Đánh dấu tất cả đang loading
-    const initLoading = Object.fromEntries(appList.map((a) => [a.applicationId, true]));
-    setDocCountsLoading(initLoading);
-
-    // Fetch song song tất cả detail để lấy documents
-    await Promise.allSettled(
-      appList.map(async (a) => {
-        try {
-          const detail = await fetchMyApplicationDetail(Number(a.applicationId));
-          setDocCountMap((prev) => ({
-            ...prev,
-            [a.applicationId]: detail.documents?.length ?? 0,
-          }));
-        } catch {
-          setDocCountMap((prev) => ({ ...prev, [a.applicationId]: 0 }));
-        } finally {
-          setDocCountsLoading((prev) => ({ ...prev, [a.applicationId]: false }));
-        }
-      })
-    );
-  }
 
   function loadApps() {
     setLoading(true);
     fetchMyApplications()
-      .then((appList) => {
-        const list = appList ?? [];
-        setApps(list);
-        loadDocCounts(list);
-      })
+      .then((appList) => setApps(appList ?? []))
       .catch(() => setError("Không thể tải danh sách đơn đăng ký."))
       .finally(() => setLoading(false));
   }
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadApps(); }, []);
 
   async function handleSubmitFinal(app: Application) {
@@ -644,25 +415,12 @@ export function ApplicationList() {
               <ApplicationCard
                 key={app.applicationId}
                 app={app}
-                docCount={docCountMap[app.applicationId] ?? 0}
-                docCountLoading={docCountsLoading[app.applicationId] ?? false}
-                onUploadDoc={setUploadTarget}
                 onSubmitFinal={handleSubmitFinal}
                 submittingId={submittingId}
               />
             ))}
           </div>
         </>
-      )}
-
-      {/* ── Upload document modal ── */}
-      {uploadTarget && (
-        <UploadDocModal
-          app={uploadTarget}
-          open={!!uploadTarget}
-          onClose={() => setUploadTarget(null)}
-          onSuccess={loadApps}
-        />
       )}
     </DashboardLayout>
   );
