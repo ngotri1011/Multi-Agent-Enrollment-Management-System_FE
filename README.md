@@ -12,17 +12,18 @@ This repository contains the **Frontend** application of the system.
 
 ## Tech Stack
 
-| Layer            | Technology                          |
-| ---------------- | ----------------------------------- |
-| Build Tool       | Vite 7                              |
-| Language         | TypeScript 5.9                      |
-| UI Library       | React 19                            |
-| UI Framework     | Ant Design + TailwindCSS            |
-| Routing          | React Router DOM v7                 |
-| State Management | Zustand                             |
-| HTTP Client      | Axios                               |
-| Authentication   | Firebase Auth (Google Sign-In) + JWT |
-| Icons            | Lucide React                        |
+| Layer            | Technology                                    |
+| ---------------- | --------------------------------------------- |
+| Build Tool       | Vite 7                                        |
+| Language         | TypeScript 5.9                                |
+| UI Library       | React 19                                      |
+| UI Framework     | Ant Design 6 + TailwindCSS 4                  |
+| Routing          | React Router DOM v7                           |
+| State Management | Zustand 5                                     |
+| HTTP Client      | Axios                                         |
+| Authentication   | Firebase Auth (Google Sign-In) + JWT          |
+| Charts           | Recharts                                      |
+| Icons            | Lucide React                                  |
 
 ---
 
@@ -45,13 +46,13 @@ The system utilizes specialized agents to handle distinct stages of the enrollme
 
 ### User Roles
 
-| Role                 | Primary Functions                                                              |
-| -------------------- | ------------------------------------------------------------------------------ |
-| **System Admin**     | Manage enrollment configurations, admission rules, articles, and system reports |
-| **Admission Officer**| Review applicant records, handle escalated cases, monitor agent performance     |
-| **QA Officer**       | Review agent-generated evaluations, validate eligibility logic                 |
-| **Applicant**        | Submit applications, upload documents, track status, receive notifications     |
-| **Guest**            | Browse homepage, view admission information and articles                       |
+| Role                     | Primary Functions                                                                |
+| ------------------------ | -------------------------------------------------------------------------------- |
+| **System Admin**         | Manage enrollment configurations, admission rules, articles, and system reports  |
+| **Admission Officer**    | Review applicant records, handle escalated cases, monitor agent performance      |
+| **QA Officer**           | Review agent-generated evaluations, validate eligibility logic                   |
+| **Applicant**            | Submit applications, upload documents, track status, receive notifications       |
+| **Guest**                | Browse homepage, view admission information and articles                         |
 
 ### Admission Methods Supported
 
@@ -69,11 +70,10 @@ MAEMS_FE/
 ├── public/
 ├── src/
 │   ├── api/                  # API service modules (auth, applicant, application, programs, campuses, admission_types)
-│   ├── app/                  # Root App component & providers
-│   ├── auth/                 # Auth initialization
+│   ├── auth/                 # Auth initialization (AuthInit)
 │   ├── components/
-│   │   ├── layouts/          # ApplicantLayout, GuestLayout, StaffLayout
-│   │   └── ...               # Shared components (Header, Sidebar, ExportPanel, GoogleLoginButton)
+│   │   ├── layouts/          # ApplicantLayout, OfficerLayout, StaffLayout
+│   │   └── ...               # Shared components (AppHeader, Sidebar, GoogleLoginButton)
 │   ├── hooks/                # Custom hooks (useAuth, useRoleGuard)
 │   ├── pages/
 │   │   ├── admin/            # Admin dashboard, reports, eligibility rules, articles
@@ -82,20 +82,23 @@ MAEMS_FE/
 │   │   ├── applicant/        # Applicant dashboard & profile
 │   │   ├── application/      # Application submission forms (Học bạ, ĐGNL, THPT, Khác)
 │   │   ├── articles/         # Article management (list, detail, editor)
-│   │   ├── auth/             # Authentication page
+│   │   ├── auth/             # Authentication page (login + register)
 │   │   ├── eligibility/      # Rule configuration
 │   │   ├── homepage/         # Public homepage
+│   │   ├── officer/          # Admission Officer dashboard & application review
 │   │   ├── qa/               # QA dashboard & review evaluation
-│   │   ├── reports/          # Report dashboard
-│   │   └── staff/            # Staff dashboard
+│   │   └── reports/          # Report dashboard
+│   ├── providers.tsx         # App-level providers (BrowserRouter)
 │   ├── routes/               # AppRouter & RoleGuard
 │   ├── services/             # Auth service
 │   ├── stores/               # Zustand auth store
 │   ├── types/                # TypeScript type definitions
 │   ├── firebase.ts           # Firebase configuration
+│   ├── App.tsx               # Root App component
 │   ├── main.tsx              # Application entry point
 │   └── index.css             # Global styles
-├── .env                      # Environment variables
+├── .env                      # Environment variables (not committed)
+├── .env.example              # Environment variable template
 ├── package.json
 ├── tsconfig.json
 ├── vite.config.ts
@@ -128,14 +131,22 @@ npm install
 
 3. **Configure environment variables:**
 
-Create a `.env` file in the `MAEMS_FE/` directory:
+Copy `.env.example` to `.env` in the `MAEMS_FE/` directory and fill in your values:
+
+```bash
+cp .env.example .env
+```
 
 ```env
 VITE_MAEMS_API_URL=<your-backend-api-url>
+VITE_FIREBASE_API_KEY=<your-firebase-api-key>
+VITE_FIREBASE_AUTH_DOMAIN=<your-firebase-auth-domain>
+VITE_FIREBASE_PROJECT_ID=<your-firebase-project-id>
+VITE_FIREBASE_STORAGE_BUCKET=<your-firebase-storage-bucket>
+VITE_FIREBASE_MESSAGING_SENDER_ID=<your-firebase-messaging-sender-id>
+VITE_FIREBASE_APP_ID=<your-firebase-app-id>
+VITE_FIREBASE_MEASUREMENT_ID=<your-firebase-measurement-id>
 ```
-4. **Create the Firebase configuration file:**
-
-Create a file named `firebase.ts` inside the `src` directory. This file should contain your Firebase project configuration and initialization code.
 
 4. **Start the development server:**
 
@@ -147,12 +158,12 @@ The application will be available at `http://localhost:5173`.
 
 ### Available Scripts
 
-| Script          | Command             | Description                    |
-| --------------- | ------------------- | ------------------------------ |
-| `npm run dev`   | `vite`              | Start development server       |
-| `npm run build` | `tsc -b && vite build` | Type-check and build for production |
-| `npm run lint`  | `eslint .`          | Run ESLint                     |
-| `npm run preview` | `vite preview`    | Preview production build       |
+| Script              | Command                  | Description                           |
+| ------------------- | ------------------------ | ------------------------------------- |
+| `npm run dev`       | `vite`                   | Start development server              |
+| `npm run build`     | `tsc -b && vite build`   | Type-check and build for production   |
+| `npm run lint`      | `eslint .`               | Run ESLint                            |
+| `npm run preview`   | `vite preview`           | Preview production build              |
 
 ---
 
@@ -168,25 +179,27 @@ The application will be available at `http://localhost:5173`.
 
 ### Applicant Routes (requires `applicant` role)
 
-| Path                                       | Page                    |
-| ------------------------------------------ | ----------------------- |
-| `/applicant/dashboard`                     | Applicant Dashboard     |
-| `/applicant/profile`                       | Applicant Profile       |
-| `/applicant/applications`                  | Application List        |
-| `/applicant/applications/:id`              | Application Detail      |
-| `/applicant/submit-application`            | Submit Application      |
-| `/applicant/submit-application/hoc-ba`     | Submit via Học bạ       |
-| `/applicant/submit-application/danh-gia-nang-luc` | Submit via ĐGNL  |
-| `/applicant/submit-application/tot-nghiep-thpt`   | Submit via THPT  |
-| `/applicant/submit-application/phuong-thuc-khac`  | Submit via Other  |
+| Path                                              | Page                    |
+| ------------------------------------------------- | ----------------------- |
+| `/applicant/dashboard`                            | Applicant Dashboard     |
+| `/applicant/profile`                              | Applicant Profile       |
+| `/applicant/applications`                         | Application List        |
+| `/applicant/applications/:id`                     | Application Detail      |
+| `/applicant/submit-application`                   | Submit Application      |
+| `/applicant/submit-application/hoc-ba`            | Submit via Học bạ       |
+| `/applicant/submit-application/danh-gia-nang-luc` | Submit via ĐGNL         |
+| `/applicant/submit-application/tot-nghiep-thpt`   | Submit via THPT         |
+| `/applicant/submit-application/phuong-thuc-khac`  | Submit via Other        |
 
-### Staff Routes (requires `staff` role)
+### Officer Routes (requires `officer` role)
 
-| Path                         | Page                  |
-| ---------------------------- | --------------------- |
-| `/staff/dashboard`           | Staff Dashboard       |
-| `/staff/agents/dashboard`    | Agent Dashboard       |
-| `/staff/agents/performance`  | Agent Performance     |
+| Path                             | Page                        |
+| -------------------------------- | --------------------------- |
+| `/officer/dashboard`             | Officer Dashboard           |
+| `/officer/review-applications`   | Review Applications         |
+| `/officer/applications/:id`      | Application Detail (Review) |
+| `/officer/agents/dashboard`      | Agent Dashboard             |
+| `/officer/agents/performance`    | Agent Performance           |
 
 ### Admin Routes (requires `admin` role)
 
@@ -197,7 +210,7 @@ The application will be available at `http://localhost:5173`.
 | `/admin/eligibility/rules`  | Rule Configuration |
 | `/admin/articles`           | Article Management |
 | `/admin/articles/new`       | Create Article     |
-| `/admin/articles/:id`       | Edit Article       |
+| `/admin/articles/:id`       | Article Detail     |
 
 ### QA Routes (requires `qa` role)
 
@@ -210,7 +223,7 @@ The application will be available at `http://localhost:5173`.
 
 ## Backend API
 
-The frontend communicates with the MAEMS Backend API hosted on Azure. API modules include:
+The frontend communicates with the MAEMS Backend API. API modules include:
 
 - **Auth** — Authentication and token management
 - **Applicant** — Applicant profile management
