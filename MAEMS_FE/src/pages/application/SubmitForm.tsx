@@ -16,7 +16,7 @@ import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "../../components/DashboardLayout";
 import { applicantMenu } from "../applicant/applicantMenu";
 import { getMyApplicant } from "../../api/applicants";
-import { getPrograms } from "../../api/programs";
+import { getActiveProgramsBasic } from "../../api/programs";
 import { submitApplication } from "../../api/applications";
 import { getProgramAdmissionConfigsFilter } from "../../api/program-admission-configs";
 import type { CreateApplicantResponse } from "../../types/applicant";
@@ -114,7 +114,7 @@ export function SubmitForm() {
   useEffect(() => {
     Promise.all([
       getMyApplicant().catch(() => null),
-      getPrograms().catch(() => []),
+      getActiveProgramsBasic().catch(() => []),
     ]).then(([applicantData, programsData]) => {
       setApplicant(applicantData);
       setPrograms(programsData ?? []);
