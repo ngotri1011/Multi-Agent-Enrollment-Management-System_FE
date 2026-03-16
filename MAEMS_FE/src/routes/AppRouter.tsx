@@ -34,6 +34,7 @@ import { AdminProgramManagement } from "../pages/admin/AdminProgramManagement";
 import { AdminPaymentManagement } from "../pages/admin/AdminPaymentManagement";
 import { AdminReports } from "../pages/admin/AdminReports";
 import { AdminSettings } from "../pages/admin/AdminSettnigs";
+import { AdminUserManagement } from "../pages/admin/AdminUserManagement";
 
 export function AppRouter() {
   return (
@@ -253,6 +254,15 @@ export function AppRouter() {
           </RoleGuard>
         }
       />
+      <Route
+        path="/admin/users"
+        element={
+          <RoleGuard allowedRoles={["admin"]}>
+            <AdminUserManagement />
+          </RoleGuard>
+        }
+      />
+      
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

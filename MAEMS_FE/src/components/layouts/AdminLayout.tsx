@@ -46,6 +46,12 @@ const menuItems: SidebarMenuItem[] = [
     path: "/admin/reports",
   },
   {
+    key: "users",
+    label: "Quản lý người dùng",
+    icon: <FileText size={16} />,
+    path: "/admin/users",
+  },
+  {
     key: "settings",
     label: "Cài đặt hệ thống",
     icon: <FileText size={16} />,
