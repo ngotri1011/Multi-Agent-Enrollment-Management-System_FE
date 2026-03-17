@@ -37,14 +37,6 @@ export type UserProfile = {
   createdAt: string;
 };
 
-// API response wrapper
-export type ApiWrapper<T> = {
-  success: boolean;
-  message: string;
-  data: T;
-  errors: string[];
-};
-
 // API-specific raw shapes
 export type ApiLoginData = {
   accessToken: string;

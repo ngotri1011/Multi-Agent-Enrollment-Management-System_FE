@@ -2,7 +2,7 @@
 
 import { apiClient } from "../services/axios";
 import type { Application, CreateApplicationRequest, CreateApplicationResponse } from "../types/application";
-import type { ApiWrapper } from "../types/auth";
+import type { ApiWrapper } from "../types/api.wrapper";
 
 //Lấy danh sách đơn ĐK ngành đào tạo của tôi
 export async function fetchMyApplications(): Promise<Application[]> {
