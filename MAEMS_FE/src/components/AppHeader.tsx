@@ -13,7 +13,6 @@ const roleDashboard: Record<AuthRole, string> = {
   admin: "/admin/dashboard",
   officer: "/officer/dashboard",
   qa: "/qa/dashboard",
-  guest: "/",
 };
 
 export function AppHeader() {

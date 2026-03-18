@@ -1,11 +1,11 @@
 import { apiClient } from "../services/axios";
+import type { ApiWrapper } from "../types/api.wrapper";
 import type {
   AuthRole,
   AuthUser,
   ApiLoginData,
   ApiProfileData,
   ApiRegisterData,
-  ApiWrapper,
   LoginRequest,
   LoginResponse,
   RegisterRequest,

@@ -1,5 +1,5 @@
 import { apiClient } from "../services/axios";
-import type { ApiWrapper } from "../types/auth";
+import type { ApiWrapper } from "../types/api.wrapper";
 import type { ProgramAdmissionConfig } from "../types/program.admission.config";
 
 export async function getProgramAdmissionConfigsFilter(

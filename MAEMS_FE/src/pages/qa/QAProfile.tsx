@@ -7,13 +7,10 @@ import {
   Typography,
 } from "antd";
 import {
-  AlertTriangle,
-  BarChart2,
   CalendarDays,
-  ClipboardList,
+  ClipboardCheck,
   LayoutDashboard,
   Mail,
-  Newspaper,
   ShieldCheck,
   User,
 } from "lucide-react";
@@ -27,39 +24,21 @@ const { Title, Text } = Typography;
 const menuItems: SidebarMenuItem[] = [
   {
     key: "dashboard",
-    label: "Dashboard",
+    label: "Tổng quan",
     icon: <LayoutDashboard size={16} />,
-    path: "/officer/dashboard",
+    path: "/qa/dashboard",
   },
   {
-    key: "review-applications",
-    label: "Đánh giá đơn ĐK",
-    icon: <ClipboardList size={16} />,
-    path: "/officer/review-applications",
-  },
-  {
-    key: "escalations",
-    label: "Các trường hợp leo thang",
-    icon: <AlertTriangle size={16} />,
-    path: "/officer/escalations",
-  },
-  {
-    key: "reports",
-    label: "Báo cáo",
-    icon: <BarChart2 size={16} />,
-    path: "/officer/reports",
-  },
-  {
-    key: "articles",
-    label: "Bài viết",
-    icon: <Newspaper size={16} />,
-    path: "/officer/articles",
+    key: "review",
+    label: "Xem xét & Đánh giá",
+    icon: <ClipboardCheck size={16} />,
+    path: "/qa/review-evaluation",
   },
   {
     key: "profile",
     label: "Hồ sơ cá nhân",
     icon: <User size={16} />,
-    path: "/officer/profile",
+    path: "/qa/profile",
   },
 ];
 
@@ -96,7 +75,7 @@ function InfoRow({
   );
 }
 
-export function OfficerProfile() {
+export function QAProfile() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 

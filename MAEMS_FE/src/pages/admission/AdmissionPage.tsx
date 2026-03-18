@@ -3,14 +3,18 @@ import {
   Col,
   Form,
   Input,
+  Result,
   Row,
   Select,
   Space,
   Tag,
   Tabs,
   Typography,
+  message,
 } from "antd";
+import { CheckCircle } from "lucide-react";
 import { ExternalLink, SquareArrowOutUpRight } from "lucide-react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { GuestLayout } from "../../components/layouts/GuestLayout";
 
@@ -29,8 +33,38 @@ const NoteSection = () => (
   </div>
 );
 
+type AdmissionFormValues = {
+  fullName: string;
+  province: string;
+  phone: string;
+  email?: string;
+};
+
 export function AdmissionPage() {
   const navigate = useNavigate();
+  const [form] = Form.useForm<AdmissionFormValues>();
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleSubmit = async (values: AdmissionFormValues) => {
+    setSubmitting(true);
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      console.log("Admission form submitted:", values);
+      setSubmitted(true);
+      message.success("Đăng ký tuyển sinh thành công!");
+    } catch {
+      message.error("Có lỗi xảy ra, vui lòng thử lại.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleReset = () => {
+    form.resetFields();
+    setSubmitted(false);
+  };
+
   return (
     <GuestLayout>
       <div className="bg-gradient-to-br from-orange-200 via-amber-50 to-gray-50">
@@ -50,16 +84,13 @@ export function AdmissionPage() {
           <Row gutter={[24, 24]} align="stretch">
             <Col xs={24} md={12}>
               <div className="[&>div]:mb-4 [&>div:last-child]:mb-0">
-                <div className="inline-block py-2 px-4 mb-3 rounded-xl bg-white border border-orange-200/20 shadow-sm">
-                  <Tag color="orange" className="mb-3 w-full">
-                    Tuyển sinh 2026
-                  </Tag>
-                </div>
-                <div className="w-fit py-3 px-5 mb-3 rounded-xl bg-white border border-orange-200/20 shadow-sm">
-                  <Title level={1} className="!text-slate-900 !mb-0">
-                    Tuyển sinh
-                  </Title>
-                </div>
+                <Tag color="orange" className="!mb-4 text-xs font-semibold tracking-widest uppercase px-3 py-1">
+                  Tuyển sinh 2026
+                </Tag>
+                <Title level={1} className="!text-slate-900 !mb-8 !mt-0 !leading-tight ">
+                  Tuyển sinh
+                </Title>
+              
                 <div className="p-4 py-5 mb-3 rounded-xl bg-white border border-orange-200/20 shadow-sm">
                   <Paragraph className="text-base text-gray-600">
                     Trường Đại học FPT chào đón thế hệ sinh viên đại học chính
@@ -67,9 +98,7 @@ export function AdmissionPage() {
                     còn khát khao tạo ra giá trị mới trong kỷ nguyên số đang
                     không ngừng chuyển động.
                   </Paragraph>
-                </div>
-                <div className="p-4 py-5 mb-3 rounded-xl bg-white border border-orange-200/20 shadow-sm">
-                  <Paragraph>
+                  <Paragraph className="!mb-0">
                     Chương trình đào tạo đa ngành được xây dựng trên nền tảng
                     công nghệ, tinh thần dám nghĩ dám làm và tư duy hội nhập,
                     giúp sinh viên sẵn sàng bước vào môi trường sự nghiệp toàn
@@ -280,6 +309,16 @@ export function AdmissionPage() {
                 <Button
                   type="primary"
                   className="!bg-orange-500 !border-orange-500 hover:!bg-orange-600 !rounded-lg !mt-auto"
+                  onClick={() => {
+                    const routes: Record<string, string> = {
+                      "Campus Hà Nội": "/tuyen-sinh/hoc-phi-ha-noi",
+                      "Campus TP.HCM": "/tuyen-sinh/hoc-phi-hcm",
+                      "Campus Đà Nẵng": "/tuyen-sinh/hoc-phi-da-nang",
+                      "Campus Cần Thơ": "/tuyen-sinh/hoc-phi-can-tho",
+                      "Campus Quy Nhơn": "/tuyen-sinh/hoc-phi-quy-nhon",
+                    };
+                    if (routes[label]) navigate(routes[label]);
+                  }}
                 >
                   Xem thêm
                 </Button>
@@ -293,53 +332,99 @@ export function AdmissionPage() {
             Đăng ký tuyển sinh vào FPTU 2026
           </Title>
           <div className="p-6 rounded-2xl bg-white border border-orange-200/20 shadow-sm">
-            <Form layout="vertical">
-              <Form.Item
-                label="Họ và tên"
-                name="fullName"
-                rules={[{ required: true, message: "Vui lòng nhập họ và tên" }]}
+            {submitted ? (
+              <Result
+                icon={<CheckCircle size={64} className="text-green-500 mx-auto" />}
+                title={
+                  <span className="text-xl font-bold text-gray-900">
+                    Đăng ký thành công!
+                  </span>
+                }
+                subTitle={
+                  <span className="text-gray-500">
+                    Cảm ơn bạn đã đăng ký tuyển sinh tại FPTU 2026.
+                    Chúng tôi sẽ liên hệ với bạn trong thời gian sớm nhất.
+                  </span>
+                }
+                extra={
+                  <Button
+                    type="primary"
+                    size="large"
+                    className="!bg-orange-500 !border-orange-500 hover:!bg-orange-600"
+                    onClick={handleReset}
+                  >
+                    Đăng ký mới
+                  </Button>
+                }
+              />
+            ) : (
+              <Form
+                form={form}
+                layout="vertical"
+                onFinish={handleSubmit}
+                disabled={submitting}
               >
-                <Input placeholder="Nguyễn Văn A" />
-              </Form.Item>
-              <Form.Item
-                label="Tỉnh thành"
-                name="province"
-                rules={[
-                  { required: true, message: "Vui lòng chọn tỉnh thành" },
-                ]}
-              >
-                <Select placeholder="Chọn tỉnh thành">
-                  <Option value="ha-noi">Hà Nội</Option>
-                  <Option value="tp-hcm">TP. Hồ Chí Minh</Option>
-                  <Option value="da-nang">Đà Nẵng</Option>
-                  <Option value="can-tho">Cần Thơ</Option>
-                  <Option value="quy-nhon">Quy Nhơn</Option>
-                </Select>
-              </Form.Item>
-              <Form.Item
-                label="Số điện thoại"
-                name="phone"
-                rules={[
-                  { required: true, message: "Vui lòng nhập số điện thoại" },
-                ]}
-              >
-                <Input placeholder="Số điện thoại liên hệ" />
-              </Form.Item>
-              <Form.Item label="Email" name="email">
-                <Input placeholder="example@domain.com" />
-              </Form.Item>
-              <Form.Item>
-                <Button
-                  type="primary"
-                  size="large"
-                  htmlType="submit"
-                  block
-                  className="!bg-orange-500 !border-orange-500 hover:!bg-orange-600"
-                >
-                  Đăng ký ngay
-                </Button>
-              </Form.Item>
-            </Form>
+                <Row gutter={[16, 0]}>
+                  <Col xs={24} md={12}>
+                    <Form.Item
+                      label="Họ và tên"
+                      name="fullName"
+                      rules={[{ required: true, message: "Vui lòng nhập họ và tên" }]}
+                    >
+                      <Input placeholder="Nguyễn Văn A" size="large" />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} md={12}>
+                    <Form.Item
+                      label="Tỉnh thành"
+                      name="province"
+                      rules={[{ required: true, message: "Vui lòng chọn tỉnh thành" }]}
+                    >
+                      <Select placeholder="Chọn tỉnh thành" size="large">
+                        <Option value="ha-noi">Hà Nội</Option>
+                        <Option value="tp-hcm">TP. Hồ Chí Minh</Option>
+                        <Option value="da-nang">Đà Nẵng</Option>
+                        <Option value="can-tho">Cần Thơ</Option>
+                        <Option value="quy-nhon">Quy Nhơn</Option>
+                      </Select>
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} md={12}>
+                    <Form.Item
+                      label="Số điện thoại"
+                      name="phone"
+                      rules={[
+                        { required: true, message: "Vui lòng nhập số điện thoại" },
+                        { pattern: /^[0-9]{9,11}$/, message: "Số điện thoại không hợp lệ" },
+                      ]}
+                    >
+                      <Input placeholder="Số điện thoại liên hệ" size="large" />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} md={12}>
+                    <Form.Item
+                      label="Email"
+                      name="email"
+                      rules={[{ type: "email", message: "Email không hợp lệ" }]}
+                    >
+                      <Input placeholder="example@domain.com" size="large" />
+                    </Form.Item>
+                  </Col>
+                </Row>
+                <Form.Item className="!mb-0">
+                  <Button
+                    type="primary"
+                    size="large"
+                    htmlType="submit"
+                    block
+                    loading={submitting}
+                    className="!bg-orange-500 !border-orange-500 hover:!bg-orange-600"
+                  >
+                    {submitting ? "Đang gửi..." : "Đăng ký ngay"}
+                  </Button>
+                </Form.Item>
+              </Form>
+            )}
           </div>
         </section>
       </div>

@@ -4,10 +4,13 @@ import { RoleGuard } from "./RoleGuard";
 import { ApplicantDashboard } from "../pages/applicant/ApplicantDashboard";
 import { ApplicantProfilePage } from "../pages/applicant/ApplicantProfilePage";
 import { AdminDashboard } from "../pages/admin/AdminDashboard";
+import { AdminProfile } from "../pages/admin/AdminProfile";
 import { OfficerDashboard } from "../pages/officer/OfficerDashboard";
 import { OfficerApplications } from "../pages/officer/OfficerApplications";
 import { OfficerApplicationDetail } from "../pages/officer/OfficerApplicationDetail";
+import { OfficerProfile } from "../pages/officer/OfficerProfile";
 import { QaDashboard } from "../pages/qa/QaDashboard";
+import { QAProfile } from "../pages/qa/QAProfile";
 // feature pages
 import { AgentDashboard } from "../pages/agents/AgentDashboard";
 import { AgentPerformance } from "../pages/agents/AgentPerformance";
@@ -20,6 +23,11 @@ import { ArticleEditor } from "../pages/articles/ArticleEditor";
 import { ArticleList } from "../pages/articles/ArticleList";
 import { AdmissionPage } from "../pages/admission/AdmissionPage";
 import { AdmissionTypesPage } from "../pages/admission/AdmissionTypesPage";
+import { HanoiTuitionPage } from "../pages/admission/HanoiTuitionPage";
+import { HCMTuitionPage } from "../pages/admission/HCMTuitionPage";
+import { DaNangTuitionPage } from "../pages/admission/DaNangTuitionPage";
+import { CanThoTuitionPage } from "../pages/admission/CanThoTuitionPage";
+import { QuyNhonTuitionPage } from "../pages/admission/QuyNhonTuitionPage";
 import { HomePage } from "../pages/homepage/HomePage";
 import { AuthPage } from "../pages/auth/AuthPage";
 import { ProgramList } from "../pages/programs/ProgramList";
@@ -35,6 +43,11 @@ export function AppRouter() {
       <Route path="/" element={<HomePage />} />
       <Route path="/tuyen-sinh" element={<AdmissionPage />} />
       <Route path="/tuyen-sinh/phuong-thuc" element={<AdmissionTypesPage />} />
+      <Route path="/tuyen-sinh/hoc-phi-ha-noi" element={<HanoiTuitionPage />} />
+      <Route path="/tuyen-sinh/hoc-phi-hcm" element={<HCMTuitionPage />} />
+      <Route path="/tuyen-sinh/hoc-phi-da-nang" element={<DaNangTuitionPage />} />
+      <Route path="/tuyen-sinh/hoc-phi-can-tho" element={<CanThoTuitionPage />} />
+      <Route path="/tuyen-sinh/hoc-phi-quy-nhon" element={<QuyNhonTuitionPage />} />
       <Route path="/dao-tao" element={<ProgramList />} />
       <Route path="/dao-tao/:id" element={<ProgramDetail />} />
       <Route path="/lien-he" element={<ContactPage />} />
@@ -139,6 +152,38 @@ export function AppRouter() {
           </RoleGuard>
         }
       />
+      <Route
+        path="/officer/articles"
+        element={
+          <RoleGuard allowedRoles={["officer"]}>
+            <ArticleList />
+          </RoleGuard>
+        }
+      />
+      <Route
+        path="/officer/articles/new"
+        element={
+          <RoleGuard allowedRoles={["officer"]}>
+            <ArticleEditor />
+          </RoleGuard>
+        }
+      />
+      <Route
+        path="/officer/articles/:id"
+        element={
+          <RoleGuard allowedRoles={["officer"]}>
+            <ArticleDetail />
+          </RoleGuard>
+        }
+      />
+      <Route
+        path="/officer/profile"
+        element={
+          <RoleGuard allowedRoles={["officer"]}>
+            <OfficerProfile />
+          </RoleGuard>
+        }
+      />
 
       {/* qa */}
       <Route
@@ -154,6 +199,14 @@ export function AppRouter() {
         element={
           <RoleGuard allowedRoles={["qa"]}>
             <ReviewEvaluationPage />
+          </RoleGuard>
+        }
+      />
+      <Route
+        path="/qa/profile"
+        element={
+          <RoleGuard allowedRoles={["qa"]}>
+            <QAProfile />
           </RoleGuard>
         }
       />
@@ -184,26 +237,10 @@ export function AppRouter() {
         }
       />
       <Route
-        path="/admin/articles"
+        path="/admin/profile"
         element={
           <RoleGuard allowedRoles={["admin"]}>
-            <ArticleList />
-          </RoleGuard>
-        }
-      />
-      <Route
-        path="/admin/articles/new"
-        element={
-          <RoleGuard allowedRoles={["admin"]}>
-            <ArticleEditor />
-          </RoleGuard>
-        }
-      />
-      <Route
-        path="/admin/articles/:id"
-        element={
-          <RoleGuard allowedRoles={["admin"]}>
-            <ArticleDetail />
+            <AdminProfile />
           </RoleGuard>
         }
       />

@@ -2,7 +2,6 @@ import { Card, Col, Row, Typography } from "antd";
 import {
   BarChart2,
   LayoutDashboard,
-  Newspaper,
   ShieldCheck,
   User,
 } from "lucide-react";
@@ -29,12 +28,6 @@ const menuItems: SidebarMenuItem[] = [
     label: "Quy tắc xét duyệt",
     icon: <ShieldCheck size={16} />,
     path: "/admin/eligibility/rules",
-  },
-  {
-    key: "articles",
-    label: "Bài viết",
-    icon: <Newspaper size={16} />,
-    path: "/admin/articles",
   },
   {
     key: "profile",

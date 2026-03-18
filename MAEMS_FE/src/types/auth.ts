@@ -1,4 +1,4 @@
-export type AuthRole = "admin" | "officer" | "qa" | "applicant" | "guest";
+export type AuthRole = "admin" | "officer" | "qa" | "applicant" ;
 
 export type AuthUser = {
   username: string;
@@ -35,14 +35,6 @@ export type UserProfile = {
   email: string;
   role: AuthRole;
   createdAt: string;
-};
-
-// API response wrapper
-export type ApiWrapper<T> = {
-  success: boolean;
-  message: string;
-  data: T;
-  errors: string[];
 };
 
 // API-specific raw shapes

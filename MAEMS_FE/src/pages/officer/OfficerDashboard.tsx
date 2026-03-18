@@ -7,6 +7,7 @@ import {
   Eye,
   FileText,
   LayoutDashboard,
+  Newspaper,
   TrendingUp,
   User,
   Users,
@@ -59,6 +60,12 @@ const menuItems: SidebarMenuItem[] = [
     label: "Báo cáo",
     icon: <BarChart2 size={16} />,
     path: "/officer/reports",
+  },
+  {
+    key: "articles",
+    label: "Bài viết",
+    icon: <Newspaper size={16} />,
+    path: "/officer/articles",
   },
   {
     key: "profile",
