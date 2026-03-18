@@ -1,4 +1,4 @@
-export type AuthRole = "admin" | "officer" | "qa" | "applicant" | "guest";
+export type AuthRole = "admin" | "officer" | "qa" | "applicant" ;
 
 export type AuthUser = {
   username: string;
