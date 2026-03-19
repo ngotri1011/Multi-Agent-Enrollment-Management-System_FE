@@ -69,7 +69,7 @@ export function AdmissionPage() {
     <GuestLayout>
       <div className="bg-gradient-to-br from-orange-200 via-amber-50 to-gray-50">
       <img
-        src="https://daihoc.fpt.edu.vn/wp-content/uploads/2026/01/Bannerweb-kythisotuyenArtboard-2-copy100.png"
+        src="https://res.cloudinary.com/ddtkccfxp/image/upload/v1773932965/Bannerweb-kythisotuyenArtboard-2-copy100_mnyvhw.png"
         alt="Admission Hero Image"
         style={{
           width: "100vw",
@@ -123,7 +123,7 @@ export function AdmissionPage() {
             <Col xs={24} md={12}>
               <div className="flex items-center justify-center h-full">
                 <img
-                  src="https://daihoc.fpt.edu.vn/wp-content/uploads/2026/01/491019351_1072133974944865_282059016334971388_n.jpg"
+                  src="https://res.cloudinary.com/ddtkccfxp/image/upload/v1773934919/491019351_1072133974944865_282059016334971388_n_npcbok.jpg"
                   alt="Admission Hero Image"
                   className="w-full max-w-full h-auto object-cover rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.12),0_0_0_1px_rgba(249,115,22,0.1)]"
                 />
@@ -274,7 +274,7 @@ export function AdmissionPage() {
             </Col>
             <Col xs={24} md={10}>
               <img
-                src="https://daihoc.fpt.edu.vn/wp-content/uploads/2025/12/Anh-chup-Man-hinh-2025-12-29-luc-12.37.13-SA.png"
+                src="https://res.cloudinary.com/ddtkccfxp/image/upload/v1773934999/Anh-chup-Man-hinh-2025-12-29-luc-12.37.13-SA_usn9hq.png"
                 alt="Học bổng FPTU 2026"
                 className="w-full h-auto rounded-2xl object-cover shadow-md"
               />

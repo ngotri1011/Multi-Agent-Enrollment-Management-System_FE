@@ -14,7 +14,7 @@ const articles = [
     summary:
       "Năm 2026, Trường Đại học FPT triển khai chính sách hỗ trợ 30% học phí toàn khóa dành cho học sinh thuộc Khu vực 1 (KV1), nhằm giảm bớt rào cản tài chính và mở rộng cơ hội tiếp cận giáo dục đại học.",
     thumbnail:
-      "https://daihoc.fpt.edu.vn/wp-content/uploads/2026/03/FPT00347-1536x1024.jpg",
+      "https://res.cloudinary.com/ddtkccfxp/image/upload/v1773935365/FPT00347-1536x1024_kmsmoc.jpg",
   },
 ];
 

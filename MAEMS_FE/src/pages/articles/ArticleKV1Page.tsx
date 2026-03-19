@@ -52,7 +52,7 @@ export function ArticleKV1Page() {
 
         <div className="rounded-xl overflow-hidden mb-6 shadow-sm">
           <img
-            src="https://daihoc.fpt.edu.vn/wp-content/uploads/2026/03/FPT00347-1536x1024.jpg"
+            src="https://res.cloudinary.com/ddtkccfxp/image/upload/v1773935365/FPT00347-1536x1024_kmsmoc.jpg"
             alt="Trường Đại học FPT hỗ trợ học phí KV1"
             className="w-full object-cover"
           />
@@ -88,7 +88,7 @@ export function ArticleKV1Page() {
 
         <div className="rounded-xl overflow-hidden mb-6 shadow-sm">
           <img
-            src="https://daihoc.fpt.edu.vn/wp-content/uploads/2026/03/Hinh-3-1536x1024.jpg"
+            src="https://res.cloudinary.com/ddtkccfxp/image/upload/v1773935505/Hinh-3-1536x1024_c2f9cu.jpg"
             alt="Sinh viên Trường Đại học FPT"
             className="w-full object-cover"
           />
