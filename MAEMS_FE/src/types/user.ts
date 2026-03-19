@@ -1,13 +1,22 @@
-export type UserRole = 'admin' | 'officer' | 'qa' | 'applicant' | 'guest'
 
 export type User = {
-  user_id: string
+  userId: number;
   username: string
-  password_hash: string
   email: string
-  role_id: UserRole
-  created_at: string
-  updated_at: string
-  is_active: boolean
+  roleId: number
+  roleName: string
+  createdAt: string
+  isActive: boolean
 }
 
+export type CreateUserRequest = {
+  username: string;
+  email: string;
+  password: string;
+  roleId: number;
+}
+
+export type UpdateUserRequest = {
+  isActive: boolean;
+  roleId: number;
+}

@@ -11,3 +11,23 @@ export interface Program {
   isActive: boolean;
   campuses: Campus[];
 }
+
+
+export interface CreateProgramRequest {
+  programName: string;
+  majorId: number;
+  enrollmentYearId: number;
+  description: string;
+  careerProspects: string;
+  duration: string;
+  isActive: boolean;
+}
+
+export interface UpdateProgramRequest {
+  programId: number;
+  programName: string;
+  description: string;
+  careerProspects: string;
+  duration: string;
+  isActive: boolean;
+}
