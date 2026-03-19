@@ -21,6 +21,8 @@ import { SubmitForm } from "../pages/application/SubmitForm";
 import { ArticleDetail } from "../pages/articles/ArticleDetail";
 import { ArticleEditor } from "../pages/articles/ArticleEditor";
 import { ArticleList } from "../pages/articles/ArticleList";
+import { NewsPage } from "../pages/articles/NewsPage";
+import { ArticleKV1Page } from "../pages/articles/ArticleKV1Page";
 import { AdmissionPage } from "../pages/admission/AdmissionPage";
 import { AdmissionTypesPage } from "../pages/admission/AdmissionTypesPage";
 import { HanoiTuitionPage } from "../pages/admission/HanoiTuitionPage";
@@ -50,6 +52,8 @@ export function AppRouter() {
       <Route path="/tuyen-sinh/hoc-phi-quy-nhon" element={<QuyNhonTuitionPage />} />
       <Route path="/dao-tao" element={<ProgramList />} />
       <Route path="/dao-tao/:id" element={<ProgramDetail />} />
+      <Route path="/tin-tuc" element={<NewsPage />} />
+      <Route path="/tin-tuc/ho-tro-hoc-phi-kv1" element={<ArticleKV1Page />} />
       <Route path="/lien-he" element={<ContactPage />} />
       <Route path="/auth" element={<AuthPage />} />
 

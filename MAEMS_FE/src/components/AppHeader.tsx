@@ -1,4 +1,4 @@
-import { Avatar, Button, Dropdown, Layout, Space, Typography } from "antd";
+import { Avatar, Button, Dropdown, Layout, Space } from "antd";
 import type { MenuProps } from "antd";
 import { LayoutDashboard, LogOut } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
@@ -6,7 +6,6 @@ import { useAuth } from "../hooks/useAuth";
 import type { AuthRole } from "../types/auth";
 
 const { Header } = Layout;
-const { Text } = Typography;
 
 const roleDashboard: Record<AuthRole, string> = {
   applicant: "/applicant/dashboard",
@@ -66,7 +65,7 @@ export function AppHeader() {
             <Link to="/dao-tao" className="!text-gray-700 hover:!text-orange-500 font-semibold text-sm transition-colors">
               Đào tạo
             </Link>
-            <Text strong className="text-gray-400 text-sm cursor-default">Tin tức</Text>
+            <Link to="/tin-tuc" className="!text-gray-700 hover:!text-orange-500 font-semibold text-sm transition-colors">Tin tức</Link>
             <Link to="/lien-he" className="!text-gray-700 hover:!text-orange-500 font-semibold text-sm transition-colors">Liên hệ</Link>
           </Space>
           {isAuthenticated && user ? (

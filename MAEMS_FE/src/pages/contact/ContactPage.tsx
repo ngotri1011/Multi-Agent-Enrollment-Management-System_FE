@@ -6,7 +6,7 @@ export function ContactPage() {
   return (
     <GuestLayout>
       <img
-        src="https://daihoc.fpt.edu.vn/wp-content/themes/fpt-university/assets/images/Banner-lienhe.png"
+        src="https://res.cloudinary.com/ddtkccfxp/image/upload/v1773935766/Banner-lienhe_sxuxng.png"
         alt="Liên hệ"
         style={{
           width: "100%",
@@ -31,7 +31,7 @@ export function ContactPage() {
           {/* Image */}
           <div className="md:w-1/2 rounded-xl overflow-hidden shadow-xl">
             <img
-              src="https://daihoc.fpt.edu.vn/wp-content/themes/fpt-university/assets/images/Gioi-thieu-HN.jpg"
+              src="https://res.cloudinary.com/ddtkccfxp/image/upload/v1773935845/Gioi-thieu-HN_qh3ykf.jpg"
               alt="Campus Hà Nội"
               className="w-full h-full object-cover"
             />
@@ -105,7 +105,7 @@ export function ContactPage() {
           {/* Image */}
           <div className="md:w-1/2 rounded-xl overflow-hidden shadow-xl">
             <img
-              src="https://daihoc.fpt.edu.vn/wp-content/themes/fpt-university/assets/images/Gioi-thieu-HCM.jpg"
+              src="https://res.cloudinary.com/ddtkccfxp/image/upload/v1773935867/Gioi-thieu-HCM_sapsql.jpg"
               alt="Campus TP. Hồ Chí Minh"
               className="w-full h-full object-cover"
             />
@@ -119,7 +119,7 @@ export function ContactPage() {
           {/* Image */}
           <div className="md:w-1/2 rounded-xl overflow-hidden shadow-xl">
             <img
-              src="https://daihoc.fpt.edu.vn/wp-content/themes/fpt-university/assets/images/Gioi-thieu-DN.jpg"
+              src="https://res.cloudinary.com/ddtkccfxp/image/upload/v1773935901/Gioi-thieu-DN_isunc8.jpg"
               alt="Campus Đà Nẵng"
               className="w-full h-full object-cover"
             />
@@ -193,7 +193,7 @@ export function ContactPage() {
           {/* Image */}
           <div className="md:w-1/2 rounded-xl overflow-hidden shadow-xl">
             <img
-              src="https://daihoc.fpt.edu.vn/wp-content/themes/fpt-university/assets/images/Gioi-thieu-CT.jpg"
+              src="https://res.cloudinary.com/ddtkccfxp/image/upload/v1773935905/Gioi-thieu-CT_kowiwy.jpg"
               alt="Campus Cần Thơ"
               className="w-full h-full object-cover"
             />
@@ -207,7 +207,7 @@ export function ContactPage() {
           {/* Image */}
           <div className="md:w-1/2 rounded-xl overflow-hidden shadow-xl">
             <img
-              src="https://daihoc.fpt.edu.vn/wp-content/themes/fpt-university/assets/images/Gioi-thieu-QN.jpg"
+              src="https://res.cloudinary.com/ddtkccfxp/image/upload/v1773935903/Gioi-thieu-QN_xepkty.png"
               alt="Campus Quy Nhơn"
               className="w-full h-full object-cover"
             />

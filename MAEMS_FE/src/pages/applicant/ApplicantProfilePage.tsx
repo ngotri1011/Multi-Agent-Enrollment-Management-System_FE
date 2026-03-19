@@ -36,11 +36,13 @@ import {
   FileText,
   Eye,
   FileImage,
+  Trash2,
 } from "lucide-react";
 import dayjs from "dayjs";
 import { DashboardLayout } from "../../components/DashboardLayout";
 import { getProfile } from "../../api/auth";
 import { createApplicant, getMyApplicant, patchApplicant, uploadApplicantDocuments, getApplicantDocuments } from "../../api/applicants";
+import { deleteDocument } from "../../api/documents";
 import type { UserProfile } from "../../types/auth";
 import type { CreateApplicantRequest, CreateApplicantResponse } from "../../types/applicant";
 import type { Document as ApplicantDocument } from "../../types/document";
@@ -146,6 +148,7 @@ export function ApplicantProfilePage() {
   const [uploading, setUploading] = useState(false);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [previewDoc, setPreviewDoc] = useState<ApplicantDocument | null>(null);
+  const [deletingDocId, setDeletingDocId] = useState<number | null>(null);
 
   async function loadDocuments() {
     setDocsLoading(true);
@@ -205,6 +208,29 @@ export function ApplicantProfilePage() {
     docForm.resetFields();
     setFileList([]);
     setUploadOpen(false);
+  }
+
+  function handleDeleteDocument(doc: ApplicantDocument) {
+    Modal.confirm({
+      title: "Xoá tài liệu",
+      content: `Bạn có chắc muốn xoá tài liệu "${doc.fileName || DOC_TYPE_OPTIONS.find((o) => o.value === doc.documentType)?.label || "này"}"?`,
+      okText: "Xoá",
+      okButtonProps: { danger: true },
+      cancelText: "Huỷ",
+      onOk: async () => {
+        if (doc.documentId == null) return;
+        setDeletingDocId(doc.documentId);
+        try {
+          await deleteDocument(doc.documentId);
+          messageApi.success("Đã xoá tài liệu thành công.");
+          loadDocuments();
+        } catch {
+          messageApi.error("Xoá tài liệu thất bại. Vui lòng thử lại.");
+        } finally {
+          setDeletingDocId(null);
+        }
+      },
+    });
   }
 
   const initial = profile?.username?.charAt(0).toUpperCase() ?? "U";
@@ -484,8 +510,16 @@ export function ApplicantProfilePage() {
                           <span className="text-xs text-gray-400 uppercase">{doc.fileFormat ?? "file"}</span>
                         </div>
                         {/* Hover overlay */}
-                        <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
                           <Eye size={20} className="text-white" />
+                          <button
+                            className="text-white hover:text-red-300 transition-colors"
+                            onClick={(e) => { e.stopPropagation(); handleDeleteDocument(doc); }}
+                            disabled={deletingDocId === doc.documentId}
+                            title="Xoá tài liệu"
+                          >
+                            <Trash2 size={18} />
+                          </button>
                         </div>
                         {/* Verification badge */}
                         <div className="absolute top-1.5 right-1.5">
