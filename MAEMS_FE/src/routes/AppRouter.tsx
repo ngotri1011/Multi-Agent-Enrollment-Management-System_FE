@@ -36,7 +36,6 @@ import { ProgramList } from "../pages/programs/ProgramList";
 import { ProgramDetail } from "../pages/programs/ProgramDetail";
 import { RuleConfigPage } from "../pages/eligibility/RuleConfigPage";
 import { ReviewEvaluationPage } from "../pages/qa/ReviewEvaluationPage";
-import { ReportDashboard } from "../pages/reports/ReportDashboard";
 import { ContactPage } from "../pages/contact/ContactPage";
 import { AdminApplicationList } from "../pages/admin/AdminApplicationList";
 import { AdminStudentManagement } from "../pages/admin/AdminStudentManagement";

@@ -1,11 +1,9 @@
-import { Card, Col, Row, Typography, List, Tag, Space } from "antd";
+import { Card, Col, Row, Typography, Tag, Space } from "antd";
 import {
-  BarChart2,
   CheckCircle2,
   DollarSign,
   FileText,
   LayoutDashboard,
-  ShieldCheck,
   TrendingUp,
   User,
 } from "lucide-react";

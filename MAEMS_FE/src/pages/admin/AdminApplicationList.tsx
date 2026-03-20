@@ -10,20 +10,8 @@ import {
   Avatar,
   Space,
 } from "antd";
-import {
-  Search,
-  Clock,
-  CheckCircle2,
-  XCircle,
-  Eye,
-  LayoutDashboard,
-  BarChart2,
-  ShieldCheck,
-  DollarSign,
-  FileText,
-} from "lucide-react";
+import { Search, Eye } from "lucide-react";
 import type { ColumnsType } from "antd/es/table";
-import type { SidebarMenuItem } from "../../components/DashboardSidebar";
 import { AdminLayout } from "../../components/layouts/AdminLayout";
 
 const { Title, Text } = Typography;

@@ -63,7 +63,7 @@ const { Title, Text } = Typography;
 
 export function AdminProgramManagement() {
   const [programs, setPrograms] = useState<Program[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [, setLoading] = useState(false);
 
   const [open, setOpen] = useState(false);
   const [form] = Form.useForm();

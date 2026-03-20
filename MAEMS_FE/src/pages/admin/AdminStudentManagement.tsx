@@ -11,16 +11,7 @@ import {
   Space,
   Progress,
 } from "antd";
-import {
-  Search,
-  Eye,
-  Pencil,
-  LayoutDashboard,
-  BarChart2,
-  ShieldCheck,
-  DollarSign,
-  FileText,
-} from "lucide-react";
+import { Search, Eye, Pencil } from "lucide-react";
 import type { ColumnsType } from "antd/es/table";
 import { AdminLayout } from "../../components/layouts/AdminLayout";
 

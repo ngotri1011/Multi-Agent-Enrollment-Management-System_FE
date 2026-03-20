@@ -15,7 +15,7 @@ import {
   Modal,
   Switch,
 } from "antd";
-import { Search, Eye, Pencil, UserPlus, X, Save } from "lucide-react";
+import { Search, Eye, UserPlus, X, Save } from "lucide-react";
 import { AdminLayout } from "../../components/layouts/AdminLayout";
 import type { ColumnsType } from "antd/es/table";
 import { useEffect, useState } from "react";
@@ -147,6 +147,7 @@ export function AdminUserManagement() {
     try {
       const values = await form.validateFields();
 
+      setCreating(true);
       await createUser(values);
 
       message.success("Tạo tài khoản thành công");
@@ -154,12 +155,13 @@ export function AdminUserManagement() {
       setIsModalOpen(false);
       form.resetFields();
 
-      // refresh list
       fetchUsers(roleFilter);
 
     } catch (error) {
       console.error(error);
       message.error("Tạo tài khoản thất bại");
+    } finally {
+      setCreating(false);
     }
   };
 
