@@ -49,6 +49,7 @@ export type ApiRegisterData = {
   username: string;
   email: string;
   roleId: number;
+  roleName: string | null;
   createdAt: string;
   isActive: boolean;
 };

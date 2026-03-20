@@ -81,3 +81,23 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
   if (!profile) return null;
   return { username: profile.username, email: profile.email, role: profile.role };
 }
+
+export async function refreshToken(
+  accessToken: string,
+  refreshTokenValue: string
+): Promise<LoginResponse> {
+  const res = await apiClient.post<ApiWrapper<ApiLoginData>>(
+    "/api/Users/refresh-token",
+    { accessToken, refreshToken: refreshTokenValue }
+  );
+  const { accessToken: newAccessToken, refreshToken: newRefreshToken, user } = res.data.data;
+  return {
+    token: newAccessToken,
+    refreshToken: newRefreshToken,
+    user: {
+      username: user.username,
+      email: user.email,
+      role: (user.role?.toLowerCase() ?? "applicant") as AuthRole,
+    },
+  };
+}
