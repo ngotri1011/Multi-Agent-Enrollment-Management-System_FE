@@ -30,11 +30,19 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
+  getActiveAdmissionTypesBasic,
+} from "../../api/admission-types";
+import {
   fetchAllApplications,
   patchApplication,
 } from "../../api/applications";
+import { getActiveBasicCampuses } from "../../api/campuses";
+import { getActiveProgramsBasic } from "../../api/programs";
 import { OfficerLayout } from "../../components/layouts/OfficerLayout";
+import type { AdmissionTypeBasic } from "../../types/admission.type";
 import type { Application, ApplicationStatus } from "../../types/application";
+import type { CampusBasic } from "../../types/campus";
+import type { ProgramBasic } from "../../types/program";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -69,11 +77,17 @@ export function OfficerApplicationList() {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch]           = useState<string | undefined>();
   const [filterStatus, setFilterStatus] = useState<ApplicationStatus | "all">("all");
+  const [filterCampusId, setFilterCampusId] = useState<number | "all">("all");
+  const [filterProgramId, setFilterProgramId] = useState<number | "all">("all");
+  const [filterAdmissionTypeId, setFilterAdmissionTypeId] = useState<number | "all">("all");
   const [onlyEscalated, setOnlyEscalated] = useState(false);
   const [pageNumber, setPageNumber]   = useState(1);
   const [pageSize, setPageSize]       = useState(20);
   const [sortBy, setSortBy]           = useState<string | undefined>();
   const [sortDesc, setSortDesc]       = useState(false);
+  const [campuses, setCampuses] = useState<CampusBasic[]>([]);
+  const [programs, setPrograms] = useState<ProgramBasic[]>([]);
+  const [admissionTypes, setAdmissionTypes] = useState<AdmissionTypeBasic[]>([]);
 
   // Debounce search input (500 ms)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -97,11 +111,29 @@ export function OfficerApplicationList() {
   const [supplementForm] = Form.useForm();
 
   // ── Load data ─────────────────────────────────────────────────────────────
+  const loadFilterOptions = useCallback(async () => {
+    try {
+      const [campusData, programData, admissionTypeData] = await Promise.all([
+        getActiveBasicCampuses(),
+        getActiveProgramsBasic(),
+        getActiveAdmissionTypesBasic(),
+      ]);
+      setCampuses(campusData);
+      setPrograms(programData);
+      setAdmissionTypes(admissionTypeData);
+    } catch {
+      messageApi.error("Không thể tải dữ liệu bộ lọc.");
+    }
+  }, [messageApi]);
+
   const loadApplications = useCallback(async () => {
     setLoading(true);
     try {
       const result = await fetchAllApplications({
         search,
+        campusId: filterCampusId !== "all" ? filterCampusId : undefined,
+        programId: filterProgramId !== "all" ? filterProgramId : undefined,
+        admissionTypeId: filterAdmissionTypeId !== "all" ? filterAdmissionTypeId : undefined,
         status:         filterStatus !== "all" ? filterStatus : undefined,
         requiresReview: onlyEscalated ? true : undefined,
         pageNumber,
@@ -116,9 +148,10 @@ export function OfficerApplicationList() {
     } finally {
       setLoading(false);
     }
-  }, [search, filterStatus, onlyEscalated, pageNumber, pageSize, sortBy, sortDesc, messageApi]);
+  }, [search, filterCampusId, filterProgramId, filterAdmissionTypeId, filterStatus, onlyEscalated, pageNumber, pageSize, sortBy, sortDesc, messageApi]);
 
   useEffect(() => { loadApplications(); }, [loadApplications]);
+  useEffect(() => { loadFilterOptions(); }, [loadFilterOptions]);
 
   // ── Table change handler (sort + page) ────────────────────────────────────
   const handleTableChange = (
@@ -150,10 +183,28 @@ export function OfficerApplicationList() {
     setPageNumber(1);
   };
 
+  const handleCampusChange = (val: number | "all") => {
+    setFilterCampusId(val);
+    setPageNumber(1);
+  };
+
+  const handleProgramChange = (val: number | "all") => {
+    setFilterProgramId(val);
+    setPageNumber(1);
+  };
+
+  const handleAdmissionTypeChange = (val: number | "all") => {
+    setFilterAdmissionTypeId(val);
+    setPageNumber(1);
+  };
+
   const clearFilters = () => {
     setSearchInput("");
     setSearch(undefined);
     setFilterStatus("all");
+    setFilterCampusId("all");
+    setFilterProgramId("all");
+    setFilterAdmissionTypeId("all");
     setOnlyEscalated(false);
     setPageNumber(1);
     setSortBy(undefined);
@@ -361,6 +412,9 @@ export function OfficerApplicationList() {
   const activeFilterCount = [
     !!search,
     filterStatus !== "all",
+    filterCampusId !== "all",
+    filterProgramId !== "all",
+    filterAdmissionTypeId !== "all",
     onlyEscalated,
   ].filter(Boolean).length;
 
@@ -398,7 +452,7 @@ export function OfficerApplicationList() {
       >
         <Row gutter={[12, 12]} align="middle">
           {/* Search */}
-          <Col xs={24} md={8}>
+          <Col xs={24} md={6}>
             <Input
               placeholder="Tìm mã hồ sơ, thí sinh, ngành..."
               prefix={<Search size={14} className="text-gray-300" />}
@@ -411,7 +465,7 @@ export function OfficerApplicationList() {
           </Col>
 
           {/* Trạng thái */}
-          <Col xs={12} md={5}>
+          <Col xs={12} md={4}>
             <Select
               value={filterStatus}
               onChange={handleStatusChange}
@@ -427,8 +481,61 @@ export function OfficerApplicationList() {
             </Select>
           </Col>
 
+          {/* Cơ sở */}
+          <Col xs={12} md={4}>
+            <Select
+              value={filterCampusId}
+              onChange={handleCampusChange}
+              className="w-full !rounded-xl"
+              placeholder="Cơ sở"
+            >
+              <Option value="all">Tất cả cơ sở</Option>
+              {campuses.map((campus) => (
+                <Option key={campus.campusId} value={campus.campusId}>
+                  {campus.name}
+                </Option>
+              ))}
+            </Select>
+          </Col>
+
+          {/* Ngành */}
+          <Col xs={12} md={4}>
+            <Select
+              value={filterProgramId}
+              onChange={handleProgramChange}
+              className="w-full !rounded-xl"
+              placeholder="Ngành"
+              showSearch
+              optionFilterProp="children"
+            >
+              <Option value="all">Tất cả ngành</Option>
+              {programs.map((program) => (
+                <Option key={program.programId} value={program.programId}>
+                  {program.programName}
+                </Option>
+              ))}
+            </Select>
+          </Col>
+
+          {/* Phương thức tuyển sinh */}
+          <Col xs={12} md={4}>
+            <Select
+              value={filterAdmissionTypeId}
+              onChange={handleAdmissionTypeChange}
+              className="w-full !rounded-xl"
+              placeholder="Phương thức"
+            >
+              <Option value="all">Tất cả phương thức</Option>
+              {admissionTypes.map((admissionType) => (
+                <Option key={admissionType.admissionTypeId} value={admissionType.admissionTypeId}>
+                  {admissionType.admissionTypeName}
+                </Option>
+              ))}
+            </Select>
+          </Col>
+
           {/* Hồ sơ leo thang */}
-          <Col xs={12} md={5}>
+          <Col xs={12} md={4}>
             <Select
               value={onlyEscalated ? "escalated" : "all"}
               onChange={(v) => handleEscalatedChange(v === "escalated")}
@@ -446,7 +553,7 @@ export function OfficerApplicationList() {
 
           {/* Xoá bộ lọc */}
           {activeFilterCount > 0 && (
-            <Col xs={24} md={6}>
+            <Col xs={24} md={2}>
               <Button
                 size="small"
                 type="link"
