@@ -9,9 +9,11 @@ import {
   Skeleton,
   Empty,
   Badge,
+  Pagination,
 } from "antd";
 import {
   ArrowRight,
+  ArrowUpDown,
   BookOpen,
   BriefcaseBusiness,
   Clock,
@@ -22,7 +24,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { GuestLayout } from "../../components/layouts/GuestLayout";
-import { filterPrograms } from "../../api/programs";
+import { getActiveProgramsBasic, getFilteredProgramsBasic } from "../../api/programs";
 import { getActiveMajorsBasic } from "../../api/majors";
 import type { Program } from "../../types/program";
 import type { MajorBasic } from "../../types/major";
@@ -117,6 +119,10 @@ export function ProgramList() {
   const [selectedMajorId, setSelectedMajorId] = useState<number | undefined>(undefined);
   const [searchName, setSearchName] = useState("");
   const [searchInput, setSearchInput] = useState("");
+  const [pageNumber, setPageNumber] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [totalCount, setTotalCount] = useState(0);
+  const [sortKey, setSortKey] = useState<string>("");
 
   useEffect(() => {
     getActiveMajorsBasic()
@@ -127,25 +133,60 @@ export function ProgramList() {
   const fetchPrograms = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await filterPrograms(selectedMajorId, searchName || undefined);
-      setPrograms(data ?? []);
+      const sortBy = sortKey ? sortKey.split("_")[0] : undefined;
+      const sortDesc = sortKey ? sortKey.endsWith("_desc") : undefined;
+      const isFiltering = selectedMajorId !== undefined || !!searchName || !!sortKey;
+      if (isFiltering) {
+        const paged = await getFilteredProgramsBasic(
+          selectedMajorId,
+          searchName || undefined,
+          sortBy,
+          sortDesc,
+          pageNumber,
+          pageSize,
+        );
+        setPrograms(Array.isArray(paged.items) ? paged.items : []);
+        setTotalCount(paged.totalCount ?? 0);
+      } else {
+        const data = await getActiveProgramsBasic();
+        const all = Array.isArray(data) ? data : [];
+        setTotalCount(all.length);
+        const start = (pageNumber - 1) * pageSize;
+        setPrograms(all.slice(start, start + pageSize));
+      }
     } catch {
       setPrograms([]);
+      setTotalCount(0);
     } finally {
       setLoading(false);
     }
-  }, [selectedMajorId, searchName]);
+  }, [selectedMajorId, searchName, sortKey, pageNumber, pageSize]);
 
   useEffect(() => {
     fetchPrograms();
   }, [fetchPrograms]);
 
   const handleSearch = () => {
+    setPageNumber(1);
     setSearchName(searchInput);
   };
 
   const handleMajorChange = (val: number | undefined) => {
+    setPageNumber(1);
     setSelectedMajorId(val);
+  };
+
+  const handleSortChange = (val: string) => {
+    setPageNumber(1);
+    setSortKey(val ?? "");
+  };
+
+  const handleClearAll = () => {
+    setSelectedMajorId(undefined);
+    setSearchName("");
+    setSearchInput("");
+    setSortKey("");
+    setPageNumber(1);
   };
 
   return (
@@ -186,7 +227,7 @@ export function ProgramList() {
       <div className="bg-orange-500 py-4 px-6">
         <div className="max-w-6xl mx-auto flex flex-wrap justify-center gap-8">
           {[
-            { label: "Ngành đào tạo", value: programs.length > 0 ? `${programs.length}+` : "—" },
+            { label: "Ngành đào tạo", value: totalCount > 0 ? `${totalCount}+` : "—" },
             { label: "Khoa chuyên ngành", value: majors.length > 0 ? `${majors.length}` : "—" },
             { label: "Năm kinh nghiệm", value: "20+" },
             { label: "Sinh viên tốt nghiệp", value: "50,000+" },
@@ -212,7 +253,7 @@ export function ProgramList() {
               <Select
                 allowClear
                 placeholder="Tất cả khoa / ngành"
-                className="sm:w-64 w-full"
+                className="sm:w-56 w-full"
                 size="large"
                 value={selectedMajorId}
                 onChange={handleMajorChange}
@@ -223,6 +264,21 @@ export function ProgramList() {
                     {m.majorName}
                   </Option>
                 ))}
+              </Select>
+
+              <Select
+                allowClear
+                placeholder="Sắp xếp theo..."
+                className="sm:w-52 w-full"
+                size="large"
+                value={sortKey || undefined}
+                onChange={handleSortChange}
+                suffixIcon={<ArrowUpDown size={14} className="text-gray-400" />}
+              >
+                <Option value="programName_asc">Tên A → Z</Option>
+                <Option value="programName_desc">Tên Z → A</Option>
+                <Option value="majorName_asc">Khoa A → Z</Option>
+                <Option value="majorName_desc">Khoa Z → A</Option>
               </Select>
 
               <Input.Search
@@ -240,20 +296,20 @@ export function ProgramList() {
                 }
                 className="flex-1"
                 allowClear
-                onClear={() => { setSearchInput(""); setSearchName(""); }}
+                onClear={() => { setSearchInput(""); setSearchName(""); setPageNumber(1); }}
               />
             </div>
 
-            {(selectedMajorId !== undefined || searchName) && (
+            {(selectedMajorId !== undefined || searchName || sortKey) && (
               <div className="flex items-center gap-2 flex-shrink-0">
-                <Badge count={[selectedMajorId, searchName].filter(Boolean).length} color="orange">
+                <Badge count={[selectedMajorId, searchName, sortKey].filter(Boolean).length} color="orange">
                   <Tag
                     closable
                     color="orange"
-                    onClose={() => { setSelectedMajorId(undefined); setSearchName(""); setSearchInput(""); }}
+                    onClose={handleClearAll}
                     className="cursor-pointer"
                   >
-                    {programs.length} kết quả
+                    {totalCount} kết quả
                   </Tag>
                 </Badge>
               </div>
@@ -272,11 +328,11 @@ export function ProgramList() {
                 description={
                   <span className="text-gray-500">
                     Không tìm thấy chương trình đào tạo phù hợp.
-                    {(selectedMajorId || searchName) && (
+                    {(selectedMajorId || searchName || sortKey) && (
                       <> Thử{" "}
                         <button
                           className="text-orange-500 underline cursor-pointer"
-                          onClick={() => { setSelectedMajorId(undefined); setSearchName(""); setSearchInput(""); }}
+                          onClick={handleClearAll}
                         >
                           xóa bộ lọc
                         </button>.
@@ -287,19 +343,38 @@ export function ProgramList() {
               />
             </div>
           ) : (
-            <Row gutter={[24, 24]}>
-              {loading
-                ? Array.from({ length: 6 }).map((_, i) => (
-                    <Col xs={24} sm={12} lg={8} key={i}>
-                      <SkeletonCard />
-                    </Col>
-                  ))
-                : programs.map((p) => (
-                    <Col xs={24} sm={12} lg={8} key={p.programId}>
-                      <ProgramCard program={p} />
-                    </Col>
-                  ))}
-            </Row>
+            <>
+              <Row gutter={[24, 24]}>
+                {loading
+                  ? Array.from({ length: 6 }).map((_, i) => (
+                      <Col xs={24} sm={12} lg={8} key={i}>
+                        <SkeletonCard />
+                      </Col>
+                    ))
+                  : programs.map((p) => (
+                      <Col xs={24} sm={12} lg={8} key={p.programId}>
+                        <ProgramCard program={p} />
+                      </Col>
+                    ))}
+              </Row>
+
+              {totalCount > pageSize && (
+                <div className="flex justify-center mt-10">
+                  <Pagination
+                    current={pageNumber}
+                    pageSize={pageSize}
+                    total={totalCount}
+                    showSizeChanger
+                    pageSizeOptions={[10, 20, 50]}
+                    onChange={(page, size) => {
+                      setPageNumber(page);
+                      setPageSize(size);
+                    }}
+                    showTotal={(total) => `Tổng ${total} chương trình`}
+                  />
+                </div>
+              )}
+            </>
           )}
         </div>
       </section>

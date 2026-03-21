@@ -6,9 +6,11 @@ import { ApplicantProfilePage } from "../pages/applicant/ApplicantProfilePage";
 import { AdminDashboard } from "../pages/admin/AdminDashboard";
 import { AdminProfile } from "../pages/admin/AdminProfile";
 import { OfficerDashboard } from "../pages/officer/OfficerDashboard";
-import { OfficerApplications } from "../pages/officer/OfficerApplications";
+import { OfficerApplicationList } from "../pages/officer/OfficerApplicationList";
 import { OfficerApplicationDetail } from "../pages/officer/OfficerApplicationDetail";
 import { OfficerProfile } from "../pages/officer/OfficerProfile";
+import { OfficerReports } from "../pages/officer/OfficerReports";
+import { OfficerArticles } from "../pages/officer/OfficerArticles";
 import { QaDashboard } from "../pages/qa/QaDashboard";
 import { QAProfile } from "../pages/qa/QAProfile";
 // feature pages
@@ -20,7 +22,6 @@ import { SubmitApplication } from "../pages/application/SubmitApplication";
 import { SubmitForm } from "../pages/application/SubmitForm";
 import { ArticleDetail } from "../pages/articles/ArticleDetail";
 import { ArticleEditor } from "../pages/articles/ArticleEditor";
-import { ArticleList } from "../pages/articles/ArticleList";
 import { NewsPage } from "../pages/articles/NewsPage";
 import { ArticleKV1Page } from "../pages/articles/ArticleKV1Page";
 import { AdmissionPage } from "../pages/admission/AdmissionPage";
@@ -126,15 +127,7 @@ export function AppRouter() {
         path="/officer/review-applications"
         element={
           <RoleGuard allowedRoles={["officer"]}>
-            <OfficerApplications />
-          </RoleGuard>
-        }
-      />
-      <Route
-        path="/officer/review-applications"
-        element={
-          <RoleGuard allowedRoles={["officer"]}>
-            <OfficerApplications />
+            <OfficerApplicationList />
           </RoleGuard>
         }
       />
@@ -143,6 +136,14 @@ export function AppRouter() {
         element={
           <RoleGuard allowedRoles={["officer"]}>
             <OfficerApplicationDetail />
+          </RoleGuard>
+        }
+      />
+      <Route
+        path="/officer/reports"
+        element={
+          <RoleGuard allowedRoles={["officer"]}>
+            <OfficerReports />
           </RoleGuard>
         }
       />
@@ -166,7 +167,7 @@ export function AppRouter() {
         path="/officer/articles"
         element={
           <RoleGuard allowedRoles={["officer"]}>
-            <ArticleList />
+            <OfficerArticles />
           </RoleGuard>
         }
       />
