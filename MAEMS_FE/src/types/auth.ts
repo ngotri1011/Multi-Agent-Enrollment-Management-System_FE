@@ -1,4 +1,5 @@
-export type AuthRole = "admin" | "officer" | "qa" | "applicant" ;
+export type { AuthRole } from './enums';
+import type { AuthRole } from './enums';
 
 export type AuthUser = {
   username: string;

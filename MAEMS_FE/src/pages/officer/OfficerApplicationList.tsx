@@ -1,7 +1,6 @@
 import {
   Button,
   Card,
-  Checkbox,
   Col,
   Form,
   Input,
@@ -17,168 +16,149 @@ import {
   Typography,
   message,
 } from "antd";
-import type { ColumnsType } from "antd/es/table";
+import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
+import type { SorterResult } from "antd/es/table/interface";
 import {
   AlertTriangle,
-  BarChart2,
   CheckCircle2,
-  ClipboardList,
   Eye,
-  FileQuestion,
   FilePlus2,
-  LayoutDashboard,
   RefreshCw,
   Search,
-  User,
   XCircle,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  approveApplication,
   fetchAllApplications,
-  rejectApplication,
-  requestAdditionalDocuments,
+  patchApplication,
 } from "../../api/applications";
-import { DashboardLayout } from "../../components/DashboardLayout";
-import type { SidebarMenuItem } from "../../components/DashboardSidebar";
+import { OfficerLayout } from "../../components/layouts/OfficerLayout";
 import type { Application, ApplicationStatus } from "../../types/application";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 
-
-// ─── Menu ─────────────────────────────────────────────────────────────────────
-
-const menuItems: SidebarMenuItem[] = [
-  {
-    key: "dashboard",
-    label: "Dashboard",
-    icon: <LayoutDashboard size={16} />,
-    path: "/officer/dashboard",
-  },
-  {
-    key: "review-applications",
-    label: "Đánh giá đơn ĐK",
-    icon: <ClipboardList size={16} />,
-    path: "/officer/review-applications",
-  },
-  {
-    key: "escalations",
-    label: "Các trường hợp leo thang",
-    icon: <AlertTriangle size={16} />,
-    path: "/officer/escalations",
-  },
-  {
-    key: "reports",
-    label: "Báo cáo",
-    icon: <BarChart2 size={16} />,
-    path: "/officer/reports",
-  },
-  {
-    key: "profile",
-    label: "Hồ sơ cá nhân",
-    icon: <User size={16} />,
-    path: "/officer/profile",
-  },
-];
-
 // ─── Status config ─────────────────────────────────────────────────────────────
 
 const statusConfig: Record<ApplicationStatus, { label: string; color: string }> = {
-  draft:        { label: "Bản nháp",       color: "default"    },
-  submitted:    { label: "Đã nộp",         color: "blue"       },
-  under_review: { label: "Đang xét duyệt", color: "processing" },
-  approved:     { label: "Đã chấp nhận",   color: "success"    },
-  rejected:     { label: "Từ chối",        color: "error"      },
+  draft:             { label: "Bản nháp",             color: "default"    },
+  submitted:         { label: "Đã nộp",               color: "blue"       },
+  under_review:      { label: "Chờ NV xét duyệt",     color: "processing" },
+  approved:          { label: "Đã chấp nhận",          color: "success"    },
+  rejected:          { label: "Từ chối",               color: "error"      },
+  document_required: { label: "Cần bổ sung tài liệu", color: "warning"    },
 };
-
-function getSystemEval(app: Application): { label: string; color: string } {
-  if (app.status === "approved") return { label: "Đủ điều kiện", color: "success" };
-  if (app.status === "rejected") return { label: "Không đủ ĐK", color: "error" };
-  if (app.status === "under_review") return { label: "Cần xét thủ công", color: "orange" };
-  if (!app.documents?.length) return { label: "Chưa có tài liệu", color: "warning" };
-  return { label: "Chờ xử lý", color: "default" };
-}
 
 function isEscalated(app: Application) {
   return app.status === "under_review" || app.requiresReview;
 }
 
-function isMissingDocs(app: Application) {
-  return !app.documents?.length;
-}
-
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function OfficerApplications() {
+export function OfficerApplicationList() {
   const navigate = useNavigate();
   const [messageApi, contextHolder] = message.useMessage();
 
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [totalCount, setTotalCount] = useState(0);
 
-  // Filters
-  const [searchText, setSearchText] = useState("");
+  // ── Server-side filter / sort / page params ──────────────────────────────
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch]           = useState<string | undefined>();
   const [filterStatus, setFilterStatus] = useState<ApplicationStatus | "all">("all");
-  const [filterProgram, setFilterProgram] = useState<string>("all");
   const [onlyEscalated, setOnlyEscalated] = useState(false);
-  const [onlyMissingDocs, setOnlyMissingDocs] = useState(false);
+  const [pageNumber, setPageNumber]   = useState(1);
+  const [pageSize, setPageSize]       = useState(20);
+  const [sortBy, setSortBy]           = useState<string | undefined>();
+  const [sortDesc, setSortDesc]       = useState(false);
+
+  // Debounce search input (500 ms)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleSearchChange = (value: string) => {
+    setSearchInput(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setSearch(value || undefined);
+      setPageNumber(1);
+    }, 500);
+  };
 
   // Modals
   const [rejectModal, setRejectModal] = useState<{ open: boolean; id: number | string }>({
-    open: false,
-    id: "",
+    open: false, id: "",
   });
   const [supplementModal, setSupplementModal] = useState<{ open: boolean; id: number | string }>({
-    open: false,
-    id: "",
+    open: false, id: "",
   });
   const [rejectForm] = Form.useForm();
   const [supplementForm] = Form.useForm();
 
-  // Load data
-  const loadApplications = async () => {
+  // ── Load data ─────────────────────────────────────────────────────────────
+  const loadApplications = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await fetchAllApplications();
-      setApplications(data);
+      const result = await fetchAllApplications({
+        search,
+        status:         filterStatus !== "all" ? filterStatus : undefined,
+        requiresReview: onlyEscalated ? true : undefined,
+        pageNumber,
+        pageSize,
+        sortBy,
+        sortDesc: sortBy ? sortDesc : undefined,
+      });
+      setApplications(result.items);
+      setTotalCount(result.totalCount);
     } catch {
       messageApi.error("Không thể tải danh sách hồ sơ.");
     } finally {
       setLoading(false);
     }
+  }, [search, filterStatus, onlyEscalated, pageNumber, pageSize, sortBy, sortDesc, messageApi]);
+
+  useEffect(() => { loadApplications(); }, [loadApplications]);
+
+  // ── Table change handler (sort + page) ────────────────────────────────────
+  const handleTableChange = (
+    pagination: TablePaginationConfig,
+    _filters: unknown,
+    sorter: SorterResult<Application> | SorterResult<Application>[],
+  ) => {
+    if (pagination.current)  setPageNumber(pagination.current);
+    if (pagination.pageSize) setPageSize(pagination.pageSize);
+
+    const s = Array.isArray(sorter) ? sorter[0] : sorter;
+    if (s?.columnKey && s.order) {
+      setSortBy(String(s.columnKey));
+      setSortDesc(s.order === "descend");
+    } else {
+      setSortBy(undefined);
+      setSortDesc(false);
+    }
   };
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { loadApplications(); }, []);
+  // ── Filter change helpers (reset to page 1) ───────────────────────────────
+  const handleStatusChange = (val: ApplicationStatus | "all") => {
+    setFilterStatus(val);
+    setPageNumber(1);
+  };
 
-  // Derived filter options
-  const programOptions = useMemo(() => {
-    const unique = Array.from(new Set(applications.map((a) => a.programName)));
-    return unique.sort();
-  }, [applications]);
+  const handleEscalatedChange = (checked: boolean) => {
+    setOnlyEscalated(checked);
+    setPageNumber(1);
+  };
 
-  // Filtered list
-  const filtered = useMemo(() => {
-    return applications.filter((a) => {
-      if (searchText) {
-        const q = searchText.toLowerCase();
-        if (
-          !String(a.applicationId).toLowerCase().includes(q) &&
-          !a.applicantName.toLowerCase().includes(q) &&
-          !a.programName.toLowerCase().includes(q)
-        )
-          return false;
-      }
-      if (filterStatus !== "all" && a.status !== filterStatus) return false;
-      if (filterProgram !== "all" && a.programName !== filterProgram) return false;
-      if (onlyEscalated && !isEscalated(a)) return false;
-      if (onlyMissingDocs && !isMissingDocs(a)) return false;
-      return true;
-    });
-  }, [applications, searchText, filterStatus, filterProgram, onlyEscalated, onlyMissingDocs]);
+  const clearFilters = () => {
+    setSearchInput("");
+    setSearch(undefined);
+    setFilterStatus("all");
+    setOnlyEscalated(false);
+    setPageNumber(1);
+    setSortBy(undefined);
+    setSortDesc(false);
+  };
 
   // ─── Actions ──────────────────────────────────────────────────────────────
 
@@ -186,7 +166,7 @@ export function OfficerApplications() {
     const strId = String(id);
     setActionLoading(strId + "_approve");
     try {
-      await approveApplication(Number(id));
+      await patchApplication(Number(id), { status: "approved" });
       messageApi.success("Đã phê duyệt hồ sơ.");
       setApplications((prev) =>
         prev.map((a) =>
@@ -204,10 +184,10 @@ export function OfficerApplications() {
 
   const handleRejectSubmit = async () => {
     try {
-      const values = await rejectForm.validateFields();
+      await rejectForm.validateFields();
       const strId = String(rejectModal.id);
       setActionLoading(strId + "_reject");
-      await rejectApplication(Number(rejectModal.id), values.reason);
+      await patchApplication(Number(rejectModal.id), { status: "rejected" });
       messageApi.success("Đã từ chối hồ sơ.");
       setApplications((prev) =>
         prev.map((a) =>
@@ -227,10 +207,10 @@ export function OfficerApplications() {
 
   const handleSupplementSubmit = async () => {
     try {
-      const values = await supplementForm.validateFields();
+      await supplementForm.validateFields();
       const strId = String(supplementModal.id);
       setActionLoading(strId + "_supplement");
-      await requestAdditionalDocuments(Number(supplementModal.id), values.note);
+      await patchApplication(Number(supplementModal.id), { status: "document_required" });
       messageApi.success("Đã gửi yêu cầu bổ sung tài liệu.");
       setSupplementModal({ open: false, id: "" });
       supplementForm.resetFields();
@@ -248,7 +228,7 @@ export function OfficerApplications() {
       title: "Mã hồ sơ",
       dataIndex: "applicationId",
       key: "applicationId",
-      width: 160,
+      width: 120,
       render: (id: string) => (
         <Text className="font-mono text-xs text-indigo-600 font-semibold">{id}</Text>
       ),
@@ -257,6 +237,7 @@ export function OfficerApplications() {
       title: "Thí sinh",
       dataIndex: "applicantName",
       key: "applicantName",
+      sorter: true,
       render: (name: string, record) => (
         <div>
           <Text className="font-medium text-gray-800 block">{name}</Text>
@@ -268,6 +249,7 @@ export function OfficerApplications() {
       title: "Ngành",
       dataIndex: "programName",
       key: "programName",
+      sorter: true,
       render: (prog: string, record) => (
         <div>
           <Text className="text-gray-700 text-sm block">{prog}</Text>
@@ -280,6 +262,7 @@ export function OfficerApplications() {
       dataIndex: "submittedAt",
       key: "submittedAt",
       width: 120,
+      sorter: true,
       render: (date: string) =>
         date ? (
           <Text className="text-gray-500 text-sm">
@@ -288,53 +271,25 @@ export function OfficerApplications() {
         ) : (
           <Text className="text-gray-300 text-sm">—</Text>
         ),
-      sorter: (a, b) =>
-        new Date(a.submittedAt).getTime() - new Date(b.submittedAt).getTime(),
     },
     {
       title: "Trạng thái",
       dataIndex: "status",
       key: "status",
-      width: 140,
-      render: (status: ApplicationStatus, record) => {
+      width: 150,
+      render: (status: ApplicationStatus) => {
         const cfg = statusConfig[status];
         return (
-          <Space direction="vertical" size={2}>
-            <Tag color={cfg.color} className="text-xs">
-              {cfg.label}
-            </Tag>
-            {isMissingDocs(record) && (
-              <Tag color="orange" className="text-xs">
-                Thiếu tài liệu
-              </Tag>
-            )}
-          </Space>
-        );
-      },
-    },
-    {
-      title: "Đánh giá hệ thống",
-      key: "systemEval",
-      width: 160,
-      render: (_: unknown, record: Application) => {
-        const ev = getSystemEval(record);
-        const dotColor =
-          ev.color === "success" ? "bg-emerald-400"
-          : ev.color === "error" ? "bg-red-400"
-          : ev.color === "warning" || ev.color === "orange" ? "bg-amber-400"
-          : "bg-gray-300";
-        return (
-          <div className="flex items-center gap-1.5">
-            <span className={`w-2 h-2 rounded-full flex-shrink-0 ${dotColor}`} />
-            <Text className="text-sm text-gray-600">{ev.label}</Text>
-          </div>
+          <Tag color={cfg.color} className="text-xs">
+            {cfg.label}
+          </Tag>
         );
       },
     },
     {
       title: "Hành động",
       key: "actions",
-      width: 180,
+      width: 160,
       fixed: "right" as const,
       render: (_: unknown, record: Application) => {
         const id = record.applicationId;
@@ -401,17 +356,18 @@ export function OfficerApplications() {
     },
   ];
 
-  // ─── Render ───────────────────────────────────────────────────────────────
+  // ─── Active filter badge count ────────────────────────────────────────────
 
   const activeFilterCount = [
+    !!search,
     filterStatus !== "all",
-    filterProgram !== "all",
     onlyEscalated,
-    onlyMissingDocs,
   ].filter(Boolean).length;
 
+  // ─── Render ───────────────────────────────────────────────────────────────
+
   return (
-    <DashboardLayout menuItems={menuItems}>
+    <OfficerLayout>
       {contextHolder}
 
       {/* Header */}
@@ -421,7 +377,8 @@ export function OfficerApplications() {
             Quản Lý Hồ Sơ Tuyển Sinh
           </Title>
           <Text className="text-gray-400 text-sm">
-            Danh sách toàn bộ hồ sơ đăng ký — {filtered.length} / {applications.length} hồ sơ
+            Tổng cộng {totalCount} hồ sơ
+            {activeFilterCount > 0 && ` (đang lọc)`}
           </Text>
         </div>
         <Button
@@ -441,39 +398,23 @@ export function OfficerApplications() {
       >
         <Row gutter={[12, 12]} align="middle">
           {/* Search */}
-          <Col xs={24} md={6}>
+          <Col xs={24} md={8}>
             <Input
               placeholder="Tìm mã hồ sơ, thí sinh, ngành..."
               prefix={<Search size={14} className="text-gray-300" />}
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
+              value={searchInput}
+              onChange={(e) => handleSearchChange(e.target.value)}
               allowClear
+              onClear={() => handleSearchChange("")}
               className="!rounded-xl"
             />
-          </Col>
-
-          {/* Ngành */}
-          <Col xs={12} md={5}>
-            <Select
-              value={filterProgram}
-              onChange={setFilterProgram}
-              className="w-full !rounded-xl"
-              placeholder="Ngành"
-            >
-              <Option value="all">Tất cả ngành</Option>
-              {programOptions.map((p) => (
-                <Option key={p} value={p}>
-                  {p}
-                </Option>
-              ))}
-            </Select>
           </Col>
 
           {/* Trạng thái */}
           <Col xs={12} md={5}>
             <Select
               value={filterStatus}
-              onChange={setFilterStatus}
+              onChange={handleStatusChange}
               className="w-full !rounded-xl"
               placeholder="Trạng thái"
             >
@@ -486,47 +427,36 @@ export function OfficerApplications() {
             </Select>
           </Col>
 
-          {/* Checkboxes */}
-          <Col xs={24} md={8}>
-            <Space size={16}>
-              <Checkbox
-                checked={onlyEscalated}
-                onChange={(e) => setOnlyEscalated(e.target.checked)}
-                className="text-sm"
-              >
+          {/* Hồ sơ leo thang */}
+          <Col xs={12} md={5}>
+            <Select
+              value={onlyEscalated ? "escalated" : "all"}
+              onChange={(v) => handleEscalatedChange(v === "escalated")}
+              className="w-full !rounded-xl"
+            >
+              <Option value="all">Tất cả hồ sơ</Option>
+              <Option value="escalated">
                 <span className="flex items-center gap-1 text-rose-600">
                   <AlertTriangle size={13} />
-                  Hồ sơ leo thang
+                  Hồ sơ cần xem xét
                 </span>
-              </Checkbox>
-              <Checkbox
-                checked={onlyMissingDocs}
-                onChange={(e) => setOnlyMissingDocs(e.target.checked)}
-                className="text-sm"
-              >
-                <span className="flex items-center gap-1 text-amber-600">
-                  <FileQuestion size={13} />
-                  Thiếu tài liệu
-                </span>
-              </Checkbox>
-              {activeFilterCount > 0 && (
-                <Button
-                  size="small"
-                  type="link"
-                  className="!p-0 !text-gray-400"
-                  onClick={() => {
-                    setFilterStatus("all");
-                    setFilterProgram("all");
-                    setOnlyEscalated(false);
-                    setOnlyMissingDocs(false);
-                    setSearchText("");
-                  }}
-                >
-                  Xoá bộ lọc ({activeFilterCount})
-                </Button>
-              )}
-            </Space>
+              </Option>
+            </Select>
           </Col>
+
+          {/* Xoá bộ lọc */}
+          {activeFilterCount > 0 && (
+            <Col xs={24} md={6}>
+              <Button
+                size="small"
+                type="link"
+                className="!p-0 !text-gray-400"
+                onClick={clearFilters}
+              >
+                Xoá bộ lọc ({activeFilterCount})
+              </Button>
+            </Col>
+          )}
         </Row>
       </Card>
 
@@ -538,11 +468,14 @@ export function OfficerApplications() {
         <Spin spinning={loading}>
           <Table
             columns={columns}
-            dataSource={filtered}
+            dataSource={applications}
             rowKey="applicationId"
-            scroll={{ x: 960 }}
+            scroll={{ x: 900 }}
+            onChange={handleTableChange}
             pagination={{
-              pageSize: 10,
+              current: pageNumber,
+              pageSize,
+              total: totalCount,
               showSizeChanger: true,
               showTotal: (total) => `Tổng ${total} hồ sơ`,
               pageSizeOptions: ["10", "20", "50"],
@@ -642,6 +575,6 @@ export function OfficerApplications() {
           </Form.Item>
         </Form>
       </Modal>
-    </DashboardLayout>
+    </OfficerLayout>
   );
 }

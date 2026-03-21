@@ -6,62 +6,17 @@ import {
   Skeleton,
   Typography,
 } from "antd";
+
+const { Title, Text } = Typography;
 import {
-  AlertTriangle,
-  BarChart2,
   CalendarDays,
-  ClipboardList,
-  LayoutDashboard,
   Mail,
-  Newspaper,
   ShieldCheck,
   User,
 } from "lucide-react";
-import { DashboardLayout } from "../../components/DashboardLayout";
+import { OfficerLayout } from "../../components/layouts/OfficerLayout";
 import { getProfile } from "../../api/auth";
 import type { UserProfile } from "../../types/auth";
-import type { SidebarMenuItem } from "../../components/DashboardSidebar";
-
-const { Title, Text } = Typography;
-
-const menuItems: SidebarMenuItem[] = [
-  {
-    key: "dashboard",
-    label: "Dashboard",
-    icon: <LayoutDashboard size={16} />,
-    path: "/officer/dashboard",
-  },
-  {
-    key: "review-applications",
-    label: "Đánh giá đơn ĐK",
-    icon: <ClipboardList size={16} />,
-    path: "/officer/review-applications",
-  },
-  {
-    key: "escalations",
-    label: "Các trường hợp leo thang",
-    icon: <AlertTriangle size={16} />,
-    path: "/officer/escalations",
-  },
-  {
-    key: "reports",
-    label: "Báo cáo",
-    icon: <BarChart2 size={16} />,
-    path: "/officer/reports",
-  },
-  {
-    key: "articles",
-    label: "Bài viết",
-    icon: <Newspaper size={16} />,
-    path: "/officer/articles",
-  },
-  {
-    key: "profile",
-    label: "Hồ sơ cá nhân",
-    icon: <User size={16} />,
-    path: "/officer/profile",
-  },
-];
 
 const roleLabel: Record<string, string> = {
   applicant: "Thí sinh",
@@ -109,7 +64,7 @@ export function OfficerProfile() {
   const initial = profile?.username?.charAt(0).toUpperCase() ?? "U";
 
   return (
-    <DashboardLayout menuItems={menuItems}>
+    <OfficerLayout>
       <Title level={4} className="!mb-6 !text-gray-700 !font-semibold">
         Hồ sơ cá nhân
       </Title>
@@ -177,6 +132,6 @@ export function OfficerProfile() {
           </div>
         )}
       </Card>
-    </DashboardLayout>
+    </OfficerLayout>
   );
 }

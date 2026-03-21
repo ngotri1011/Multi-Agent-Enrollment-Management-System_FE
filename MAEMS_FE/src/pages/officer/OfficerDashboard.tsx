@@ -2,14 +2,10 @@ import { Badge, Button, Card, Col, Row, Spin, Table, Tag, Typography } from "ant
 import type { ColumnsType } from "antd/es/table";
 import {
   AlertTriangle,
-  BarChart2,
   ClipboardList,
   Eye,
   FileText,
-  LayoutDashboard,
-  Newspaper,
   TrendingUp,
-  User,
   Users,
   Zap,
 } from "lucide-react";
@@ -28,52 +24,10 @@ import {
   YAxis,
 } from "recharts";
 import { fetchAllApplications } from "../../api/applications";
-import { DashboardLayout } from "../../components/DashboardLayout";
-import type { SidebarMenuItem } from "../../components/DashboardSidebar";
+import { OfficerLayout } from "../../components/layouts/OfficerLayout";
 import type { Application } from "../../types/application";
 
 const { Title, Text } = Typography;
-
-// ─── Menu ────────────────────────────────────────────────────────────────────
-
-const menuItems: SidebarMenuItem[] = [
-  {
-    key: "dashboard",
-    label: "Dashboard",
-    icon: <LayoutDashboard size={16} />,
-    path: "/officer/dashboard",
-  },
-  {
-    key: "review-applications",
-    label: "Đánh giá đơn ĐK",
-    icon: <ClipboardList size={16} />,
-    path: "/officer/review-applications",
-  },
-  {
-    key: "escalations",
-    label: "Các trường hợp leo thang",
-    icon: <AlertTriangle size={16} />,
-    path: "/officer/escalations",
-  },
-  {
-    key: "reports",
-    label: "Báo cáo",
-    icon: <BarChart2 size={16} />,
-    path: "/officer/reports",
-  },
-  {
-    key: "articles",
-    label: "Bài viết",
-    icon: <Newspaper size={16} />,
-    path: "/officer/articles",
-  },
-  {
-    key: "profile",
-    label: "Hồ sơ cá nhân",
-    icon: <User size={16} />,
-    path: "/officer/profile",
-  },
-];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -91,6 +45,7 @@ const STATUS_CHART_LABELS: Record<string, string> = {
   under_review: "Cần kiểm tra",
   approved:     "Đủ điều kiện",
   rejected:     "Bị từ chối",
+  document_required: "Cần bổ sung tài liệu",
 };
 
 function pct(part: number, total: number) {
@@ -201,7 +156,7 @@ export function OfficerDashboard() {
 
   useEffect(() => {
     fetchAllApplications()
-      .then(setApplications)
+      .then((result) => setApplications(result.items))
       .finally(() => setLoading(false));
   }, []);
 
@@ -306,7 +261,7 @@ export function OfficerDashboard() {
   ];
 
   return (
-    <DashboardLayout menuItems={menuItems}>
+    <OfficerLayout>
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div>
@@ -327,7 +282,7 @@ export function OfficerDashboard() {
           onClick={() => {
             setLoading(true);
             fetchAllApplications()
-              .then(setApplications)
+              .then((result) => setApplications(result.items))
               .finally(() => setLoading(false));
           }}
           className="!rounded-xl"
@@ -568,6 +523,6 @@ export function OfficerDashboard() {
           </Row>
         </Card>
       </Spin>
-    </DashboardLayout>
+    </OfficerLayout>
   );
 }

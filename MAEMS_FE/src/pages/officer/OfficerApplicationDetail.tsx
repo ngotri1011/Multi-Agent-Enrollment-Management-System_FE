@@ -16,30 +16,25 @@ import {
   message,
 } from "antd";
 import {
-  AlertTriangle,
   ArrowLeft,
-  BarChart2,
   CheckCircle2,
-  ClipboardList,
+  ChevronDown,
+  ChevronUp,
+  Eye,
   ExternalLink,
   FilePlus2,
   FileText,
-  LayoutDashboard,
   RefreshCw,
   ShieldCheck,
-  User,
   XCircle,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
-  approveApplication,
   fetchApplicationDetail,
-  rejectApplication,
-  requestAdditionalDocuments,
+  patchApplication,
 } from "../../api/applications";
-import { DashboardLayout } from "../../components/DashboardLayout";
-import type { SidebarMenuItem } from "../../components/DashboardSidebar";
+import { OfficerLayout } from "../../components/layouts/OfficerLayout";
 import type {
   Application,
   ApplicationStatus,
@@ -48,50 +43,16 @@ import type {
 
 const { Title, Text } = Typography;
 
-// ─── Menu ────────────────────────────────────────────────────────────────────
-
-const menuItems: SidebarMenuItem[] = [
-  {
-    key: "dashboard",
-    label: "Dashboard",
-    icon: <LayoutDashboard size={16} />,
-    path: "/officer/dashboard",
-  },
-  {
-    key: "review-applications",
-    label: "Đánh giá đơn ĐK",
-    icon: <ClipboardList size={16} />,
-    path: "/officer/review-applications",
-  },
-  {
-    key: "escalations",
-    label: "Các trường hợp leo thang",
-    icon: <AlertTriangle size={16} />,
-    path: "/officer/escalations",
-  },
-  {
-    key: "reports",
-    label: "Báo cáo",
-    icon: <BarChart2 size={16} />,
-    path: "/officer/reports",
-  },
-  {
-    key: "profile",
-    label: "Hồ sơ cá nhân",
-    icon: <User size={16} />,
-    path: "/officer/profile",
-  },
-];
-
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const STATUS_CFG: Record<ApplicationStatus, { label: string; color: string }> =
   {
-    draft: { label: "Bản nháp", color: "default" },
-    submitted: { label: "Đã nộp", color: "blue" },
-    under_review: { label: "Đang xét duyệt", color: "processing" },
-    approved: { label: "Đã chấp nhận", color: "success" },
-    rejected: { label: "Từ chối", color: "error" },
+    draft:             { label: "Bản nháp",             color: "default"    },
+    submitted:         { label: "Đã nộp",               color: "blue"       },
+    under_review:      { label: "Chờ NV xét duyệt",     color: "processing" },
+    approved:          { label: "Đã chấp nhận",          color: "success"    },
+    rejected:          { label: "Từ chối",               color: "error"      },
+    document_required: { label: "Cần bổ sung tài liệu", color: "warning"    },
   };
 
 
@@ -99,10 +60,31 @@ function verificationBadge(result: string) {
   const r = result?.toLowerCase();
   if (r === "passed" || r === "verified")
     return <Badge status="success" text="Đã xác minh" />;
+  if (r === "pending")
+    return <Badge status="warning" text="Chờ xác minh" />;
   if (r === "failed" || r === "rejected")
     return <Badge status="error" text="Không hợp lệ" />;
   return <Badge status="default" text={result || "Chưa xác minh"} />;
 }
+
+function isImageFile(fileFormat?: string) {
+  const normalized = (fileFormat || "").toLowerCase().trim();
+  return ["png", "jpg", "jpeg", "webp", "gif", "bmp", "svg"].some((ext) =>
+    normalized === ext
+    || normalized === `.${ext}`
+    || normalized.includes(`image/${ext}`)
+    || normalized.includes(ext),
+  );
+}
+
+function isImageDocument(doc: Document) {
+  if (isImageFile(doc.fileFormat)) return true;
+  const path = (doc.filePath || "").toLowerCase();
+  return [".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".svg"].some((ext) =>
+    path.includes(ext),
+  );
+}
+
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -117,6 +99,9 @@ export function OfficerApplicationDetail() {
 
   const [rejectModal, setRejectModal] = useState(false);
   const [supplementModal, setSupplementModal] = useState(false);
+  const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
+  const [notesExpanded, setNotesExpanded] = useState(false);
+  const [previewDetailExpanded, setPreviewDetailExpanded] = useState(false);
   const [rejectForm] = Form.useForm();
   const [supplementForm] = Form.useForm();
 
@@ -140,7 +125,7 @@ export function OfficerApplicationDetail() {
     if (!app) return;
     setActionLoading("approve");
     try {
-      await approveApplication(app.applicationId);
+      await patchApplication(app.applicationId, { status: "approved" });
       messageApi.success("Đã phê duyệt hồ sơ.");
       setApp({ ...app, status: "approved" });
     } catch {
@@ -153,9 +138,9 @@ export function OfficerApplicationDetail() {
   const handleRejectSubmit = async () => {
     if (!app) return;
     try {
-      const values = await rejectForm.validateFields();
+      await rejectForm.validateFields();
       setActionLoading("reject");
-      await rejectApplication(app.applicationId, values.reason);
+      await patchApplication(app.applicationId, { status: "rejected" });
       messageApi.success("Đã từ chối hồ sơ.");
       setApp({ ...app, status: "rejected" });
       setRejectModal(false);
@@ -170,9 +155,9 @@ export function OfficerApplicationDetail() {
   const handleSupplementSubmit = async () => {
     if (!app) return;
     try {
-      const values = await supplementForm.validateFields();
+      await supplementForm.validateFields();
       setActionLoading("supplement");
-      await requestAdditionalDocuments(app.applicationId, values.note);
+      await patchApplication(app.applicationId, { status: "document_required" });
       messageApi.success("Đã gửi yêu cầu bổ sung tài liệu.");
       setSupplementModal(false);
       supplementForm.resetFields();
@@ -186,7 +171,7 @@ export function OfficerApplicationDetail() {
   const isDone = app?.status === "approved" || app?.status === "rejected";
 
   return (
-    <DashboardLayout menuItems={menuItems}>
+    <OfficerLayout>
       {contextHolder}
 
       {/* Back + header */}
@@ -307,9 +292,18 @@ export function OfficerApplicationDetail() {
                   <Title level={5} className={`!mb-0 ${app.notes ? "!text-indigo-700" : "!text-gray-400"}`}>
                     Ghi chú từ Agent hệ thống
                   </Title>
+                  {app.notes && (
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={notesExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      className="!text-indigo-500"
+                      onClick={() => setNotesExpanded((prev) => !prev)}
+                    />
+                  )}
                 </div>
                 {app.notes ? (
-                  <Text className="text-sm text-gray-700 font-mono whitespace-pre-wrap">
+                  <Text className={`text-sm text-gray-700 font-mono whitespace-pre-wrap ${notesExpanded ? "" : "line-clamp-3"}`}>
                     {app.notes}
                   </Text>
                 ) : (
@@ -341,21 +335,65 @@ export function OfficerApplicationDetail() {
                     </Text>
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    {app.documents.map((doc: Document) => (
-                      <div
-                        key={doc.documentId}
-                        className="flex items-center justify-between p-3 rounded-xl border border-gray-100 hover:border-indigo-200 hover:bg-indigo-50/30 transition-all"
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="w-9 h-9 rounded-lg bg-indigo-50 flex items-center justify-center flex-shrink-0">
-                            <FileText size={16} className="text-indigo-400" />
+                  <div className="grid grid-cols-3 gap-4">
+                    {app.documents.map((doc: Document) => {
+                      const isImage = isImageDocument(doc);
+                      const fileUrl = doc.filePath;
+                      return (
+                        <div
+                          key={doc.documentId}
+                          className="group rounded-xl border border-gray-100 hover:border-indigo-200 hover:shadow-sm transition-all overflow-hidden cursor-pointer"
+                          onClick={() => setPreviewDoc(doc)}
+                        >
+                          {/* Thumbnail */}
+                          <div className="relative h-52 bg-gray-50 border-b border-gray-100 overflow-hidden">
+                            {isImage && fileUrl && (
+                              <img
+                                src={fileUrl}
+                                alt={doc.fileName || doc.documentType}
+                                className="w-full h-full object-contain bg-white"
+                                onError={(e) => {
+                                  (e.currentTarget as HTMLImageElement).style.display = "none";
+                                  const fb = e.currentTarget.nextElementSibling as HTMLElement | null;
+                                  if (fb) fb.style.display = "flex";
+                                }}
+                              />
+                            )}
+                            <div
+                              className="absolute inset-0 items-center justify-center flex-col gap-1"
+                              style={{ display: isImage && fileUrl ? "none" : "flex" }}
+                            >
+                              <div className="w-14 h-14 rounded-2xl bg-indigo-50 flex items-center justify-center">
+                                <FileText size={28} className="text-indigo-400" />
+                              </div>
+                              <span className="text-xs text-gray-400 uppercase mt-1">
+                                {doc.fileFormat || "file"}
+                              </span>
+                            </div>
+                            <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <Eye size={20} className="text-white" />
+                            </div>
                           </div>
-                          <div className="min-w-0">
-                            <Text className="font-medium text-gray-700 text-sm block truncate">
-                              {doc.fileName || doc.documentType}
-                            </Text>
-                            <div className="flex items-center gap-2 mt-0.5">
+
+                          {/* Info */}
+                          <div className="p-3">
+                            <div className="flex items-start justify-between gap-2">
+                              <Text className="font-medium text-gray-700 text-sm block truncate">
+                                {doc.fileName || doc.documentType}
+                              </Text>
+                              {fileUrl && (
+                                <Button
+                                  size="small"
+                                  type="link"
+                                  icon={<ExternalLink size={13} />}
+                                  href={fileUrl}
+                                  target="_blank"
+                                  className="!p-0 flex-shrink-0"
+                                  onClick={(e) => e.stopPropagation()}
+                                />
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 mt-2 flex-wrap">
                               <Tag className="!text-xs !m-0 !px-1.5">
                                 {doc.documentType}
                               </Tag>
@@ -368,28 +406,11 @@ export function OfficerApplicationDetail() {
                                   : ""}
                               </Text>
                             </div>
-                            {doc.verificationDetails && (
-                              <Text className="text-xs text-gray-400 block mt-0.5 italic">
-                                {doc.verificationDetails}
-                              </Text>
-                            )}
+                            <div className="mt-2">{verificationBadge(doc.verificationResult)}</div>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                          {verificationBadge(doc.verificationResult)}
-                          {doc.filePath && (
-                            <Button
-                              size="small"
-                              type="link"
-                              icon={<ExternalLink size={13} />}
-                              href={doc.filePath}
-                              target="_blank"
-                              className="!p-0"
-                            />
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </Card>
@@ -484,6 +505,105 @@ export function OfficerApplicationDetail() {
         )}
       </Spin>
 
+      {/* Document preview modal */}
+      <Modal
+        open={!!previewDoc}
+        onCancel={() => {
+          setPreviewDoc(null);
+          setPreviewDetailExpanded(false);
+        }}
+        footer={null}
+        destroyOnClose
+        width={720}
+        title={
+          previewDoc && (
+            <div className="flex items-center gap-2 pr-4">
+              <FileText size={16} className="text-indigo-500 shrink-0" />
+              <span className="text-sm font-semibold text-gray-800 truncate">
+                {previewDoc.fileName || previewDoc.documentType || "Tài liệu"}
+              </span>
+            </div>
+          )
+        }
+      >
+        {previewDoc && (
+          <div className="flex flex-col gap-4 pt-2">
+            <div className="rounded-xl overflow-hidden border border-gray-100 bg-gray-50 flex items-center justify-center h-[50vh] sm:h-[55vh] md:h-[60vh] max-h-[640px] min-h-[240px]">
+              {isImageDocument(previewDoc) ? (
+                <img
+                  src={previewDoc.filePath}
+                  alt={previewDoc.fileName}
+                  className="block w-full h-full object-contain"
+                />
+              ) : (
+                <iframe
+                  src={previewDoc.filePath}
+                  title={previewDoc.fileName}
+                  className="w-full h-full border-0"
+                />
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <Text className="!text-xs !text-gray-400 block">Loại tài liệu</Text>
+                <Text className="!text-sm !text-gray-700 !font-medium">
+                  {previewDoc.documentType || "—"}
+                </Text>
+              </div>
+              <div>
+                <Text className="!text-xs !text-gray-400 block">Định dạng</Text>
+                <Text className="!text-sm !text-gray-700 !font-medium uppercase">
+                  {previewDoc.fileFormat || "—"}
+                </Text>
+              </div>
+              <div>
+                <Text className="!text-xs !text-gray-400 block">Ngày tải lên</Text>
+                <Text className="!text-sm !text-gray-700 !font-medium">
+                  {previewDoc.uploadedAt
+                    ? new Date(previewDoc.uploadedAt).toLocaleDateString("vi-VN", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    })
+                    : "—"}
+                </Text>
+              </div>
+              <div>
+                <Text className="!text-xs !text-gray-400 block">Xác minh</Text>
+                <div className="mt-1">{verificationBadge(previewDoc.verificationResult)}</div>
+              </div>
+              {previewDoc.verificationDetails && (
+                <div className="col-span-2">
+                  <button
+                    type="button"
+                    className="w-full flex items-center justify-between !text-xs text-gray-400 hover:text-gray-500"
+                    onClick={() => setPreviewDetailExpanded((prev) => !prev)}
+                  >
+                    <span>Ghi chú duyệt</span>
+                    {previewDetailExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                  </button>
+                  <Text className={`!text-sm !text-gray-700 block ${previewDetailExpanded ? "" : "line-clamp-2"}`}>
+                    {previewDoc.verificationDetails}
+                  </Text>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end">
+              <a href={previewDoc.filePath} target="_blank" rel="noopener noreferrer">
+                <Button
+                  icon={<ExternalLink size={14} />}
+                  className="!rounded-lg !border-indigo-200 !text-indigo-600 hover:!bg-indigo-50"
+                >
+                  Mở trong tab mới
+                </Button>
+              </a>
+            </div>
+          </div>
+        )}
+      </Modal>
+
       {/* Reject Modal */}
       <Modal
         title={
@@ -546,6 +666,6 @@ export function OfficerApplicationDetail() {
           </Form.Item>
         </Form>
       </Modal>
-    </DashboardLayout>
+    </OfficerLayout>
   );
 }
