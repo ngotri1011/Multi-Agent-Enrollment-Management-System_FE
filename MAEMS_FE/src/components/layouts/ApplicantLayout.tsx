@@ -1,10 +1,12 @@
 import type { ReactNode } from "react";
+import { DashboardLayout } from "../DashboardLayout";
+import type { SidebarMenuItem } from "../DashboardSidebar";
 
 type ApplicantLayoutProps = {
+  menuItems: SidebarMenuItem[];
   children: ReactNode;
 };
 
-export function ApplicantLayout({ children }: ApplicantLayoutProps) {
-  // TODO: Add applicant-specific layout chrome here.
-  return <div>{children}</div>;
+export function ApplicantLayout({ menuItems, children }: ApplicantLayoutProps) {
+  return <DashboardLayout menuItems={menuItems}>{children}</DashboardLayout>;
 }

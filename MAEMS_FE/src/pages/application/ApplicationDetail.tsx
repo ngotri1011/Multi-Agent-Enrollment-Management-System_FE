@@ -31,7 +31,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { DashboardLayout } from "../../components/DashboardLayout";
-import { applicantMenu } from "../applicant/applicantMenu";
+import { ApplicantMenu } from "../applicant/ApplicantMenu";
 import { fetchApplicationDetail } from "../../api/applications";
 import type { Application, ApplicationStatus, Document } from "../../types/application";
 
@@ -42,9 +42,10 @@ const { Title, Text } = Typography;
 const statusConfig: Record<ApplicationStatus, { label: string; color: string }> = {
   draft:        { label: "Bản nháp",       color: "default"    },
   submitted:    { label: "Đã nộp",         color: "blue"       },
-  under_review: { label: "Đang xét duyệt", color: "processing" },
+  under_review: { label: "Chờ NV xét duyệt", color: "processing" },
   approved:     { label: "Đã chấp nhận",   color: "success"    },
   rejected:     { label: "Từ chối",        color: "error"      },
+  document_required: { label: "Cần bổ sung tài liệu", color: "warning" },
 };
 
 // ─── Date helpers ─────────────────────────────────────────────────────────────
@@ -87,6 +88,7 @@ function getPipeline(status: ApplicationStatus): PipelineStep[] {
     under_review: ["completed", "processing", "waiting"],
     approved:     ["completed", "completed",  "completed"],
     rejected:     ["completed", "completed",  "waiting"],
+    document_required: ["completed", "completed", "pending"],
   };
   const stages = stageMap[status] ?? ["waiting", "waiting", "waiting"];
 
@@ -111,7 +113,14 @@ function getPipeline(status: ApplicationStatus): PipelineStep[] {
 }
 
 function pipelineProgress(status: ApplicationStatus): number {
-  return { draft: 0, submitted: 33, under_review: 33, approved: 100, rejected: 66 }[status] ?? 0;
+  return {
+    draft: 0,
+    submitted: 33,
+    under_review: 33,
+    approved: 100,
+    rejected: 66,
+    document_required: 66,
+  }[status] ?? 0;
 }
 
 function PipelineCard({ status }: { status: ApplicationStatus }) {
@@ -323,7 +332,7 @@ export function ApplicationDetail() {
   }, [id]);
 
   return (
-    <DashboardLayout menuItems={applicantMenu}>
+    <DashboardLayout menuItems={ApplicantMenu}>
       {/* Back */}
       <Button
         type="text"

@@ -17,8 +17,8 @@ import {
   UserRound,
   XCircle,
 } from "lucide-react";
-import { DashboardLayout } from "../../components/DashboardLayout";
-import { applicantMenu } from "./applicantMenu";
+import { ApplicantLayout } from "../../components/layouts/ApplicantLayout";
+import { ApplicantMenu } from "./ApplicantMenu";
 import { useAuthStore } from "../../stores/authStore";
 import { getMyApplicant } from "../../api/applicants";
 import { fetchMyApplications } from "../../api/applications";
@@ -35,6 +35,7 @@ const statusConfig: Record<ApplicationStatus, { label: string; color: string; an
   under_review: { label: "Đang xét duyệt", color: "text-orange-500",antColor: "processing", Icon: Hourglass      },
   approved:     { label: "Đã chấp nhận",   color: "text-green-600", antColor: "success",    Icon: CheckCircle2   },
   rejected:     { label: "Từ chối",        color: "text-red-500",   antColor: "error",      Icon: XCircle        },
+  document_required: { label: "Cần bổ sung", color: "text-amber-600", antColor: "warning", Icon: CircleAlert },
 };
 
 function profileCompletion(
@@ -135,7 +136,7 @@ export function ApplicantDashboard() {
   ];
 
   return (
-    <DashboardLayout menuItems={applicantMenu}>
+    <ApplicantLayout menuItems={ApplicantMenu}>
       {loading ? (
         <div className="flex justify-center items-center py-24">
           <Spin size="large" />
@@ -395,6 +396,6 @@ export function ApplicantDashboard() {
 
         </div>
       )}
-    </DashboardLayout>
+    </ApplicantLayout>
   );
 }

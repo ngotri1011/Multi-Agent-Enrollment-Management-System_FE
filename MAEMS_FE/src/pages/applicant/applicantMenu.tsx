@@ -1,7 +1,7 @@
 import { FileText, FilePlus, LayoutDashboard, User } from "lucide-react";
 import type { SidebarMenuItem } from "../../components/DashboardSidebar";
 
-export const applicantMenu: SidebarMenuItem[] = [
+export const ApplicantMenu: SidebarMenuItem[] = [
   {
     key: "dashboard",
     label: "Tổng quan",

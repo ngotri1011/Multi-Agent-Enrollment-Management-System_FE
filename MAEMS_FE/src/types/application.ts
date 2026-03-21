@@ -1,4 +1,5 @@
-export type ApplicationStatus = 'draft' | 'submitted' | 'approved' | 'rejected' | 'under_review'
+export type { ApplicationStatus, DocumentStatus } from './enums';
+import type { ApplicationStatus, DocumentStatus } from './enums';
 
 export type Application = {
   applicationId: number
@@ -30,7 +31,7 @@ export type Document = {
   uploadedAt: string
   fileName: string
   fileFormat: string
-  verificationResult: string
+  verificationResult: DocumentStatus
   verificationDetails: string
 }
 

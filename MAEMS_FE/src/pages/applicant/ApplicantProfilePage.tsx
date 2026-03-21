@@ -46,14 +46,27 @@ import { deleteDocument } from "../../api/documents";
 import type { UserProfile } from "../../types/auth";
 import type { CreateApplicantRequest, CreateApplicantResponse } from "../../types/applicant";
 import type { Document as ApplicantDocument } from "../../types/document";
-import { applicantMenu } from "./applicantMenu";
+import { ApplicantMenu } from "./ApplicantMenu";
 
 const { Title, Text } = Typography;
 
 const IMAGE_FORMATS = ["jpg", "jpeg", "png", "gif", "webp", "bmp", "svg"];
 
 function isImageFormat(fileFormat?: string) {
-  return IMAGE_FORMATS.includes((fileFormat ?? "").toLowerCase());
+  const normalized = (fileFormat ?? "").toLowerCase().trim();
+  return IMAGE_FORMATS.some((ext) =>
+    normalized === ext
+    || normalized === `.${ext}`
+    || normalized.includes(`image/${ext}`)
+    || normalized.includes(ext),
+  );
+}
+
+function isImageDocument(doc?: ApplicantDocument | null) {
+  if (!doc) return false;
+  if (isImageFormat(doc.fileFormat)) return true;
+  const path = (doc.filePath ?? "").toLowerCase();
+  return IMAGE_FORMATS.some((ext) => path.includes(`.${ext}`));
 }
 
 const VERIFICATION_BADGE: Record<string, { color: string; label: string }> = {
@@ -172,7 +185,7 @@ export function ApplicantProfilePage() {
       setLoading(false);
       if (applicantData) loadDocuments();
     });
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   async function handleUploadDoc() {
     let values: { documentType: string };
@@ -287,7 +300,7 @@ export function ApplicantProfilePage() {
   }
 
   return (
-    <DashboardLayout menuItems={applicantMenu}>
+    <DashboardLayout menuItems={ApplicantMenu}>
       {contextHolder}
       <Title level={4} className="!mb-6 !text-gray-700 !font-semibold">
         Hồ sơ cá nhân
@@ -481,7 +494,7 @@ export function ApplicantProfilePage() {
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
               {documents.map((doc, idx) => {
                 const typeLabel = DOC_TYPE_OPTIONS.find((o) => o.value === doc.documentType)?.label ?? doc.documentType ?? "Tài liệu";
-                const isImage = isImageFormat(doc.fileFormat);
+                const isImage = isImageDocument(doc);
                 const badge = getVerificationBadge(doc.verificationResult);
                 return (
                   <Tooltip key={doc.documentId ?? idx} title="Nhấn để xem chi tiết">
@@ -579,7 +592,7 @@ export function ApplicantProfilePage() {
           <div className="flex flex-col gap-4 pt-2">
             {/* Preview area */}
             <div className="rounded-xl overflow-hidden border border-gray-100 bg-gray-50 flex items-center justify-center min-h-[320px]">
-              {isImageFormat(previewDoc.fileFormat) ? (
+              {isImageDocument(previewDoc) ? (
                 <img
                   src={previewDoc.filePath}
                   alt={previewDoc.fileName}

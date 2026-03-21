@@ -14,7 +14,7 @@ import {
 import { ArrowLeft, ClipboardList, GraduationCap, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "../../components/DashboardLayout";
-import { applicantMenu } from "../applicant/applicantMenu";
+import { ApplicantMenu } from "../applicant/ApplicantMenu";
 import { getMyApplicant } from "../../api/applicants";
 import { getActiveProgramsBasic } from "../../api/programs";
 import { submitApplication } from "../../api/applications";
@@ -246,7 +246,7 @@ export function SubmitForm() {
   const campusId = Form.useWatch("campusId", form);
 
   return (
-    <DashboardLayout menuItems={applicantMenu}>
+    <DashboardLayout menuItems={ApplicantMenu}>
       {contextHolder}
       <div className="max-w-2xl mx-auto">
         <button
