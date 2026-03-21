@@ -9,3 +9,8 @@ export interface Campus {
   isActive: boolean;
   admissions: AdmissionConfig[];
 }
+
+export interface CampusBasic {
+  campusId: number;
+  name: string;
+}

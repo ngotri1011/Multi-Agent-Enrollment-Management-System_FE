@@ -1,6 +1,6 @@
 import { apiClient } from "../services/axios";
 import type { ApiWrapper } from "../types/api.wrapper";
-import type { AdmissionType } from "../types/admission.type";
+import type { AdmissionType, AdmissionTypeBasic } from "../types/admission.type";
 
 export async function getAdmissionTypes() {
     const res = await apiClient.get<ApiWrapper<AdmissionType[]>>(
@@ -23,9 +23,10 @@ export async function getAdmissionTypeById(id: number) {
     return res.data.data;
 }
 
-export async function getActiveAdmissionTypesBasic() {
-    const res = await apiClient.get<ApiWrapper<AdmissionType[]>>(
-        "/api/AdmissionTypes/active/basic"
+export async function getActiveAdmissionTypesBasic(enrollmentYearId?: number) {
+    const res = await apiClient.get<ApiWrapper<AdmissionTypeBasic[]>>(
+        "/api/AdmissionTypes/active/basic",
+        { params: { enrollmentYearId } }
     );
     return res.data.data;
 }

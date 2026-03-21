@@ -7,3 +7,9 @@ export interface AdmissionType {
   isActive: boolean;
   createdAt: string;
 }
+
+export interface AdmissionTypeBasic {
+  admissionTypeId: number;
+  admissionTypeName: string;
+  type: string;
+}

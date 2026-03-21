@@ -12,6 +12,11 @@ export interface Program {
   campuses: Campus[];
 }
 
+export interface ProgramBasic {
+  programId: number;
+  programName: string;
+  majorName: string;
+}
 
 export interface CreateProgramRequest {
   programName: string;
