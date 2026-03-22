@@ -15,7 +15,7 @@ import {
   User,
 } from "lucide-react";
 import { OfficerLayout } from "../../components/layouts/OfficerLayout";
-import { getProfile } from "../../api/auth";
+import { getProfile } from "../../api/users";
 import type { UserProfile } from "../../types/auth";
 
 const roleLabel: Record<string, string> = {
