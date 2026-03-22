@@ -39,7 +39,9 @@ export async function patchApplicant(
 
 //Upload tài liệu đính kèm
 export async function uploadApplicantDocuments(payload: FormData): Promise<Document[]> {
-    const res = await apiClient.post<ApiWrapper<Document[]>>(`/api/Applicants/me/documents`, payload, {
+    const res = await apiClient.post<ApiWrapper<Document[]>>(
+      "/api/Applicants/me/documents",
+       payload, {
         headers: {
             "Content-Type": "multipart/form-data",
         },
@@ -49,5 +51,11 @@ export async function uploadApplicantDocuments(payload: FormData): Promise<Docum
 //Xem tài liệu đã upload
 export async function getApplicantDocuments(): Promise<Document[]> {
     const res = await apiClient.get<ApiWrapper<Document[]>>(`/api/Applicants/me/documents`);
+    return res.data.data;
+}
+
+//Lấy hồ sơ cá nhân Applicant theo id
+export async function getApplicantById (id: number): Promise<CreateApplicantResponse> {
+    const res = await apiClient.get<ApiWrapper<CreateApplicantResponse>>(`/api/Applicants/${id}`);
     return res.data.data;
 }

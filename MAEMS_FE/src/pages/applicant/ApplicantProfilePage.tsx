@@ -40,7 +40,7 @@ import {
 } from "lucide-react";
 import dayjs from "dayjs";
 import { DashboardLayout } from "../../components/DashboardLayout";
-import { getProfile } from "../../api/auth";
+import { getProfile } from "../../api/users";
 import { createApplicant, getMyApplicant, patchApplicant, uploadApplicantDocuments, getApplicantDocuments } from "../../api/applicants";
 import { deleteDocument } from "../../api/documents";
 import type { UserProfile } from "../../types/auth";

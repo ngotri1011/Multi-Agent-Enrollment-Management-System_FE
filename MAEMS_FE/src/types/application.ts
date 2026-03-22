@@ -4,6 +4,7 @@ import type { ApplicationStatus, DocumentStatus } from './enums';
 export type Application = {
   applicationId: number
   applicantId: number
+  configId: number
   programId: number
   enrollmentYearId: number
   campusId: number

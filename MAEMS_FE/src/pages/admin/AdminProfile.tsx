@@ -15,7 +15,7 @@ import {
   LayoutDashboard,
 } from "lucide-react";
 import { DashboardLayout } from "../../components/DashboardLayout";
-import { getProfile } from "../../api/auth";
+import { getProfile } from "../../api/users";
 import type { UserProfile } from "../../types/auth";
 import type { SidebarMenuItem } from "../../components/DashboardSidebar";
 

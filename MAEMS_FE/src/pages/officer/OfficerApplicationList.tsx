@@ -84,7 +84,8 @@ export function OfficerApplicationList() {
   const [pageNumber, setPageNumber]   = useState(1);
   const [pageSize, setPageSize]       = useState(20);
   const [sortBy, setSortBy]           = useState<string | undefined>();
-  const [sortDesc, setSortDesc]       = useState(false);
+  /** Mặc định true: API trả đơn mới nhất trước; false thì ngược lại (khi chưa chọn sort theo cột). */
+  const [sortDesc, setSortDesc]       = useState(true);
   const [campuses, setCampuses] = useState<CampusBasic[]>([]);
   const [programs, setPrograms] = useState<ProgramBasic[]>([]);
   const [admissionTypes, setAdmissionTypes] = useState<AdmissionTypeBasic[]>([]);
@@ -139,7 +140,7 @@ export function OfficerApplicationList() {
         pageNumber,
         pageSize,
         sortBy,
-        sortDesc: sortBy ? sortDesc : undefined,
+        sortDesc: sortBy ? sortDesc : true,
       });
       setApplications(result.items);
       setTotalCount(result.totalCount);
@@ -168,7 +169,7 @@ export function OfficerApplicationList() {
       setSortDesc(s.order === "descend");
     } else {
       setSortBy(undefined);
-      setSortDesc(false);
+      setSortDesc(true);
     }
   };
 
@@ -208,7 +209,7 @@ export function OfficerApplicationList() {
     setOnlyEscalated(false);
     setPageNumber(1);
     setSortBy(undefined);
-    setSortDesc(false);
+    setSortDesc(true);
   };
 
   // ─── Actions ──────────────────────────────────────────────────────────────

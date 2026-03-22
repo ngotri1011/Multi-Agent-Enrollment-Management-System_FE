@@ -333,7 +333,7 @@ export function ApplicationList() {
     setLoading(true);
     fetchMyApplications()
       .then((appList) => setApps(appList ?? []))
-      .catch(() => setError("Không thể tải danh sách đơn đăng ký."))
+      .catch(() => setError("Không tìm thấy đơn đăng ký cho ứng viên này."))
       .finally(() => setLoading(false));
   }
 

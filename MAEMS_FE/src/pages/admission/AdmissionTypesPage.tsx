@@ -6,7 +6,7 @@ export function AdmissionTypesPage() {
   return (
     <GuestLayout>
       <img
-        src="https://daihoc.fpt.edu.vn/wp-content/uploads/2026/01/Bannerweb-phuongthuctuyensinh.png"
+        src="https://res.cloudinary.com/ddtkccfxp/image/upload/v1774154695/Bannerweb-phuongthuctuyensinh_guq1np.png"
         alt="Phương thức tuyển sinh"
         style={{
           width: "100%",

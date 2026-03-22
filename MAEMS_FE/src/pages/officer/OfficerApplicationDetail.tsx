@@ -4,6 +4,7 @@ import {
   Card,
   Col,
   Descriptions,
+  Divider,
   Form,
   Input,
   Modal,
@@ -19,6 +20,7 @@ import {
   ArrowLeft,
   CheckCircle2,
   ChevronDown,
+  ChevronRight,
   ChevronUp,
   Eye,
   ExternalLink,
@@ -26,14 +28,17 @@ import {
   FileText,
   RefreshCw,
   ShieldCheck,
+  User,
   XCircle,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { getApplicantById } from "../../api/applicants";
 import {
   fetchApplicationDetail,
   patchApplication,
 } from "../../api/applications";
+import type { CreateApplicantResponse } from "../../types/applicant";
 import { OfficerLayout } from "../../components/layouts/OfficerLayout";
 import type {
   Application,
@@ -85,6 +90,21 @@ function isImageDocument(doc: Document) {
   );
 }
 
+function formatGender(g: string) {
+  const x = (g || "").toLowerCase();
+  if (x === "male" || x === "nam" || x === "m") return "Nam";
+  if (x === "female" || x === "nữ" || x === "nu" || x === "f") return "Nữ";
+  if (x === "other" || x === "khác") return "Khác";
+  return g?.trim() || "—";
+}
+
+function initialsFromName(name: string) {
+  const parts = (name || "").trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -102,8 +122,32 @@ export function OfficerApplicationDetail() {
   const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
   const [notesExpanded, setNotesExpanded] = useState(false);
   const [previewDetailExpanded, setPreviewDetailExpanded] = useState(false);
+  const [applicantModalOpen, setApplicantModalOpen] = useState(false);
+  const [applicantDetail, setApplicantDetail] = useState<CreateApplicantResponse | null>(null);
+  const [applicantLoading, setApplicantLoading] = useState(false);
   const [rejectForm] = Form.useForm();
   const [supplementForm] = Form.useForm();
+
+  const openApplicantProfile = async () => {
+    if (!app) return;
+    setApplicantModalOpen(true);
+    setApplicantDetail(null);
+    setApplicantLoading(true);
+    try {
+      const data = await getApplicantById(app.applicantId);
+      setApplicantDetail(data);
+    } catch {
+      messageApi.error("Không tải được hồ sơ thí sinh.");
+      setApplicantModalOpen(false);
+    } finally {
+      setApplicantLoading(false);
+    }
+  };
+
+  const closeApplicantProfile = () => {
+    setApplicantModalOpen(false);
+    setApplicantDetail(null);
+  };
 
   const loadApp = async () => {
     if (!id) return;
@@ -228,18 +272,42 @@ export function OfficerApplicationDetail() {
                     </Tag>
                     {(app.status === "under_review" || app.requiresReview) && (
                       <Tag color="red" className="text-xs">
-                        Leo thang
+                        Cần xem xét
                       </Tag>
                     )}
                   </Space>
                 </div>
 
+                <button
+                  type="button"
+                  onClick={openApplicantProfile}
+                  className="mb-5 w-full text-left rounded-2xl border border-indigo-100 bg-gradient-to-r from-indigo-50/80 to-white px-4 py-3.5 transition-all hover:border-indigo-200 hover:shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-indigo-100 text-indigo-700 font-bold text-sm">
+                      {initialsFromName(app.applicantName)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Text className="!mb-0 font-semibold text-gray-900 text-base">
+                          {app.applicantName}
+                        </Text>
+                        <Tag color="geekblue" className="!m-0 !text-xs">
+                          Hồ sơ thí sinh
+                        </Tag>
+                      </div>
+                      <Text className="text-xs text-gray-500 block mt-0.5">
+                        Mã thí sinh{" "}
+                        <span className="font-mono text-indigo-600">#{app.applicantId}</span>
+                        {" · "}
+                        Nhấn để xem chi tiết cá nhân
+                      </Text>
+                    </div>
+                    <ChevronRight size={20} className="text-indigo-400 shrink-0" aria-hidden />
+                  </div>
+                </button>
+
                 <Descriptions column={{ xs: 1, sm: 2 }} size="small">
-                  <Descriptions.Item label="Thí sinh">
-                    <Text className="font-semibold text-gray-800">
-                      {app.applicantName}
-                    </Text>
-                  </Descriptions.Item>
                   <Descriptions.Item label="Mã hồ sơ">
                     <Text className="font-mono text-indigo-600 font-semibold">
                       {app.applicationId}
@@ -504,6 +572,148 @@ export function OfficerApplicationDetail() {
           </Row>
         )}
       </Spin>
+
+      {/* Applicant profile modal */}
+      <Modal
+        title={
+          <div className="flex items-center gap-2 pr-4">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600">
+              <User size={18} aria-hidden />
+            </div>
+            <div className="min-w-0">
+              <div className="text-base font-semibold text-gray-900 truncate">
+                Hồ sơ thí sinh
+              </div>
+              {app && (
+                <Text className="text-xs text-gray-400 font-normal">
+                  Mã thí sinh{" "}
+                  <span className="font-mono text-indigo-500">#{app.applicantId}</span>
+                </Text>
+              )}
+            </div>
+          </div>
+        }
+        open={applicantModalOpen}
+        onCancel={closeApplicantProfile}
+        footer={
+          <Button type="primary" className="!rounded-xl" onClick={closeApplicantProfile}>
+            Đóng
+          </Button>
+        }
+        width={680}
+        destroyOnClose
+      >
+        <Spin spinning={applicantLoading}>
+          {applicantDetail && (
+            <div className="pt-1 max-h-[70vh] overflow-y-auto pr-1">
+              <div className="flex items-center gap-3 mb-4 pb-4 border-b border-gray-100">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-700 font-bold text-lg">
+                  {initialsFromName(applicantDetail.fullName)}
+                </div>
+                <div className="min-w-0">
+                  <Text className="!text-lg !font-semibold !text-gray-900 block truncate">
+                    {applicantDetail.fullName}
+                  </Text>
+                  <Text className="text-xs text-gray-400">
+                    User ID{" "}
+                    <span className="font-mono text-gray-600">{applicantDetail.userId}</span>
+                  </Text>
+                </div>
+              </div>
+
+              <Text className="!text-xs !font-semibold !text-gray-400 uppercase tracking-wide block mb-2">
+                Thông tin cá nhân
+              </Text>
+              <Descriptions column={{ xs: 1, sm: 2 }} size="small" bordered className="!mb-4">
+                <Descriptions.Item label="Ngày sinh" span={1}>
+                  {applicantDetail.dateOfBirth
+                    ? new Date(applicantDetail.dateOfBirth).toLocaleDateString("vi-VN")
+                    : "—"}
+                </Descriptions.Item>
+                <Descriptions.Item label="Giới tính" span={1}>
+                  {formatGender(applicantDetail.gender)}
+                </Descriptions.Item>
+              </Descriptions>
+
+              <Divider className="!my-4" />
+
+              <Text className="!text-xs !font-semibold !text-gray-400 uppercase tracking-wide block mb-2">
+                Trường THPT
+              </Text>
+              <Descriptions column={{ xs: 1, sm: 2 }} size="small" bordered className="!mb-4">
+                <Descriptions.Item label="Trường" span={2}>
+                  {applicantDetail.highSchoolName || "—"}
+                </Descriptions.Item>
+                <Descriptions.Item label="Huyện / quận">
+                  {applicantDetail.highSchoolDistrict || "—"}
+                </Descriptions.Item>
+                <Descriptions.Item label="Tỉnh / TP">
+                  {applicantDetail.highSchoolProvince || "—"}
+                </Descriptions.Item>
+                <Descriptions.Item label="Năm tốt nghiệp" span={2}>
+                  {applicantDetail.graduationYear ?? "—"}
+                </Descriptions.Item>
+              </Descriptions>
+
+              <Divider className="!my-4" />
+
+              <Text className="!text-xs !font-semibold !text-gray-400 uppercase tracking-wide block mb-2">
+                CCCD / CMND
+              </Text>
+              <Descriptions column={{ xs: 1, sm: 2 }} size="small" bordered className="!mb-4">
+                <Descriptions.Item label="Số">
+                  {applicantDetail.idIssueNumber || "—"}
+                </Descriptions.Item>
+                <Descriptions.Item label="Ngày cấp">
+                  {applicantDetail.idIssueDate
+                    ? new Date(applicantDetail.idIssueDate).toLocaleDateString("vi-VN")
+                    : "—"}
+                </Descriptions.Item>
+                <Descriptions.Item label="Nơi cấp" span={2}>
+                  {applicantDetail.idIssuePlace || "—"}
+                </Descriptions.Item>
+              </Descriptions>
+
+              <Divider className="!my-4" />
+
+              <Text className="!text-xs !font-semibold !text-gray-400 uppercase tracking-wide block mb-2">
+                Liên hệ
+              </Text>
+              <Descriptions column={{ xs: 1, sm: 2 }} size="small" bordered className="!mb-4">
+                <Descriptions.Item label="Người liên hệ" span={2}>
+                  {applicantDetail.contactName || "—"}
+                </Descriptions.Item>
+                <Descriptions.Item label="Địa chỉ" span={2}>
+                  {applicantDetail.contactAddress || "—"}
+                </Descriptions.Item>
+                <Descriptions.Item label="Điện thoại">
+                  {applicantDetail.contactPhone || "—"}
+                </Descriptions.Item>
+                <Descriptions.Item label="Email">
+                  {applicantDetail.contactEmail || "—"}
+                </Descriptions.Item>
+              </Descriptions>
+
+              <Divider className="!my-4" />
+
+              <Descriptions column={1} size="small" bordered>
+                <Descriptions.Item label="Đồng ý chia sẻ thông tin">
+                  {applicantDetail.allowShare ? (
+                    <Tag color="green">Có</Tag>
+                  ) : (
+                    <Tag>Không</Tag>
+                  )}
+                </Descriptions.Item>
+                <Descriptions.Item label="Tạo hồ sơ lúc">
+                  {applicantDetail.createdAt
+                    ? new Date(applicantDetail.createdAt).toLocaleString("vi-VN")
+                    : "—"}
+                </Descriptions.Item>
+              </Descriptions>
+            </div>
+          )}
+        </Spin>
+      </Modal>
 
       {/* Document preview modal */}
       <Modal

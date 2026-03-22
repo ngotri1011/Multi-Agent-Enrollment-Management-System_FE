@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Route, Routes } from "react-router-dom";
 import { RoleGuard } from "./RoleGuard";
 // dashboard pages
 import { ApplicantDashboard } from "../pages/applicant/ApplicantDashboard";
@@ -45,6 +45,7 @@ import { AdminPaymentManagement } from "../pages/admin/AdminPaymentManagement";
 import { AdminReports } from "../pages/admin/AdminReports";
 import { AdminSettings } from "../pages/admin/AdminSettnigs";
 import { AdminUserManagement } from "../pages/admin/AdminUserManagement";
+import { NotFound } from "../pages/notfound/NotFound";
 
 export function AppRouter() {
   return (
@@ -305,7 +306,7 @@ export function AppRouter() {
       />
       
 
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }
