@@ -1,24 +1,17 @@
 // ─── Application ─────────────────────────────────────────────────────────────
 
 export type ApplicationStatus =
-  | 'draft'
-  | 'submitted'
-  | 'approved'
-  | 'rejected'
-  | 'under_review'
-  | 'document_required';
+  | "draft"
+  | "submitted"
+  | "under_review"
+  | "approved"
+  | "rejected"
+  | "document_required";
 
 // ─── Document ─────────────────────────────────────────────────────────────────
 
-export type DocumentStatus =
-  | 'pending'
-  | 'verified'
-  | 'rejected';
+export type DocumentStatus = "pending" | "verified" | "rejected";
 
 // ─── Auth / Role ──────────────────────────────────────────────────────────────
 
-export type AuthRole =
-  | 'admin'
-  | 'officer'
-  | 'qa'
-  | 'applicant';
+export type AuthRole = "admin" | "officer" | "qa" | "applicant";
