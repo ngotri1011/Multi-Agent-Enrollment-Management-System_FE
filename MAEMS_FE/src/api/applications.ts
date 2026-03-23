@@ -69,9 +69,26 @@ export type PatchApplicationPayload = {
   requiresReview?: boolean;
 };
 
+//Cập nhật trạng thái đơn ĐK ngành đào tạo
 export async function patchApplication(id: number, payload: PatchApplicationPayload): Promise<Application> {
   const res = await apiClient.patch<ApiWrapper<Application>>(
     `/api/Applications/${id}`,
+    payload,
+  );
+  return res.data.data;
+}
+
+export type RequestAdditionalDocumentsPayload = {
+  docsNeed: string;
+};
+
+//Yêu cầu bổ sung tài liệu
+export async function requestAdditionalDocuments(
+  id: number,
+  payload: RequestAdditionalDocumentsPayload,
+): Promise<Application> {
+  const res = await apiClient.post<ApiWrapper<Application>>(
+    `/api/Applications/${id}/additional-docs`,
     payload,
   );
   return res.data.data;

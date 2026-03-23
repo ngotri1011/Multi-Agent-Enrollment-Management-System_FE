@@ -33,10 +33,12 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { getAdmissionTypeById } from "../../api/admission-types";
 import { getApplicantById } from "../../api/applicants";
 import {
   fetchApplicationDetail,
   patchApplication,
+  requestAdditionalDocuments,
 } from "../../api/applications";
 import type { CreateApplicantResponse } from "../../types/applicant";
 import { OfficerLayout } from "../../components/layouts/OfficerLayout";
@@ -105,6 +107,22 @@ function initialsFromName(name: string) {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
+function normalizeRequiredDocumentList(raw: string | null | undefined) {
+  if (!raw) return "";
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      return parsed
+        .map((item) => String(item).trim())
+        .filter(Boolean)
+        .join(", ");
+    }
+  } catch {
+    // Fallback: keep plain text if it is not JSON.
+  }
+  return String(raw).trim();
+}
+
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -167,6 +185,11 @@ export function OfficerApplicationDetail() {
 
   const handleApprove = async () => {
     if (!app) return;
+    if (app.status !== "under_review") {
+      messageApi.warning("Chỉ có thể phê duyệt khi hồ sơ ở trạng thái chờ xét duyệt.");
+      return;
+    }
+
     setActionLoading("approve");
     try {
       await patchApplication(app.applicationId, { status: "approved" });
@@ -181,6 +204,11 @@ export function OfficerApplicationDetail() {
 
   const handleRejectSubmit = async () => {
     if (!app) return;
+    if (app.status !== "under_review") {
+      messageApi.warning("Chỉ có thể từ chối khi hồ sơ ở trạng thái chờ xét duyệt.");
+      return;
+    }
+
     try {
       await rejectForm.validateFields();
       setActionLoading("reject");
@@ -198,11 +226,25 @@ export function OfficerApplicationDetail() {
 
   const handleSupplementSubmit = async () => {
     if (!app) return;
+    if (app.status !== "under_review") {
+      messageApi.warning("Chỉ có thể yêu cầu bổ sung khi hồ sơ đang chờ xét duyệt.");
+      return;
+    }
+
     try {
-      await supplementForm.validateFields();
+      const values = await supplementForm.validateFields();
+      const docsNeed = String(values.note ?? "");
       setActionLoading("supplement");
-      await patchApplication(app.applicationId, { status: "document_required" });
+      const updated = await requestAdditionalDocuments(app.applicationId, { docsNeed });
       messageApi.success("Đã gửi yêu cầu bổ sung tài liệu.");
+      setApp({
+        ...app,
+        status: updated.status,
+        requiresReview: updated.requiresReview,
+        lastUpdated: updated.lastUpdated || app.lastUpdated,
+        assignedOfficerId: updated.assignedOfficerId,
+        assignedOfficerName: updated.assignedOfficerName,
+      });
       setSupplementModal(false);
       supplementForm.resetFields();
     } catch {
@@ -212,7 +254,28 @@ export function OfficerApplicationDetail() {
     }
   };
 
+  const openSupplementModal = async () => {
+    if (!app) return;
+    if (app.status !== "under_review") {
+      messageApi.warning("Chỉ có thể yêu cầu bổ sung khi hồ sơ đang chờ xét duyệt.");
+      return;
+    }
+
+    let suggestedDocs = "";
+    try {
+      const admissionType = await getAdmissionTypeById(app.admissionTypeId);
+      suggestedDocs = normalizeRequiredDocumentList(admissionType.requiredDocumentList);
+    } catch {
+      // Keep modal usable even when suggestion cannot be loaded.
+    }
+
+    setSupplementModal(true);
+    supplementForm.setFieldsValue({ note: suggestedDocs });
+  };
+
   const isDone = app?.status === "approved" || app?.status === "rejected";
+  const canReview = app?.status === "under_review";
+  const canRequestSupplement = app?.status === "under_review";
 
   return (
     <OfficerLayout>
@@ -514,11 +577,13 @@ export function OfficerApplicationDetail() {
                       okText="Phê duyệt"
                       cancelText="Huỷ"
                       onConfirm={handleApprove}
+                      disabled={!canReview}
                     >
                       <Button
                         block
                         type="primary"
                         icon={<CheckCircle2 size={15} />}
+                        disabled={!canReview}
                         loading={actionLoading === "approve"}
                         className="!rounded-xl !h-10 !bg-emerald-500 !border-emerald-500 hover:!bg-emerald-600"
                       >
@@ -530,6 +595,7 @@ export function OfficerApplicationDetail() {
                       block
                       danger
                       icon={<XCircle size={15} />}
+                      disabled={!canReview}
                       loading={actionLoading === "reject"}
                       onClick={() => setRejectModal(true)}
                       className="!rounded-xl !h-10"
@@ -540,8 +606,9 @@ export function OfficerApplicationDetail() {
                     <Button
                       block
                       icon={<FilePlus2 size={15} />}
+                      disabled={!canRequestSupplement}
                       loading={actionLoading === "supplement"}
-                      onClick={() => setSupplementModal(true)}
+                      onClick={openSupplementModal}
                       className="!rounded-xl !h-10 !text-amber-600 !border-amber-300 hover:!border-amber-400"
                     >
                       Yêu cầu bổ sung tài liệu

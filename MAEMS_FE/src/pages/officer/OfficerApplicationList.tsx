@@ -31,10 +31,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   getActiveAdmissionTypesBasic,
+  getAdmissionTypeById,
 } from "../../api/admission-types";
 import {
   fetchAllApplications,
   patchApplication,
+  requestAdditionalDocuments,
 } from "../../api/applications";
 import { getActiveBasicCampuses } from "../../api/campuses";
 import { getActiveProgramsBasic } from "../../api/programs";
@@ -60,6 +62,22 @@ const statusConfig: Record<ApplicationStatus, { label: string; color: string }> 
 
 function isEscalated(app: Application) {
   return app.status === "under_review" || app.requiresReview;
+}
+
+function normalizeRequiredDocumentList(raw: string | null | undefined) {
+  if (!raw) return "";
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      return parsed
+        .map((item) => String(item).trim())
+        .filter(Boolean)
+        .join(", ");
+    }
+  } catch {
+    // Fallback: keep plain text if it is not JSON.
+  }
+  return String(raw).trim();
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -216,6 +234,12 @@ export function OfficerApplicationList() {
 
   const handleApprove = async (id: number | string) => {
     const strId = String(id);
+    const targetApp = applications.find((a) => String(a.applicationId) === strId);
+    if (!targetApp || targetApp.status !== "under_review") {
+      messageApi.warning("Chỉ có thể phê duyệt khi hồ sơ ở trạng thái chờ xét duyệt.");
+      return;
+    }
+
     setActionLoading(strId + "_approve");
     try {
       await patchApplication(Number(id), { status: "approved" });
@@ -238,6 +262,12 @@ export function OfficerApplicationList() {
     try {
       await rejectForm.validateFields();
       const strId = String(rejectModal.id);
+      const targetApp = applications.find((a) => String(a.applicationId) === strId);
+      if (!targetApp || targetApp.status !== "under_review") {
+        messageApi.warning("Chỉ có thể từ chối khi hồ sơ ở trạng thái chờ xét duyệt.");
+        return;
+      }
+
       setActionLoading(strId + "_reject");
       await patchApplication(Number(rejectModal.id), { status: "rejected" });
       messageApi.success("Đã từ chối hồ sơ.");
@@ -259,11 +289,38 @@ export function OfficerApplicationList() {
 
   const handleSupplementSubmit = async () => {
     try {
-      await supplementForm.validateFields();
+      const targetApp = applications.find(
+        (a) => String(a.applicationId) === String(supplementModal.id),
+      );
+      if (!targetApp || targetApp.status !== "under_review") {
+        messageApi.warning("Chỉ có thể yêu cầu bổ sung khi hồ sơ đang chờ xét duyệt.");
+        return;
+      }
+
+      const values = await supplementForm.validateFields();
       const strId = String(supplementModal.id);
+      const docsNeed = String(values.note ?? "");
+
       setActionLoading(strId + "_supplement");
-      await patchApplication(Number(supplementModal.id), { status: "document_required" });
+      const updated = await requestAdditionalDocuments(Number(supplementModal.id), { docsNeed });
+
       messageApi.success("Đã gửi yêu cầu bổ sung tài liệu.");
+
+      setApplications((prev) =>
+        prev.map((a) =>
+          String(a.applicationId) === strId
+            ? {
+                ...a,
+                status: updated.status,
+                requiresReview: updated.requiresReview,
+                lastUpdated: updated.lastUpdated || a.lastUpdated,
+                assignedOfficerId: updated.assignedOfficerId,
+                assignedOfficerName: updated.assignedOfficerName,
+              }
+            : a
+        )
+      );
+
       setSupplementModal({ open: false, id: "" });
       supplementForm.resetFields();
     } catch {
@@ -271,6 +328,24 @@ export function OfficerApplicationList() {
     } finally {
       setActionLoading(null);
     }
+  };
+
+  const openSupplementModal = async (record: Application) => {
+    if (record.status !== "under_review") {
+      messageApi.warning("Chỉ có thể yêu cầu bổ sung khi hồ sơ đang chờ xét duyệt.");
+      return;
+    }
+
+    let suggestedDocs = "";
+    try {
+      const admissionType = await getAdmissionTypeById(record.admissionTypeId);
+      suggestedDocs = normalizeRequiredDocumentList(admissionType.requiredDocumentList);
+    } catch {
+      // Keep modal usable even if suggestion fetch fails.
+    }
+
+    setSupplementModal({ open: true, id: record.applicationId });
+    supplementForm.setFieldsValue({ note: suggestedDocs });
   };
 
   // ─── Columns ──────────────────────────────────────────────────────────────
@@ -346,9 +421,8 @@ export function OfficerApplicationList() {
       render: (_: unknown, record: Application) => {
         const id = record.applicationId;
         const strId = String(id);
-        const isApproved = record.status === "approved";
-        const isRejected = record.status === "rejected";
-        const isDone = isApproved || isRejected;
+        const canReview = record.status === "under_review";
+        const canRequestSupplement = record.status === "under_review";
 
         return (
           <Space size={4}>
@@ -361,44 +435,62 @@ export function OfficerApplicationList() {
               />
             </Tooltip>
 
-            <Tooltip title={isDone ? "Hồ sơ đã xử lý" : "Phê duyệt"}>
+            <Tooltip
+              title={
+                canReview
+                  ? "Phê duyệt"
+                  : "Chỉ phê duyệt được khi hồ sơ ở trạng thái chờ xét duyệt"
+              }
+            >
               <Popconfirm
                 title="Phê duyệt hồ sơ này?"
                 okText="Phê duyệt"
                 cancelText="Huỷ"
                 onConfirm={() => handleApprove(id)}
-                disabled={isDone}
+                disabled={!canReview}
               >
                 <Button
                   size="small"
                   icon={<CheckCircle2 size={13} />}
                   type="primary"
-                  disabled={isDone}
+                  disabled={!canReview}
                   loading={actionLoading === strId + "_approve"}
                   className="!rounded-lg !bg-emerald-500 !border-emerald-500 hover:!bg-emerald-600"
                 />
               </Popconfirm>
             </Tooltip>
 
-            <Tooltip title={isDone ? "Hồ sơ đã xử lý" : "Từ chối"}>
+            <Tooltip
+              title={
+                canReview
+                  ? "Từ chối"
+                  : "Chỉ từ chối được khi hồ sơ ở trạng thái chờ xét duyệt"
+              }
+            >
               <Button
                 size="small"
                 icon={<XCircle size={13} />}
                 danger
-                disabled={isDone}
+                disabled={!canReview}
                 loading={actionLoading === strId + "_reject"}
                 onClick={() => setRejectModal({ open: true, id })}
                 className="!rounded-lg"
               />
             </Tooltip>
 
-            <Tooltip title="Yêu cầu bổ sung">
+            <Tooltip
+              title={
+                canRequestSupplement
+                  ? "Yêu cầu bổ sung"
+                  : "Chỉ áp dụng khi hồ sơ ở trạng thái chờ xét duyệt"
+              }
+            >
               <Button
                 size="small"
                 icon={<FilePlus2 size={13} />}
-                disabled={isRejected}
+                disabled={!canRequestSupplement}
                 loading={actionLoading === strId + "_supplement"}
-                onClick={() => setSupplementModal({ open: true, id })}
+                onClick={() => openSupplementModal(record)}
                 className="!rounded-lg !text-amber-600 !border-amber-300 hover:!border-amber-400"
               />
             </Tooltip>
