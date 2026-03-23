@@ -10,3 +10,22 @@ export interface ProgramAdmissionConfig {
     isActive: boolean;
     createdAt: string;
 }
+
+export interface ProgramAdmissionConfigQuery {
+  programId?: number;
+  campusId?: number;
+  admissionTypeId?: number;
+  search?: string;
+  sortBy?: string;
+  sortDesc?: boolean;
+  pageNumber?: number;
+  pageSize?: number;
+}
+
+export interface ProgramAdmissionConfigResponse {
+  items: ProgramAdmissionConfig[];
+  totalCount: number;
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+}

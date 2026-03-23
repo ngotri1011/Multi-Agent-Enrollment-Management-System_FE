@@ -46,6 +46,7 @@ import { AdminReports } from "../pages/admin/AdminReports";
 import { AdminSettings } from "../pages/admin/AdminSettnigs";
 import { AdminUserManagement } from "../pages/admin/AdminUserManagement";
 import { NotFound } from "../pages/notfound/NotFound";
+import { AdminProgramAdmissionConfig } from "../pages/admin/AdminProgramAdmissionConfig";
 
 export function AppRouter() {
   return (
@@ -304,7 +305,14 @@ export function AppRouter() {
           </RoleGuard>
         }
       />
-      
+      <Route
+        path="/admin/admissionPlans"
+        element={
+          <RoleGuard allowedRoles={["admin"]}>
+            <AdminProgramAdmissionConfig />
+          </RoleGuard>
+        }
+      />
 
       <Route path="*" element={<NotFound />} />
     </Routes>
