@@ -77,10 +77,7 @@ export function AdminUserManagement() {
     {
       title: "Created",
       dataIndex: "createdAt",
-      defaultSortOrder: "descend",
-      sorter: (a, b) =>
-        new Date(a.createdAt).getTime() -
-        new Date(b.createdAt).getTime(),
+      sorter: true,
       render: (date: string) =>
         new Date(date).toLocaleDateString(),
     },
@@ -105,6 +102,12 @@ export function AdminUserManagement() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [creating, setCreating] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+
+  const [pageNumber, setPageNumber] = useState(1);
+  const [pageSize, setPageSize] = useState(5);
+  const [sortBy, setSortBy] = useState("createdAt");
+  const [sortDesc, setSortDesc] = useState(true);
+  const [total, setTotal] = useState(0);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [form] = Form.useForm();
@@ -133,7 +136,7 @@ export function AdminUserManagement() {
       message.success("User updated successfully");
 
       setSelectedUser(null);
-      fetchUsers(roleFilter);
+      fetchUsers();
 
     } catch (error) {
       message.error("Update failed");
@@ -155,7 +158,7 @@ export function AdminUserManagement() {
       setIsModalOpen(false);
       form.resetFields();
 
-      fetchUsers(roleFilter);
+      fetchUsers();
 
     } catch (error) {
       console.error(error);
@@ -166,15 +169,25 @@ export function AdminUserManagement() {
   };
 
   // Fetch users
-  const fetchUsers = async (role?: string) => {
+  const fetchUsers = async () => {
     try {
       setLoading(true);
 
       const roleId =
-        role && role !== "all" ? roleMap[role] : undefined;
+        roleFilter !== "all" ? roleMap[roleFilter] : undefined;
 
-      const data = await getUsers(roleId);
-      setUsers(data);
+      const res = await getUsers({
+        roleId,
+        search,
+        sortBy,
+        sortDesc,
+        pageNumber,
+        pageSize,
+      });
+
+      setUsers(res.items);
+      setTotal(res.totalCount);
+
     } catch (error) {
       console.error("Failed to fetch users", error);
     } finally {
@@ -185,24 +198,11 @@ export function AdminUserManagement() {
   useEffect(() => {
     fetchUsers();
   }, []);
-  // Refetch when role filter changes
+  // Refetch when filter changes
   useEffect(() => {
-    fetchUsers(roleFilter);
-  }, [roleFilter]);
+    fetchUsers();
+  }, [roleFilter, pageNumber, pageSize, sortBy, sortDesc]);
 
-  // Apply search and filters
-  const filteredUsers = users.filter((user) => {
-    const matchSearch =
-      user.username.toLowerCase().includes(search.toLowerCase()) ||
-      user.email.toLowerCase().includes(search.toLowerCase());
-
-    const matchStatus =
-      statusFilter === "all" ||
-      (statusFilter === "active" && user.isActive) ||
-      (statusFilter === "inactive" && !user.isActive);
-
-    return matchSearch && matchStatus;
-  });
 
   return (
     <AdminLayout>
@@ -228,6 +228,10 @@ export function AdminUserManagement() {
               placeholder="Search users..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              onPressEnter={() => {
+                setPageNumber(1); 
+                fetchUsers();    
+              }}
             />
           </Col>
 
@@ -258,237 +262,253 @@ export function AdminUserManagement() {
           </Col>
           <Col >
             <Button
-            type="primary"
-            icon={<UserPlus size={16} />}
-            onClick={() => setIsModalOpen(true)}
-          >
-            Thêm người dùng
-          </Button>
-        </Col>
-      </Row>
-    </Card>
-
-      {/* Table */ }
-  <Card className="rounded-xl">
-    <Table
-      rowKey="userId"
-      columns={columns}
-      dataSource={filteredUsers}
-      loading={loading}
-      pagination={{
-        pageSize: 5,
-        showSizeChanger: true,
-        pageSizeOptions: ["5", "10", "20"],
-      }} />
-  </Card>
-  {/* Create Account */ }
-  <Modal
-    confirmLoading={creating}
-    open={isModalOpen}
-    onCancel={() => setIsModalOpen(false)}
-    footer={null}
-    width={600}
-  >
-    <div className="space-y-5">
-
-      {/* Title */}
-      <div className="bg-purple-50 border border-purple-200 rounded-xl p-4">
-        <div className="flex items-center gap-2 text-xl font-bold text-purple-700">
-          <UserPlus size={16} />
-          Thiết lập tài khoản người dùng
-        </div>
-        <div className="text-sm text-gray-500">
-          Nhập thông tin người dùng và gán vai trò
-        </div>
-      </div>
-
-      {/* FORM */}
-      <Form form={form} layout="vertical">
-        <Form.Item
-          name="username"
-          label="Tên người dùng"
-          rules={[{ required: true, message: "Tên người dùng không hợp lệ" }]}
-        >
-          <Input placeholder="Vui lòng nhập tên người dùng" />
-        </Form.Item>
-
-        <Form.Item
-          name="email"
-          label="Email"
-          rules={[
-            { required: true },
-            { type: "email", message: " Địa chỉ email không hợp lệ" },
-          ]}
-        >
-          <Input placeholder="Vui lòng nhập địa chỉ email" />
-        </Form.Item>
-
-        <Form.Item
-          name="password"
-          label="Mật khẩu"
-          rules={[{ required: true }]}
-        >
-          <Input.Password placeholder="Vui lòng nhập mật khẩu" />
-        </Form.Item>
-
-        <Form.Item
-          name="roleId"
-          label="Vai trò"
-          rules={[{ required: true }]}
-        >
-          <Select placeholder="Chọn vai trò">
-            <Option value={1}>Admin</Option>
-            <Option value={2}>Officer</Option>
-            <Option value={3}>QA</Option>
-            <Option value={4}>Applicant</Option>
-            <Option value={5}>Guest</Option>
-          </Select>
-        </Form.Item>
-      </Form>
-
-      {/* ACTION BUTTONS */}
-      <div className="flex justify-end gap-3 pt-2">
-        <Button
-          icon={<X size={16} />}
-          onClick={() => setIsModalOpen(false)}>
-          Hủy
-        </Button>
-
-        <Button
-          type="primary"
-          icon={<Save size={16} />}
-          loading={creating}
-          onClick={handleCreateUser}
-          className="bg-blue-800 hover:bg-blue-900 text-white px-6 flex items-center gap-2"
-        >
-          Tạo tài khoản
-        </Button>
-      </div>
-    </div>
-  </Modal>
-  {/* View Detail / Edit Modal */ }
-  <Modal
-    open={!!selectedUser}
-    onCancel={() => setSelectedUser(null)}
-    footer={null}
-    width={600}
-    className="[&_.ant-modal-content]:rounded-2xl"
-  >
-    {selectedUser && (
-      <div className="space-y-5">
-
-        {/* HEADER */}
-        <div className="bg-green-50 border border-green-200 rounded-xl p-4">
-          <h2 className="text-lg text-green-600 font-semibold">
-            Quản lý người dùng
-          </h2>
-          <p className="text-gray-500 text-sm">
-            Xem và quản lý quyền người dùng
-          </p>
-        </div>
-
-        {/* HIGHLIGHT CARD (like AI Recommendation) */}
-        <div className="bg-gray-50 border rounded-xl p-4">
-          <div className="font-semibold">
-            Người dùng
-          </div>
-
-          <div className="text-xl font-bold text-blue-700">
-            {selectedUser.username}
-          </div>
-
-          <div className="text-sm">
-            {selectedUser.email}
-          </div>
-        </div>
-
-        {/* USER INFO */}
-        <div className="bg-gray-50 border rounded-xl p-4 space-y-3">
-          <div className="flex justify-between">
-            <span className="text-gray-500 text-sm">Ngày tạo</span>
-            <span className="font-medium">
-              {new Date(selectedUser.createdAt).toLocaleString()}
-            </span>
-          </div>
-
-          <div className="flex justify-between">
-            <span className="text-gray-500 text-sm">Vai trò</span>
-            <span className="font-medium">
-              {selectedUser.roleName}
-            </span>
-          </div>
-        </div>
-
-        {/* EDIT SECTION (like decision panel) */}
-        <div className="bg-white border rounded-xl p-4 space-y-4">
-
-          <div className="font-semibold text-gray-700">
-            Chỉnh sửa thông tin
-          </div>
-
-          {/* Role */}
-          <div>
-            <div className="text-sm text-gray-500 mb-1">
-              Đổi vài trò
-            </div>
-
-            <Select
-              value={selectedUser.roleId}
-              onChange={(value) =>
-                setSelectedUser((prev) =>
-                  prev ? { ...prev, roleId: value } : prev
-                )
-              }
-              style={{ width: "100%" }}
+              type="primary"
+              icon={<UserPlus size={16} />}
+              onClick={() => setIsModalOpen(true)}
             >
-              <Option value={1}>Admin</Option>
-              <Option value={2}>Officer</Option>
-              <Option value={3}>QA</Option>
-              <Option value={4}>Applicant</Option>
-              <Option value={5}>Guest</Option>
-            </Select>
+              Thêm người dùng
+            </Button>
+          </Col>
+        </Row>
+      </Card>
+
+      {/* Table */}
+      <Card className="rounded-xl">
+        <Table
+          rowKey="userId"
+          columns={columns}
+          dataSource={users}
+          loading={loading}
+          pagination={{
+            current: pageNumber,
+            pageSize,
+            total,
+            showSizeChanger: true,
+            onChange: (page, size) => {
+              setPageNumber(page);
+              setPageSize(size);
+            },
+          }}
+          onChange={(_, __, sorter: any, extra) => {
+
+            if (extra.action === "sort") {
+              if (sorter?.field) {
+                setSortBy(sorter.field);
+                setSortDesc(sorter.order === "descend");
+                setPageNumber(1);
+              }
+            }
+          }}
+        />
+      </Card>
+      {/* Create Account */}
+      <Modal
+        confirmLoading={creating}
+        open={isModalOpen}
+        onCancel={() => setIsModalOpen(false)}
+        footer={null}
+        width={600}
+      >
+        <div className="space-y-5">
+
+          {/* Title */}
+          <div className="bg-purple-50 border border-purple-200 rounded-xl p-4">
+            <div className="flex items-center gap-2 text-xl font-bold text-purple-700">
+              <UserPlus size={16} />
+              Thiết lập tài khoản người dùng
+            </div>
+            <div className="text-sm text-gray-500">
+              Nhập thông tin người dùng và gán vai trò
+            </div>
           </div>
 
-          {/* Status */}
-          <div className="flex justify-between items-center pt-2">
-            <div>
-              <div className="text-sm text-gray-500">
-                Trạng thái tài khoản
+          {/* FORM */}
+          <Form form={form} layout="vertical">
+            <Form.Item
+              name="username"
+              label="Tên người dùng"
+              rules={[{ required: true, message: "Tên người dùng không hợp lệ" }]}
+            >
+              <Input placeholder="Vui lòng nhập tên người dùng" />
+            </Form.Item>
+
+            <Form.Item
+              name="email"
+              label="Email"
+              rules={[
+                { required: true },
+                { type: "email", message: " Địa chỉ email không hợp lệ" },
+              ]}
+            >
+              <Input placeholder="Vui lòng nhập địa chỉ email" />
+            </Form.Item>
+
+            <Form.Item
+              name="password"
+              label="Mật khẩu"
+              rules={[{ required: true }]}
+            >
+              <Input.Password placeholder="Vui lòng nhập mật khẩu" />
+            </Form.Item>
+
+            <Form.Item
+              name="roleId"
+              label="Vai trò"
+              rules={[{ required: true }]}
+            >
+              <Select placeholder="Chọn vai trò">
+                <Option value={1}>Admin</Option>
+                <Option value={2}>Officer</Option>
+                <Option value={3}>QA</Option>
+                <Option value={4}>Applicant</Option>
+                <Option value={5}>Guest</Option>
+              </Select>
+            </Form.Item>
+          </Form>
+
+          {/* ACTION BUTTONS */}
+          <div className="flex justify-end gap-3 pt-2">
+            <Button
+              icon={<X size={16} />}
+              onClick={() => setIsModalOpen(false)}>
+              Hủy
+            </Button>
+
+            <Button
+              type="primary"
+              icon={<Save size={16} />}
+              loading={creating}
+              onClick={handleCreateUser}
+              className="bg-blue-800 hover:bg-blue-900 text-white px-6 flex items-center gap-2"
+            >
+              Tạo tài khoản
+            </Button>
+          </div>
+        </div>
+      </Modal>
+      {/* View Detail / Edit Modal */}
+      <Modal
+        open={!!selectedUser}
+        onCancel={() => setSelectedUser(null)}
+        footer={null}
+        width={600}
+        className="[&_.ant-modal-content]:rounded-2xl"
+      >
+        {selectedUser && (
+          <div className="space-y-5">
+
+            {/* HEADER */}
+            <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+              <h2 className="text-lg text-green-600 font-semibold">
+                Quản lý người dùng
+              </h2>
+              <p className="text-gray-500 text-sm">
+                Xem và quản lý quyền người dùng
+              </p>
+            </div>
+
+            {/* HIGHLIGHT CARD (like AI Recommendation) */}
+            <div className="bg-gray-50 border rounded-xl p-4">
+              <div className="font-semibold">
+                Người dùng
               </div>
-              <div className="font-medium">
-                {selectedUser.isActive ? "Hoạt động" : "Không hoạt động"}
+
+              <div className="text-xl font-bold text-blue-700">
+                {selectedUser.username}
+              </div>
+
+              <div className="text-sm">
+                {selectedUser.email}
               </div>
             </div>
 
-            <Switch
-              checked={selectedUser.isActive}
-              onChange={(checked) =>
-                setSelectedUser((prev) =>
-                  prev ? { ...prev, isActive: checked } : prev
-                )
-              }
-            />
+            {/* USER INFO */}
+            <div className="bg-gray-50 border rounded-xl p-4 space-y-3">
+              <div className="flex justify-between">
+                <span className="text-gray-500 text-sm">Ngày tạo</span>
+                <span className="font-medium">
+                  {new Date(selectedUser.createdAt).toLocaleString()}
+                </span>
+              </div>
+
+              <div className="flex justify-between">
+                <span className="text-gray-500 text-sm">Vai trò</span>
+                <span className="font-medium">
+                  {selectedUser.roleName}
+                </span>
+              </div>
+            </div>
+
+            {/* EDIT SECTION (like decision panel) */}
+            <div className="bg-white border rounded-xl p-4 space-y-4">
+
+              <div className="font-semibold text-gray-700">
+                Chỉnh sửa thông tin
+              </div>
+
+              {/* Role */}
+              <div>
+                <div className="text-sm text-gray-500 mb-1">
+                  Đổi vài trò
+                </div>
+
+                <Select
+                  value={selectedUser.roleId}
+                  onChange={(value) =>
+                    setSelectedUser((prev) =>
+                      prev ? { ...prev, roleId: value } : prev
+                    )
+                  }
+                  style={{ width: "100%" }}
+                >
+                  <Option value={1}>Admin</Option>
+                  <Option value={2}>Officer</Option>
+                  <Option value={3}>QA</Option>
+                  <Option value={4}>Applicant</Option>
+                  <Option value={5}>Guest</Option>
+                </Select>
+              </div>
+
+              {/* Status */}
+              <div className="flex justify-between items-center pt-2">
+                <div>
+                  <div className="text-sm text-gray-500">
+                    Trạng thái tài khoản
+                  </div>
+                  <div className="font-medium">
+                    {selectedUser.isActive ? "Hoạt động" : "Không hoạt động"}
+                  </div>
+                </div>
+
+                <Switch
+                  checked={selectedUser.isActive}
+                  onChange={(checked) =>
+                    setSelectedUser((prev) =>
+                      prev ? { ...prev, isActive: checked } : prev
+                    )
+                  }
+                />
+              </div>
+            </div>
+
+            {/* ACTION BUTTON */}
+            <div className="flex justify-end gap-3">
+              <Button onClick={() => setSelectedUser(null)}>
+                Hủy
+              </Button>
+
+              <Button
+                type="primary"
+                loading={updating}
+                onClick={handleUpdateFromModal}
+                className="bg-blue-800 hover:bg-blue-900 px-6 flex items-center gap-2"
+              >
+                Lưu
+              </Button>
+            </div>
           </div>
-        </div>
-
-        {/* ACTION BUTTON */}
-        <div className="flex justify-end gap-3">
-          <Button onClick={() => setSelectedUser(null)}>
-            Hủy
-          </Button>
-
-          <Button
-            type="primary"
-            loading={updating}
-            onClick={handleUpdateFromModal}
-            className="bg-blue-800 hover:bg-blue-900 px-6 flex items-center gap-2"
-          >
-            Lưu
-          </Button>
-        </div>
-      </div>
-    )}
-  </Modal>
+        )}
+      </Modal>
     </AdminLayout >
   );
 }

@@ -5,7 +5,7 @@ import type {
   ApiProfileData,
   UserProfile,
 } from "../types/auth";
-import type { CreateUserRequest, UpdateUserRequest, User } from "../types/user";
+import type { CreateUserRequest, GetUsersParams, PagedResponse, UpdateUserRequest, User } from "../types/user";
 
 export async function getProfile(): Promise<UserProfile | null> {
   try {
@@ -24,12 +24,13 @@ export async function getProfile(): Promise<UserProfile | null> {
   }
 }
 
-export async function getUsers(roleId?: number) {
-  const res = await apiClient.get<ApiWrapper<User[]>>("/api/Users", {
-    params: {
-      roleId,
-    },
-  });
+export async function getUsers(
+  params?: GetUsersParams
+): Promise<PagedResponse<User>> {
+  const res = await apiClient.get<ApiWrapper<PagedResponse<User>>>(
+    "/api/Users",
+    { params }
+  );
 
   return res.data.data;
 }

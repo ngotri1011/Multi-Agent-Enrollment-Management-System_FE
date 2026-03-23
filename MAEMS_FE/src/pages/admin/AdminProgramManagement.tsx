@@ -1,69 +1,36 @@
-import { Card, Row, Col, Typography, Button, Tag, Space, Form, Switch, Input, Modal, message } from "antd";
+import { Card, Row, Col, Typography, Button, Tag, Space, Form, Switch, Input, Modal, message, Pagination, Spin, Select } from "antd";
 import { AdminLayout } from "../../components/layouts/AdminLayout";
 import { useEffect, useState } from "react";
 import type { Program } from "../../types/program";
-import { createProgram, getPrograms, updateProgram } from "../../api/programs";
+import { createProgram, getallPrograms, getPrograms, updateProgram } from "../../api/programs";
 import { CheckCircle, CircleOff, Eye, Pencil, Save, X } from "lucide-react";
 
 const { Title, Text } = Typography;
 
-
-// interface Program {
-//   id: string;
-//   name: string;
-//   students: number;
-//   active: number;
-//   applications: number;
-// }
-
-// const programs: Program[] = [
-//   {
-//     id: "1",
-//     name: "Computer Science",
-//     students: 245,
-//     active: 245,
-//     applications: 318,
-//   },
-//   {
-//     id: "2",
-//     name: "Business Admin",
-//     students: 312,
-//     active: 312,
-//     applications: 405,
-//   },
-//   {
-//     id: "3",
-//     name: "Nursing",
-//     students: 156,
-//     active: 156,
-//     applications: 202,
-//   },
-//   {
-//     id: "4",
-//     name: "Psychology",
-//     students: 203,
-//     active: 203,
-//     applications: 263,
-//   },
-//   {
-//     id: "5",
-//     name: "Engineering",
-//     students: 178,
-//     active: 178,
-//     applications: 231,
-//   },
-//   {
-//     id: "6",
-//     name: "Others",
-//     students: 153,
-//     active: 153,
-//     applications: 198,
-//   },
-// ];
-
 export function AdminProgramManagement() {
+
+  const enrollmentYearOptions = [
+    { label: "2026", value: 1 },
+    { label: "2025", value: 2 },
+    { label: "2024", value: 3 },
+  ];
+
   const [programs, setPrograms] = useState<Program[]>([]);
-  const [, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [query, setQuery] = useState({
+    pageNumber: 1,
+    pageSize: 6,
+    search: "",
+    enrollmentYearId: undefined as number | undefined,
+    sortBy: undefined as string | undefined,
+    sortDesc: false,
+  });
+
+  const [pagination, setPagination] = useState({
+    total: 0,
+    current: 1,
+    pageSize: 6,
+  });
 
   const [open, setOpen] = useState(false);
   const [form] = Form.useForm();
@@ -128,20 +95,35 @@ export function AdminProgramManagement() {
 
   //fetch programs from API
   useEffect(() => {
-    const fetchPrograms = async () => {
-      try {
-        setLoading(true);
-        const data = await getPrograms();
-        setPrograms(data);
-      } catch (err) {
-        console.error("Failed to fetch programs", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchPrograms();
-  }, []);
+  }, [query]);
+
+  function cleanParams(params: Record<string, any>) {
+    return Object.fromEntries(
+      Object.entries(params).filter(([_, v]) => v !== undefined && v !== "")
+    );
+  }
+
+  const fetchPrograms = async () => {
+    try {
+      setLoading(true);
+
+      const res = await getallPrograms(cleanParams(query));
+
+      setPrograms(res.items);
+
+      setPagination({
+        total: res.totalCount,
+        current: res.pageNumber,
+        pageSize: res.pageSize,
+      });
+
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <AdminLayout>
@@ -149,11 +131,11 @@ export function AdminProgramManagement() {
       <div className="flex justify-between items-center mb-6">
         <div>
           <Title level={3} className="!mb-1">
-            Program Management
+            Quản lý chương trình đào tạo
           </Title>
 
           <Text type="secondary">
-            Manage academic programs and courses.
+            Xem, tạo và chỉnh sửa các chương trình đào tạo của trường.
           </Text>
         </div>
 
@@ -162,64 +144,145 @@ export function AdminProgramManagement() {
         </Button>
       </div>
 
+      {/* Search & Filters */}
+      <div className="flex flex-wrap gap-4 mb-6 items-center">
+
+        {/*  Search */}
+        <Input.Search
+          placeholder="Search program..."
+          allowClear
+          onSearch={(value) => {
+            setQuery((prev) => ({
+              ...prev,
+              search: value,
+              pageNumber: 1,
+            }));
+          }}
+          className="w-60"
+        />
+
+        {/* Enrollment Year Filter */}
+        <Select
+          placeholder="Filter by Year"
+          allowClear
+          options={enrollmentYearOptions}
+          className="w-40"
+          onChange={(value) => {
+            setQuery((prev) => ({
+              ...prev,
+              enrollmentYearId: value,
+              pageNumber: 1,
+            }));
+          }}
+        />
+
+        {/* Sort By */}
+        <Select
+          placeholder="Sort By"
+          className="w-48"
+          allowClear
+          options={[
+            { label: "Program Name", value: "programName" },
+            { label: "Enrollment Year", value: "enrollmentYear" },
+            { label: "Duration", value: "duration" },
+          ]}
+          onChange={(value) => {
+            setQuery((prev) => ({
+              ...prev,
+              sortBy: value,
+            }));
+          }}
+        />
+
+        {/* 🔼🔽 Sort Direction */}
+        <div className="flex items-center gap-2">
+          <span className="text-gray-500 text-sm">Desc</span>
+          <Switch
+            checked={query.sortDesc}
+            onChange={(checked) => {
+              setQuery((prev) => ({
+                ...prev,
+                sortDesc: checked,
+              }));
+            }}
+          />
+        </div>
+      </div>
+
       {/* Program Grid */}
-      <Row gutter={[24, 24]}>
-        {programs.map((program) => (
-          <Col xs={24} md={12} lg={8} key={program.programId}>
-            <Card
-              className="rounded-2xl border border-gray-100 shadow-sm"
-              styles={{ body: { padding: "24px" } }}
-            >
-              {/* Title */}
-              <div className="flex justify-between items-center mb-6">
-                <Title level={4} className="!mb-0">
-                  {program.programName}
-                </Title>
+      <Spin spinning={loading}>
+        <Row gutter={[24, 24]}>
+          {programs.map((program) => (
+            <Col xs={24} md={12} lg={8} key={program.programId}>
+              <Card
+                className="rounded-2xl border border-gray-100 shadow-sm"
+                styles={{ body: { padding: "24px" } }}
+              >
+                {/* Title */}
+                <div className="flex justify-between items-center mb-6">
+                  <Title level={4} className="!mb-0">
+                    {program.programName}
+                  </Title>
 
-                <Tag
-                  color={program.isActive ? "green" : "default"}
-                  className="rounded-full px-3 py-1"
-                >
-                  {program.isActive ? "Active" : "Inactive"}
-                </Tag>
-              </div>
-
-              {/* Stats */}
-              <div className="space-y-3 mb-6">
-                <div className="flex justify-between">
-                  <Text type="secondary">Major:</Text>
-                  <Text strong>{program.majorName}</Text>
+                  <Tag
+                    color={program.isActive ? "green" : "default"}
+                    className="rounded-full px-3 py-1"
+                  >
+                    {program.isActive ? "Active" : "Inactive"}
+                  </Tag>
                 </div>
 
-                <div className="flex justify-between">
-                  <Text type="secondary">Year:</Text>
-                  <Text strong>{program.enrollmentYear}</Text>
+                {/* Stats */}
+                <div className="space-y-3 mb-6">
+                  <div className="flex justify-between">
+                    <Text type="secondary">Major:</Text>
+                    <Text strong>{program.majorName}</Text>
+                  </div>
+
+                  <div className="flex justify-between">
+                    <Text type="secondary">Year:</Text>
+                    <Text strong>{program.enrollmentYear}</Text>
+                  </div>
+
+                  <div className="flex justify-between">
+                    <Text type="secondary">Duration:</Text>
+                    <Text strong>{program.duration}</Text>
+                  </div>
                 </div>
 
-                <div className="flex justify-between">
-                  <Text type="secondary">Duration:</Text>
-                  <Text strong>{program.duration}</Text>
-                </div>
-              </div>
+                {/* Actions */}
+                <Space>
+                  <Button
+                    onClick={() => {
+                      setSelectedProgram(program);
+                      setDetailOpen(true);
+                      setEditing(false);
 
-              {/* Actions */}
-              <Space>
-                <Button
-                  onClick={() => {
-                    setSelectedProgram(program);
-                    setDetailOpen(true);
-                    setEditing(false);
-
-                    detailForm.setFieldsValue(program);
-                  }}
-                >
-                  View Details
-                </Button>
-              </Space>
-            </Card>
-          </Col>
-        ))}
-      </Row>
+                      detailForm.setFieldsValue(program);
+                    }}
+                  >
+                    View Details
+                  </Button>
+                </Space>
+              </Card>
+            </Col>
+          ))}
+        </Row>
+      </Spin>
+      <div className="flex justify-center mt-6">
+        <Pagination
+          current={pagination.current}
+          pageSize={pagination.pageSize}
+          total={pagination.total}
+          onChange={(page, pageSize) => {
+            setQuery((prev) => ({
+              ...prev,
+              pageNumber: page,
+              pageSize,
+            }));
+          }}
+        />
+      </div>
 
       {/* Create Modal  */}
       <Modal

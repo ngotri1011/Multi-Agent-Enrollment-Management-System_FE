@@ -36,3 +36,21 @@ export interface UpdateProgramRequest {
   duration: string;
   isActive: boolean;
 }
+
+export interface ProgramQueryParams {
+  majorId?: number;
+  enrollmentYearId?: number;
+  search?: string;
+  sortBy?: string;
+  sortDesc?: boolean;
+  pageNumber?: number;
+  pageSize?: number;
+}
+
+export interface PaginatedProgramResponse {
+  items: Program[];
+  totalCount: number;
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+}
