@@ -1,6 +1,6 @@
 import { apiClient } from "../services/axios";
 import type { ApiWrapper } from "../types/api.wrapper";
-import type { ProgramAdmissionConfig } from "../types/program.admission.config";
+import type { ProgramAdmissionConfig, ProgramAdmissionConfigQuery, ProgramAdmissionConfigResponse } from "../types/program.admission.config";
 
 export async function getProgramAdmissionConfigsFilter(
     programId?: number,
@@ -12,4 +12,15 @@ export async function getProgramAdmissionConfigsFilter(
         { params: { programId, campusId, admissionTypeId } }
     );
     return res.data.data;
+}
+
+
+export async function getProgramAdmissionConfigs(
+  params: ProgramAdmissionConfigQuery
+) {
+  const res = await apiClient.get<
+    ApiWrapper<ProgramAdmissionConfigResponse>
+  >("/api/ProgramAdmissionConfigs", { params });
+
+  return res.data.data;
 }

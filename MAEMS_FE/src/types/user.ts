@@ -19,3 +19,20 @@ export type UpdateUserRequest = {
   isActive: boolean;
   roleId: number;
 }
+
+export type GetUsersParams = {
+  roleId?: number;
+  search?: string;
+  sortBy?: string;
+  sortDesc?: boolean;
+  pageNumber?: number;
+  pageSize?: number;
+};
+
+export type PagedResponse<T> = {
+  items: T[];
+  totalCount: number;
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+};

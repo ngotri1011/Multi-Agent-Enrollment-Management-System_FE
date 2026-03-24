@@ -21,11 +21,17 @@ const menuItems: SidebarMenuItem[] = [
     icon: <LayoutDashboard size={16} />,
     path: "/admin/dashboard",
   },
-  {
-    key: "applications",
-    label: "Hồ sơ xét duyệt",
+  // {
+  //   key: "applications",
+  //   label: "Hồ sơ xét duyệt",
+  //   icon: <BarChart2 size={16} />,
+  //   path: "/admin/applications",
+  // },
+   {
+    key: "admissionPlans",
+    label: "Kế hoạch tuyển sinh",
     icon: <BarChart2 size={16} />,
-    path: "/admin/applications",
+    path: "/admin/admissionPlans",
   },
   {
     key: "programs",

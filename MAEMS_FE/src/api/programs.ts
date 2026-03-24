@@ -1,6 +1,6 @@
 import { apiClient } from "../services/axios";
 import type { ApiWrapper, PagedResult } from "../types/api.wrapper";
-import type { CreateProgramRequest, Program, ProgramBasic, UpdateProgramRequest } from "../types/program";
+import type { CreateProgramRequest, PaginatedProgramResponse, Program, ProgramBasic, ProgramQueryParams, UpdateProgramRequest } from "../types/program";
 //Lấy tất cả programs
 export async function getPrograms() {
     const res = await apiClient.get<ApiWrapper<Program[]>>(
@@ -65,4 +65,13 @@ export async function updateProgram(id: number, data: UpdateProgramRequest) {
         data
     );
     return res.data.data;
+}
+
+// Lay tat ca program theo major, enrollment year, search name, sort va phan trang
+export async function getallPrograms(params: ProgramQueryParams) {
+  const res = await apiClient.get<ApiWrapper<PaginatedProgramResponse>>(
+    "/api/Programs",
+    { params }
+  );
+  return res.data.data;
 }
