@@ -14,7 +14,7 @@ import {
   BarChart2,
   LayoutDashboard,
 } from "lucide-react";
-import { DashboardLayout } from "../../components/DashboardLayout";
+import { DashboardLayout } from "../../components/layouts/DashboardLayout";
 import { getProfile } from "../../api/users";
 import type { UserProfile } from "../../types/auth";
 import type { SidebarMenuItem } from "../../components/DashboardSidebar";
@@ -87,6 +87,7 @@ export function AdminProfile() {
 
   useEffect(() => {
     getProfile()
+      .catch(() => null)
       .then(setProfile)
       .finally(() => setLoading(false));
   }, []);

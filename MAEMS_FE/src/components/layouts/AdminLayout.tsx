@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { DashboardLayout } from "../DashboardLayout"; 
+import { DashboardLayout } from "./DashboardLayout"; 
 import type { SidebarMenuItem } from "../DashboardSidebar";
 
 import {

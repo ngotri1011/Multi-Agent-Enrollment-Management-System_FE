@@ -1,6 +1,6 @@
 import { Card, Col, Row, Typography } from "antd";
 import { ClipboardCheck, LayoutDashboard, User } from "lucide-react";
-import { DashboardLayout } from "../../components/DashboardLayout";
+import { DashboardLayout } from "../../components/layouts/DashboardLayout";
 import type { SidebarMenuItem } from "../../components/DashboardSidebar";
 
 const { Title, Text } = Typography;
