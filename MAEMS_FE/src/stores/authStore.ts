@@ -19,7 +19,7 @@ type AuthState = {
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
       token: getStoredToken(),
       refreshToken: null,
@@ -36,6 +36,7 @@ export const useAuthStore = create<AuthState>()(
       },
 
       initAuth: async () => {
+        if (get().isInitialized) return;
         const token = getStoredToken();
         if (!token) {
           set({ user: null, token: null, isInitialized: true });

@@ -60,7 +60,6 @@ export async function googleLogin(idToken: string): Promise<LoginResponse> {
 
 export async function getCurrentUser(): Promise<AuthUser | null> {
   const profile = await getProfile();
-  if (!profile) return null;
   return { username: profile.username, email: profile.email, role: profile.role };
 }
 
