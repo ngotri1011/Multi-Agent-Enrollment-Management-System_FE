@@ -3,8 +3,8 @@ import { useNavigate } from "react-router-dom";
 import {
   Button,
   Card,
-  Divider,
   Empty,
+  Modal,
   Spin,
   Tag,
   Tooltip,
@@ -14,7 +14,6 @@ import {
 } from "antd";
 import {
   Bot,
-  CalendarDays,
   CheckCircle2,
   ClipboardCheck,
   Clock,
@@ -98,6 +97,9 @@ function pipelineProgress(status: ApplicationStatus): number {
     document_required: 66,
   }[status] ?? 0;
 }
+
+// Temporarily hide pipeline/progress UI but keep code for later enabling.
+const SHOW_PIPELINE_PROGRESS_UI = false;
 
 // ─── Stage cell ───────────────────────────────────────────────────────────────
 
@@ -227,7 +229,6 @@ function ApplicationCard({
           {/* Meta grid */}
           <div className="flex flex-wrap gap-x-5 gap-y-1.5 mt-0.5">
             <MetaItem icon={FileText}     label="Loại xét tuyển" value={app.admissionTypeName} />
-            <MetaItem icon={CalendarDays} label="Năm tuyển sinh" value={app.enrollmentYear}    />
             <MetaItem icon={MapPin}       label="Cơ sở"          value={app.campusName}        />
           </div>
 
@@ -292,33 +293,33 @@ function ApplicationCard({
         </div>
       </div>
 
-      <Divider className="!my-4" />
-
       {/* ── Pipeline ── */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-            Quy trình xử lý đa tác nhân
-          </Text>
-          <Text className="text-xs text-gray-400 font-medium">
-            {progress}% hoàn thành
-          </Text>
-        </div>
+      {SHOW_PIPELINE_PROGRESS_UI && (
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              Quy trình xử lý đa tác nhân
+            </Text>
+            <Text className="text-xs text-gray-400 font-medium">
+              {progress}% hoàn thành
+            </Text>
+          </div>
 
-        {/* Progress bar */}
-        <div className="w-full h-1.5 bg-gray-100 rounded-full mb-3 overflow-hidden">
-          <div
-            className="h-full rounded-full bg-orange-500 transition-all duration-500"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
+          {/* Progress bar */}
+          <div className="w-full h-1.5 bg-gray-100 rounded-full mb-3 overflow-hidden">
+            <div
+              className="h-full rounded-full bg-orange-500 transition-all duration-500"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
 
-        <div className="flex gap-2">
-          {pipeline.map((step) => (
-            <StageCell key={step.label} step={step} />
-          ))}
+          <div className="flex gap-2">
+            {pipeline.map((step) => (
+              <StageCell key={step.label} step={step} />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </Card>
   );
 }
@@ -346,8 +347,43 @@ export function ApplicationList() {
   async function handleSubmitFinal(app: Application) {
     setSubmittingId(app.applicationId);
     try {
-      await submitApplicationFinal(Number(app.applicationId));
-      messageApi.success(`Nộp đơn đăng ký "${app.programName}" thành công!`);
+      const payment = await submitApplicationFinal(Number(app.applicationId));
+
+      // Chưa thanh toán: backend trả QR để người dùng scan thanh toán.
+      if (payment) {
+        messageApi.info("Mã thanh toán QR đã sẵn sàng. Vui lòng quét QR để thanh toán.");
+        Modal.info({
+          title: "Thanh toán bằng QR",
+          width: 420,
+          // Ensure modal is rendered to body (avoid hidden modal in some layout containers).
+          getContainer: () => document.body,
+          zIndex: 2000,
+          centered: true,
+          content: (
+            <div className="flex flex-col items-center gap-3">
+              {/* QR endpoint trả ảnh QR trực tiếp */}
+              <img
+                src={payment.url}
+                alt="QR thanh toán"
+                style={{ width: 220, height: 220, objectFit: "contain" }}
+              />
+              <div className="w-full">
+                <div className="text-xs text-gray-500 mb-1">Mã giao dịch</div>
+                <div className="font-mono text-sm text-gray-700 break-all">{payment.transactionId}</div>
+              </div>
+              <div className="text-xs text-gray-500 text-center">
+                Sau khi thanh toán, hệ thống sẽ cập nhật trạng thái đơn đăng ký của bạn.
+              </div>
+            </div>
+          ),
+          okText: "Đã hiểu",
+          onOk: () => loadApps(),
+        });
+        return;
+      }
+
+      // Đã thanh toán: backend trả `null`
+      messageApi.success(`Bạn đã thanh toán trước đó. Đơn "${app.programName}" đang được gửi xét duyệt!`);
       loadApps();
     } catch (err: unknown) {
       const errData = (err as { response?: { data?: { message?: string; errors?: string[] } } }).response?.data;

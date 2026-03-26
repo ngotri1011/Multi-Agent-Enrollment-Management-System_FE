@@ -2,23 +2,30 @@ import { Avatar, Button, Space, Typography } from "antd";
 import { LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import { HeaderNotifications } from "./HeaderNotifications";
 
 const { Text } = Typography;
 
-export function DashboardHeader() {
+type DashboardHeaderProps = {
+  showNotifications?: boolean;
+};
+
+export function DashboardHeader({ showNotifications = false }: DashboardHeaderProps) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+
+  const initial = user?.username?.charAt(0).toUpperCase() ?? "U";
 
   const handleLogout = () => {
     logout();
     navigate("/auth", { replace: true });
   };
 
-  const initial = user?.username?.charAt(0).toUpperCase() ?? "U";
-
   return (
     <div className="flex items-center justify-end px-6 py-3 bg-white border-b border-gray-100 shadow-sm sticky top-0 z-10">
       <Space size="middle" className="items-center">
+        {showNotifications && <HeaderNotifications />}
+
         <Avatar
           size={36}
           src={user?.photoURL}

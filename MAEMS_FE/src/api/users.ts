@@ -7,21 +7,17 @@ import type {
 } from "../types/auth";
 import type { CreateUserRequest, GetUsersParams, PagedResponse, UpdateUserRequest, User } from "../types/user";
 
-export async function getProfile(): Promise<UserProfile | null> {
-  try {
-    const res = await apiClient.get<ApiWrapper<ApiProfileData>>(
-      "/api/Users/profile"
-    );
-    const { username, email, roleName, createdAt } = res.data.data;
-    return {
-      username,
-      email,
-      role: (roleName?.toLowerCase() ?? "applicant") as AuthRole,
-      createdAt,
-    };
-  } catch {
-    return null;
-  }
+export async function getProfile(): Promise<UserProfile> {
+  const res = await apiClient.get<ApiWrapper<ApiProfileData>>(
+    "/api/Users/profile"
+  );
+  const { username, email, roleName, createdAt } = res.data.data;
+  return {
+    username,
+    email,
+    role: (roleName?.toLowerCase() ?? "applicant") as AuthRole,
+    createdAt,
+  };
 }
 
 export async function getUsers(

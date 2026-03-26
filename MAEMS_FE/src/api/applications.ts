@@ -1,5 +1,10 @@
 import { apiClient } from "../services/axios";
-import type { Application, CreateApplicationRequest, CreateApplicationResponse } from "../types/application";
+import type {
+  Application,
+  CreateApplicationRequest,
+  CreateApplicationResponse,
+  SubmitApplicationFinalResponse,
+} from "../types/application";
 import type { ApiWrapper, PagedResult } from "../types/api.wrapper";
 import type { ApplicationStatus } from "../types/enums";
 //Lấy danh sách đơn ĐK ngành đào tạo của tôi
@@ -53,8 +58,8 @@ export async function submitApplication(payload: CreateApplicationRequest): Prom
 }
 
 //Nộp đơn ĐK ngành & tài liệu đính kèm cuối cùng
-export async function submitApplicationFinal(id: number): Promise<CreateApplicationResponse> {
-  const res = await apiClient.post<ApiWrapper<CreateApplicationResponse>>(
+export async function submitApplicationFinal(id: number): Promise<SubmitApplicationFinalResponse> {
+  const res = await apiClient.post<ApiWrapper<SubmitApplicationFinalResponse>>(
     `/api/Applications/${id}/submit`, {
     headers: {
       "Content-Type": "application/json",

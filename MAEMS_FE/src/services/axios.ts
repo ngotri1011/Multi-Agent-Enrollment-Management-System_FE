@@ -25,6 +25,16 @@ export function setStoredToken(token: string | null): void {
 }
 
 apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+  // If request body is FormData, remove default JSON Content-Type header.
+  // Otherwise axios may send `Content-Type: application/json` and many backends return 415.
+  if (config.data instanceof FormData) {
+    const headers = config.headers as Record<string, unknown> | undefined;
+    if (headers) {
+      delete headers["Content-Type"];
+      delete headers["content-type"];
+    }
+  }
+
   const token = getStoredToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;

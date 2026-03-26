@@ -177,7 +177,7 @@ export function ApplicantProfilePage() {
 
   useEffect(() => {
     Promise.all([
-      getProfile(),
+      getProfile().catch(() => null),
       getMyApplicant().catch(() => null),
     ]).then(([profileData, applicantData]) => {
       setProfile(profileData);

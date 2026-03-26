@@ -60,3 +60,11 @@ export type CreateApplicationResponse = {
   requiresReview: boolean
   createdAt: string
 }
+
+export type SubmitApplicationFinalPayment = {
+  url: string
+  transactionId: string
+}
+
+// API: nếu chưa thanh toán thì trả QR info; nếu đã thanh toán thì `null`
+export type SubmitApplicationFinalResponse = SubmitApplicationFinalPayment | null

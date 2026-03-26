@@ -6,7 +6,7 @@ import {
   Newspaper,
   User,
 } from "lucide-react";
-import { DashboardLayout } from "../DashboardLayout";
+import { DashboardLayout } from "./DashboardLayout";
 import type { SidebarMenuItem } from "../DashboardSidebar";
 
 const officerMenuItems: SidebarMenuItem[] = [

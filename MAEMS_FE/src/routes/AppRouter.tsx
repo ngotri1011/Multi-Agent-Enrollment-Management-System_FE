@@ -21,8 +21,7 @@ import { ApplicationList } from "../pages/application/ApplicationList";
 import { SubmitApplication } from "../pages/application/SubmitApplication";
 import { SubmitForm } from "../pages/application/SubmitForm";
 import { ArticleDetail } from "../pages/articles/ArticleDetail";
-import { ArticleEditor } from "../pages/articles/ArticleEditor";
-import { NewsPage } from "../pages/articles/NewsPage";
+import { ArticlePage } from "../pages/articles/ArticlePage";
 import { ArticleKV1Page } from "../pages/articles/ArticleKV1Page";
 import { AdmissionPage } from "../pages/admission/AdmissionPage";
 import { AdmissionTypesPage } from "../pages/admission/AdmissionTypesPage";
@@ -61,8 +60,9 @@ export function AppRouter() {
       <Route path="/tuyen-sinh/hoc-phi-quy-nhon" element={<QuyNhonTuitionPage />} />
       <Route path="/dao-tao" element={<ProgramList />} />
       <Route path="/dao-tao/:id" element={<ProgramDetail />} />
-      <Route path="/tin-tuc" element={<NewsPage />} />
+      <Route path="/tin-tuc" element={<ArticlePage />} />
       <Route path="/tin-tuc/ho-tro-hoc-phi-kv1" element={<ArticleKV1Page />} />
+      <Route path="/tin-tuc/:id" element={<ArticleDetail />} />
       <Route path="/lien-he" element={<ContactPage />} />
       <Route path="/auth" element={<AuthPage />} />
 
@@ -170,14 +170,6 @@ export function AppRouter() {
         element={
           <RoleGuard allowedRoles={["officer"]}>
             <OfficerArticles />
-          </RoleGuard>
-        }
-      />
-      <Route
-        path="/officer/articles/new"
-        element={
-          <RoleGuard allowedRoles={["officer"]}>
-            <ArticleEditor />
           </RoleGuard>
         }
       />

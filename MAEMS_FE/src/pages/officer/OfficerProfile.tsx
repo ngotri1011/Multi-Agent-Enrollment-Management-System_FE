@@ -57,6 +57,7 @@ export function OfficerProfile() {
 
   useEffect(() => {
     getProfile()
+      .catch(() => null)
       .then(setProfile)
       .finally(() => setLoading(false));
   }, []);

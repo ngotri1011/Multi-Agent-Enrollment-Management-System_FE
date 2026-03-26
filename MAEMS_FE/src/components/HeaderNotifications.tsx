@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Avatar,
   Badge,
   Button,
   Empty,
@@ -12,10 +11,8 @@ import {
   Typography,
   notification,
 } from "antd";
-import { Bell, CheckCheck, Eye, LogOut } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Bell, CheckCheck, Eye } from "lucide-react";
 import { getMyNotifications, markNotificationAsRead } from "../api/notifications";
-import { useAuth } from "../hooks/useAuth";
 import type { Notification as UserNotification } from "../types/notification";
 
 const { Text } = Typography;
@@ -24,9 +21,7 @@ function formatTime(iso: string) {
   return new Date(iso).toLocaleString("vi-VN");
 }
 
-export function ApplicantHeader() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
+export function HeaderNotifications() {
   const [notificationsApi, notificationsContextHolder] = notification.useNotification();
 
   const [notifications, setNotifications] = useState<UserNotification[]>([]);
@@ -36,18 +31,12 @@ export function ApplicantHeader() {
   const [selected, setSelected] = useState<UserNotification | null>(null);
   const shownUnreadRef = useRef<Set<number>>(new Set());
 
-  const initial = user?.username?.charAt(0).toUpperCase() ?? "U";
   const unreadCount = useMemo(
     () => notifications.filter((item) => !item.isRead).length,
     [notifications],
   );
 
-  const handleLogout = () => {
-    logout();
-    navigate("/auth", { replace: true });
-  };
-
-  const loadNotifications = async () => {
+  const loadNotifications = useCallback(async () => {
     setLoading(true);
     try {
       const data = await getMyNotifications();
@@ -58,7 +47,7 @@ export function ApplicantHeader() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const markReadLocal = useCallback((id: number) => {
     setNotifications((prev) =>
@@ -68,11 +57,14 @@ export function ApplicantHeader() {
     );
   }, []);
 
-  const handleMarkAsRead = useCallback(async (item: UserNotification) => {
-    if (item.isRead) return;
-    await markNotificationAsRead(item.notificationId);
-    markReadLocal(item.notificationId);
-  }, [markReadLocal]);
+  const handleMarkAsRead = useCallback(
+    async (item: UserNotification) => {
+      if (item.isRead) return;
+      await markNotificationAsRead(item.notificationId);
+      markReadLocal(item.notificationId);
+    },
+    [markReadLocal],
+  );
 
   const openDetail = async (item: UserNotification) => {
     setSelected(item);
@@ -93,7 +85,7 @@ export function ApplicantHeader() {
 
   useEffect(() => {
     loadNotifications();
-  }, []);
+  }, [loadNotifications]);
 
   useEffect(() => {
     notifications
@@ -196,7 +188,11 @@ export function ApplicantHeader() {
                     <Text className="!text-sm !font-medium !text-gray-800 line-clamp-1">
                       {item.notificationType || "Thông báo"}
                     </Text>
-                    {!item.isRead && <Tag color="red" className="!m-0 !text-[10px]">Mới</Tag>}
+                    {!item.isRead && (
+                      <Tag color="red" className="!m-0 !text-[10px]">
+                        Mới
+                      </Tag>
+                    )}
                   </div>
                 }
                 description={
@@ -216,50 +212,24 @@ export function ApplicantHeader() {
   );
 
   return (
-    <div className="flex items-center justify-end px-6 py-3 bg-white border-b border-gray-100 shadow-sm sticky top-0 z-10">
+    <>
       {notificationsContextHolder}
-      <Space size="middle" className="items-center">
-        <Popover
-          trigger="click"
-          placement="bottomRight"
-          content={popoverContent}
-          open={popoverOpen}
-          onOpenChange={setPopoverOpen}
-        >
-          <Badge count={unreadCount} size="small">
-            <Button
-              type="text"
-              shape="circle"
-              icon={<Bell size={18} />}
-              className="!text-gray-600 hover:!text-orange-500 hover:!bg-orange-50"
-            />
-          </Badge>
-        </Popover>
-
-        <Avatar
-          size={36}
-          src={user?.photoURL}
-          className="!bg-orange-500 !text-white font-bold select-none flex-shrink-0"
-        >
-          {initial}
-        </Avatar>
-        <div className="flex flex-col leading-tight min-w-0">
-          <Text strong className="text-sm text-gray-800 truncate">
-            {user?.username}
-          </Text>
-          <Text className="text-xs text-gray-400 truncate">
-            {user?.email || "-"}
-          </Text>
-        </div>
-        <Button
-          type="text"
-          icon={<LogOut size={15} />}
-          onClick={handleLogout}
-          className="!text-gray-500 hover:!text-red-500 hover:!bg-red-50 flex items-center gap-1 !rounded-lg"
-        >
-          Đăng xuất
-        </Button>
-      </Space>
+      <Popover
+        trigger="click"
+        placement="bottomRight"
+        content={popoverContent}
+        open={popoverOpen}
+        onOpenChange={setPopoverOpen}
+      >
+        <Badge count={unreadCount} size="small">
+          <Button
+            type="text"
+            shape="circle"
+            icon={<Bell size={18} />}
+            className="!text-gray-600 hover:!text-orange-500 hover:!bg-orange-50"
+          />
+        </Badge>
+      </Popover>
 
       <Modal
         title="Chi tiết thông báo"
@@ -282,6 +252,7 @@ export function ApplicantHeader() {
           </div>
         ) : null}
       </Modal>
-    </div>
+    </>
   );
 }
+

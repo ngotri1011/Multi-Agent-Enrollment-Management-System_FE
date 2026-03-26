@@ -15,3 +15,7 @@ export type DocumentStatus = "pending" | "verified" | "rejected";
 // ─── Auth / Role ──────────────────────────────────────────────────────────────
 
 export type AuthRole = "admin" | "officer" | "qa" | "applicant";
+
+// ─── Article ──────────────────────────────────────────────────────────────────
+
+export type ArticleStatus = "draft" | "publish" | "deleted";

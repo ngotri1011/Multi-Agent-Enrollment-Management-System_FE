@@ -127,6 +127,9 @@ function pipelineProgress(status: ApplicationStatus): number {
   }[status] ?? 0;
 }
 
+// Temporarily hide pipeline/progress UI but keep code for later enabling.
+const SHOW_PIPELINE_PROGRESS_UI = false;
+
 function PipelineCard({ status }: { status: ApplicationStatus }) {
   const pipeline = getPipeline(status);
   const progress = pipelineProgress(status);
@@ -406,7 +409,7 @@ export function ApplicationDetail() {
 
             {/* Right: Pipeline + Documents */}
             <div className="lg:col-span-2 flex flex-col gap-4">
-              <PipelineCard status={app.status} />
+              {SHOW_PIPELINE_PROGRESS_UI && <PipelineCard status={app.status} />}
 
               {/* Agent Notes */}
               {app.notes && (
