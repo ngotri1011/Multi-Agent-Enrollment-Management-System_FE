@@ -14,8 +14,6 @@ import { OfficerArticles } from "../pages/officer/OfficerArticles";
 import { QaDashboard } from "../pages/qa/QaDashboard";
 import { QAProfile } from "../pages/qa/QAProfile";
 // feature pages
-import { AgentDashboard } from "../pages/agents/AgentDashboard";
-import { AgentPerformance } from "../pages/agents/AgentPerformance";
 import { ApplicationDetail } from "../pages/application/ApplicationDetail";
 import { ApplicationList } from "../pages/application/ApplicationList";
 import { SubmitApplication } from "../pages/application/SubmitApplication";
@@ -34,7 +32,6 @@ import { HomePage } from "../pages/homepage/HomePage";
 import { AuthPage } from "../pages/auth/AuthPage";
 import { ProgramList } from "../pages/programs/ProgramList";
 import { ProgramDetail } from "../pages/programs/ProgramDetail";
-import { RuleConfigPage } from "../pages/eligibility/RuleConfigPage";
 import { ReviewEvaluationPage } from "../pages/qa/ReviewEvaluationPage";
 import { ContactPage } from "../pages/contact/ContactPage";
 import { AdminApplicationList } from "../pages/admin/AdminApplicationList";
@@ -150,22 +147,6 @@ export function AppRouter() {
         }
       />
       <Route
-        path="/officer/agents/dashboard"
-        element={
-          <RoleGuard allowedRoles={["officer"]}>
-            <AgentDashboard />
-          </RoleGuard>
-        }
-      />
-      <Route
-        path="/officer/agents/performance"
-        element={
-          <RoleGuard allowedRoles={["officer"]}>
-            <AgentPerformance />
-          </RoleGuard>
-        }
-      />
-      <Route
         path="/officer/articles"
         element={
           <RoleGuard allowedRoles={["officer"]}>
@@ -230,14 +211,6 @@ export function AppRouter() {
         element={
           <RoleGuard allowedRoles={["admin"]}>
             <AdminReports />
-          </RoleGuard>
-        }
-      />
-      <Route
-        path="/admin/eligibility/rules"
-        element={
-          <RoleGuard allowedRoles={["admin"]}>
-            <RuleConfigPage />
           </RoleGuard>
         }
       />
