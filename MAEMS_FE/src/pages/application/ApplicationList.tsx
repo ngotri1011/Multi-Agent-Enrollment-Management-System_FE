@@ -180,6 +180,26 @@ function relativeTime(iso: string) {
   return formatDate(iso);
 }
 
+function getAmountFromPaymentUrl(url: string): number | null {
+  try {
+    const parsed = new URL(url);
+    const raw = parsed.searchParams.get("amount");
+    if (!raw) return null;
+    const amount = Number(raw);
+    return Number.isFinite(amount) ? amount : null;
+  } catch {
+    return null;
+  }
+}
+
+function formatVnd(amount: number): string {
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
 // ─── Application card ─────────────────────────────────────────────────────────
 
 function ApplicationCard({
@@ -351,6 +371,7 @@ export function ApplicationList() {
 
       // Chưa thanh toán: backend trả QR để người dùng scan thanh toán.
       if (payment) {
+        const paymentAmount = getAmountFromPaymentUrl(payment.url);
         messageApi.info("Mã thanh toán QR đã sẵn sàng. Vui lòng quét QR để thanh toán.");
         Modal.info({
           title: "Thanh toán bằng QR",
@@ -367,6 +388,12 @@ export function ApplicationList() {
                 alt="QR thanh toán"
                 style={{ width: 220, height: 220, objectFit: "contain" }}
               />
+              <div className="w-full">
+                <div className="text-xs text-gray-500 mb-1">Số tiền cần thanh toán</div>
+                <div className="text-base font-semibold text-orange-600">
+                  {paymentAmount !== null ? formatVnd(paymentAmount) : "Không xác định"}
+                </div>
+              </div>
               <div className="w-full">
                 <div className="text-xs text-gray-500 mb-1">Mã giao dịch</div>
                 <div className="font-mono text-sm text-gray-700 break-all">{payment.transactionId}</div>

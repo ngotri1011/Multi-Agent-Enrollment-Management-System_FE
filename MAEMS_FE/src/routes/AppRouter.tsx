@@ -2,6 +2,7 @@ import { Route, Routes } from "react-router-dom";
 import { RoleGuard } from "./RoleGuard";
 // dashboard pages
 import { ApplicantDashboard } from "../pages/applicant/ApplicantDashboard";
+import { ApplicantPaymentHistoryPage } from "../pages/applicant/ApplicantPaymentHistoryPage";
 import { ApplicantProfilePage } from "../pages/applicant/ApplicantProfilePage";
 import { AdminDashboard } from "../pages/admin/AdminDashboard";
 import { AdminProfile } from "../pages/admin/AdminProfile";
@@ -101,6 +102,14 @@ export function AppRouter() {
         element={
           <RoleGuard allowedRoles={["applicant"]}>
             <SubmitForm />
+          </RoleGuard>
+        }
+      />
+      <Route
+        path="/applicant/history-payments"
+        element={
+          <RoleGuard allowedRoles={["applicant"]}>
+            <ApplicantPaymentHistoryPage />
           </RoleGuard>
         }
       />
