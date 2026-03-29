@@ -46,16 +46,17 @@ export async function createArticle(payload: CreateArticleRequest): Promise<Arti
 export async function getPublishedArticlesBasic(
   query: GetPublishedArticlesBasicQuery = {}
 ): Promise<ArticleBasic[]> {
+  const params: Record<string, string | number | boolean> = {};
+  for (const [key, value] of Object.entries(query)) {
+    if (value === undefined || value === null) continue;
+    if (typeof value === "string" && value.trim() === "") continue;
+    params[key] = value;
+  }
+
   const res = await apiClient.get<ApiWrapper<PagedResult<ArticleBasic>>>(
     "/api/Articles/publish/basic",
     {
-      params: {
-        searchTitle: query.searchTitle ?? "",
-        sortBy: query.sortBy ?? "updatedAt",
-        sortDesc: query.sortDesc ?? true,
-        pageNumber: query.pageNumber ?? 1,
-        pageSize: query.pageSize ?? 20,
-      },
+      params: Object.keys(params).length ? params : undefined,
     }
   );
   return res.data.data.items.map((article) => ({
@@ -71,17 +72,17 @@ export async function getPublishedArticlesBasic(
 export async function getArticlesBasic(
   query: GetArticlesBasicQuery = {}
 ): Promise<ArticleBasic[]> {
+  const params: Record<string, string | number | boolean> = {};
+  for (const [key, value] of Object.entries(query)) {
+    if (value === undefined || value === null) continue;
+    if (typeof value === "string" && value.trim() === "") continue;
+    params[key] = value;
+  }
+
   const res = await apiClient.get<ApiWrapper<PagedResult<ArticleBasic>>>(
     "/api/Articles/basic",
     {
-      params: {
-        searchTitle: query.searchTitle ?? "",
-        status: query.status ?? "",
-        sortBy: query.sortBy ?? "updatedAt",
-        sortDesc: query.sortDesc ?? true,
-        pageNumber: query.pageNumber ?? 1,
-        pageSize: query.pageSize ?? 20,
-      },
+      params: Object.keys(params).length ? params : undefined,
     }
   );
 

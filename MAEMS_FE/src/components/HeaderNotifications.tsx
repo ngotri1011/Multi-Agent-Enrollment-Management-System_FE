@@ -12,7 +12,9 @@ import {
   notification,
 } from "antd";
 import { Bell, CheckCheck, Eye } from "lucide-react";
+import { useLocation } from "react-router-dom";
 import { getMyNotifications, markNotificationAsRead } from "../api/notifications";
+import { getStoredToken } from "../services/axios";
 import type { Notification as UserNotification } from "../types/notification";
 
 const { Text } = Typography;
@@ -23,6 +25,7 @@ function formatTime(iso: string) {
 
 export function HeaderNotifications() {
   const [notificationsApi, notificationsContextHolder] = notification.useNotification();
+  const location = useLocation();
 
   const [notifications, setNotifications] = useState<UserNotification[]>([]);
   const [loading, setLoading] = useState(false);
@@ -30,6 +33,10 @@ export function HeaderNotifications() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [selected, setSelected] = useState<UserNotification | null>(null);
   const shownUnreadRef = useRef<Set<number>>(new Set());
+  const dashboardSessionKey = useMemo(() => {
+    const token = getStoredToken();
+    return `maems_applicant_dashboard_noti_shown:${token ?? "anonymous"}`;
+  }, []);
 
   const unreadCount = useMemo(
     () => notifications.filter((item) => !item.isRead).length,
@@ -67,6 +74,7 @@ export function HeaderNotifications() {
   );
 
   const openDetail = async (item: UserNotification) => {
+    setPopoverOpen(false);
     setSelected(item);
     setDetailOpen(true);
     try {
@@ -88,9 +96,23 @@ export function HeaderNotifications() {
   }, [loadNotifications]);
 
   useEffect(() => {
-    notifications
-      .filter((item) => !item.isRead && !shownUnreadRef.current.has(item.notificationId))
-      .forEach((item) => {
+    if (location.pathname !== "/applicant/dashboard") {
+      return;
+    }
+    if (sessionStorage.getItem(dashboardSessionKey) === "1") {
+      return;
+    }
+
+    const unreadToShow = notifications.filter(
+      (item) => !item.isRead && !shownUnreadRef.current.has(item.notificationId),
+    );
+    if (!unreadToShow.length) {
+      return;
+    }
+
+    sessionStorage.setItem(dashboardSessionKey, "1");
+
+    unreadToShow.forEach((item) => {
         const key = `notification-${item.notificationId}`;
         notificationsApi.open({
           key,
@@ -124,7 +146,7 @@ export function HeaderNotifications() {
         });
         shownUnreadRef.current.add(item.notificationId);
       });
-  }, [notifications, notificationsApi, handleMarkAsRead]);
+  }, [notifications, notificationsApi, handleMarkAsRead, location.pathname, dashboardSessionKey]);
 
   const popoverContent = (
     <div className="w-[360px] max-w-[80vw]">
