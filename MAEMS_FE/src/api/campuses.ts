@@ -15,3 +15,22 @@ export async function getActiveBasicCampuses() {
     );
     return res.data.data;
 }
+
+// CREATE
+export async function createCampus(data: {
+    name: string;
+    address: string;
+    email: string;
+    phoneNumber: string;
+    description: string;
+    isActive: boolean;
+}) {
+    const res = await apiClient.post("/api/Campuses", data);
+    return res.data;
+}
+
+// UPDATE
+export async function updateCampus(id: number, data: any) {
+    const res = await apiClient.patch(`/api/Campuses/${id}`, data);
+    return res.data;
+}
