@@ -40,7 +40,7 @@ import { AdminStudentManagement } from "../pages/admin/AdminStudentManagement";
 import { AdminProgramManagement } from "../pages/admin/AdminProgramManagement";
 import { AdminPaymentManagement } from "../pages/admin/AdminPaymentManagement";
 import { AdminReports } from "../pages/admin/AdminReports";
-import { AdminSettings } from "../pages/admin/AdminSettnigs";
+import { AdminSettings } from "../pages/admin/settings/AdminSettings";
 import { AdminUserManagement } from "../pages/admin/AdminUserManagement";
 import { NotFound } from "../pages/notfound/NotFound";
 import { AdminProgramAdmissionConfig } from "../pages/admin/AdminProgramAdmissionConfig";

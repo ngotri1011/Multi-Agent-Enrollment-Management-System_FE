@@ -13,3 +13,19 @@ export interface AdmissionTypeBasic {
   admissionTypeName: string;
   type: string;
 }
+
+export interface CreateAdmissionTypeRequest {
+  admissionTypeName: string;
+  enrollmentYearId: number;
+  type: string;
+  requiredDocumentList: string;
+  isActive: boolean;
+}
+export interface UpdateAdmissionTypeRequest {
+  admissionTypeId: number;
+  admissionTypeName: string;
+  enrollmentYearId: number;
+  type: string;
+  requiredDocumentList: string;
+  isActive: boolean;
+}

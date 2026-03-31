@@ -24,3 +24,44 @@ export async function getProgramAdmissionConfigs(
 
   return res.data.data;
 }
+
+// CREATE
+export async function createProgramAdmissionConfig(data: {
+  programId: number;
+  campusId: number;
+  admissionTypeId: number;
+  quota: number;
+  isActive: boolean;
+}) {
+  const res = await apiClient.post(
+    "/api/ProgramAdmissionConfigs",
+    data
+  );
+  return res.data.data;
+}
+
+// GET BY ID
+export async function getProgramAdmissionConfigById(id: number) {
+  const res = await apiClient.get(
+    `/api/ProgramAdmissionConfigs/${id}`
+  );
+  return res.data.data;
+}
+
+// UPDATE
+export async function updateProgramAdmissionConfig(
+  id: number,
+  data: Partial<{
+    programId: number;
+    campusId: number;
+    admissionTypeId: number;
+    quota: number;
+    isActive: boolean;
+  }>
+) {
+  const res = await apiClient.patch(
+    `/api/ProgramAdmissionConfigs/${id}`,
+    data
+  );
+  return res.data.data;
+}
