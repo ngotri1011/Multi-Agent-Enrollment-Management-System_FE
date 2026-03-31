@@ -18,11 +18,11 @@ export function DashboardLayout({
   showNotifications = false,
 }: DashboardLayoutProps) {
   return (
-    <Layout className="min-h-screen bg-gray-50">
+    <Layout className="h-screen bg-gray-50">
       <DashboardSidebar menuItems={menuItems} />
-      <Layout className="!bg-gray-50">
+      <Layout className="!bg-gray-50 ml-[240px] h-screen overflow-y-auto min-h-0">
         <DashboardHeader showNotifications={showNotifications} />
-        <Content className="p-6 overflow-auto">{children}</Content>
+        <Content className="p-6">{children}</Content>
       </Layout>
     </Layout>
   );

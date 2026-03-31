@@ -29,7 +29,7 @@ export function DashboardSidebar({ menuItems }: DashboardSidebarProps) {
   return (
     <Sider
       width={240}
-      className="!bg-white border-r border-gray-100 !min-h-screen"
+      className="!bg-white border-r border-gray-100 !fixed !left-0 !top-0 z-30 !h-screen !overflow-y-auto"
     >
       <div className="px-5 pt-5 pb-4 border-b border-gray-100">
         <Link
