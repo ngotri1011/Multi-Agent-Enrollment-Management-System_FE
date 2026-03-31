@@ -18,7 +18,7 @@ import { Filter, RotateCcw } from "lucide-react";
 import { getMyPayments } from "../../api/payments";
 import { ApplicantLayout } from "../../components/layouts/ApplicantLayout";
 import { ApplicantMenu } from "./ApplicantMenu";
-import type { Payment } from "../../types/payment";
+import type { Payment, PaymentStatus } from "../../types/payment";
 
 const { RangePicker } = DatePicker;
 const { Title, Text } = Typography;
@@ -30,11 +30,35 @@ type PaymentFilters = {
   paidTo?: string;
 };
 
+const paymentStatusValues: PaymentStatus[] = [
+  "pending",
+  "outdated",
+  "processing",
+  "paid",
+  "need_checking",
+];
+const paymentStatusSet = new Set<string>(paymentStatusValues);
+
+function normalizePaymentStatus(value?: string | null): PaymentStatus | undefined {
+  const normalized = value?.toLowerCase().trim();
+  if (!normalized) return undefined;
+  return paymentStatusSet.has(normalized) ? (normalized as PaymentStatus) : undefined;
+}
+
+const paymentStatusLabelMap: Partial<Record<PaymentStatus, string>> = {
+  paid: "Đã thanh toán",
+  pending: "Chờ thanh toán",
+  processing: "Đang xử lý",
+  outdated: "Hết hạn",
+  need_checking: "Thất bại",
+};
+
 const statusColorMap: Record<string, string> = {
   paid: "success",
   pending: "processing",
-  failed: "error",
-  refunded: "warning",
+  processing: "processing",
+  outdated: "warning",
+  need_checking: "warning",
 };
 
 function toIsoBoundary(value: Dayjs | null, endOfDay = false): string | undefined {
@@ -96,7 +120,13 @@ export function ApplicantPaymentHistoryPage() {
 
   const statusOptions = useMemo(() => {
     const uniq = new Set(rows.map((item) => item.paymentStatus).filter(Boolean));
-    return Array.from(uniq).map((value) => ({ label: value, value }));
+    return Array.from(uniq).map((value) => {
+      const normalized = normalizePaymentStatus(value);
+      return {
+        label: normalized ? paymentStatusLabelMap[normalized] ?? value : value,
+        value,
+      };
+    });
   }, [rows]);
 
   const currentPageTotal = useMemo(
@@ -170,7 +200,11 @@ export function ApplicantPaymentHistoryPage() {
       key: "paymentStatus",
       width: 120,
       render: (value: string) => (
-        <Tag color={statusColorMap[value?.toLowerCase()] ?? "default"}>{value || "--"}</Tag>
+        <Tag color={statusColorMap[normalizePaymentStatus(value) ?? ""] ?? "default"}>
+          {normalizePaymentStatus(value)
+            ? paymentStatusLabelMap[normalizePaymentStatus(value) as PaymentStatus] ?? value
+            : value || "--"}
+        </Tag>
       ),
     },
     {

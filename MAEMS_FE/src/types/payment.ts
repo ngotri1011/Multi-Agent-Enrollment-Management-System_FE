@@ -1,3 +1,6 @@
+import type { PaymentStatus } from "./enums";
+export type { PaymentStatus } from "./enums";
+
 export type Payment = {
   paymentId: number;
   applicationId: number;
@@ -6,7 +9,7 @@ export type Payment = {
   paymentMethod: string;
   transactionId: string;
   referenceCode: string | null;
-  paymentStatus: string;
+  paymentStatus: PaymentStatus;
   paidAt: string | null;
 };
 
