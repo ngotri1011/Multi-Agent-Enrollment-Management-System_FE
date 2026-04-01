@@ -14,11 +14,12 @@ import {
 } from "antd";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import type { Dayjs } from "dayjs";
-import { Filter, RotateCcw } from "lucide-react";
+import { ArrowDownWideNarrow, ArrowUpNarrowWide, Filter, RotateCcw } from "lucide-react";
 import { getMyPayments } from "../../api/payments";
 import { ApplicantLayout } from "../../components/layouts/ApplicantLayout";
 import { ApplicantMenu } from "./ApplicantMenu";
 import type { Payment, PaymentStatus } from "../../types/payment";
+import { formatCurrency, toIsoBoundary } from "../../utils/payment";
 
 const { RangePicker } = DatePicker;
 const { Title, Text } = Typography;
@@ -60,19 +61,6 @@ const statusColorMap: Record<string, string> = {
   outdated: "warning",
   need_checking: "warning",
 };
-
-function toIsoBoundary(value: Dayjs | null, endOfDay = false): string | undefined {
-  if (!value) return undefined;
-  return endOfDay ? value.endOf("day").toISOString() : value.startOf("day").toISOString();
-}
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-    maximumFractionDigits: 0,
-  }).format(amount);
-}
 
 function formatDateTime(value: string | null): string {
   if (!value) return "--";
@@ -248,6 +236,7 @@ export function ApplicantPaymentHistoryPage() {
             <RangePicker
               size="large"
               className="w-full"
+              placeholder={["Từ ngày", "Đến ngày"]}
               value={paidRange}
               onChange={(value) => setPaidRange((value as [Dayjs | null, Dayjs | null]) ?? null)}
             />
@@ -269,9 +258,10 @@ export function ApplicantPaymentHistoryPage() {
                 value={sortDesc ? "desc" : "asc"}
                 onChange={(value) => setSortDesc(value === "desc")}
                 options={[
-                  { label: "Mới đến cũ / Cao đến thấp", value: "desc" },
-                  { label: "Cũ đến mới / Thấp đến cao", value: "asc" },
+                  { label: <ArrowDownWideNarrow size={16} />, value: "desc" },
+                  { label: <ArrowUpNarrowWide size={16} />, value: "asc" },
                 ]}
+                className="!w-[64px]"
               />
             </Space.Compact>
           </div>
@@ -288,7 +278,7 @@ export function ApplicantPaymentHistoryPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <Card className="rounded-xl">
-            <Statistic title="Tổng giao dịch (all pages)" value={totalCount} />
+            <Statistic title="Tổng giao dịch" value={totalCount} />
           </Card>
           <Card className="rounded-xl">
             <Statistic title="Đã thanh toán (trang hiện tại)" value={paidCount} />
