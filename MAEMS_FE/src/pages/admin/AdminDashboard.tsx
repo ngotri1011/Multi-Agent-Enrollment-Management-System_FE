@@ -8,15 +8,14 @@ import {
   User,
 } from "lucide-react";
 import { AdminLayout } from "../../components/layouts/AdminLayout";
+import { useEffect, useState } from "react";
+import type { ApplicationsByCampus, ApplicationStatusCounts, ReportSummary, WeeklyApplications } from "../../types/report";
+import { getApplicationsByCampus, getApplicationStatusCounts, getReportSummary, getWeeklyApplications } from "../../api/reports";
+import { Bar, BarChart, Cell, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 const { Title, Text } = Typography;
 
-const stats = [
-  { label: "Tổng sinh viên", value: "—", color: "text-orange-500", icon: <User size={20} /> },
-  { label: "Hồ sơ mới", value: "—", color: "text-yellow-500", icon: <FileText size={20} /> },
-  { label: "Thanh toán chờ xử lý", value: "—", color: "text-blue-500", icon: <DollarSign size={20} /> },
-  { label: "Chương trình đào tạo", value: "—", color: "text-green-500", icon: <LayoutDashboard size={20} /> },
-];
+
 
 const activities = [
   {
@@ -46,14 +45,76 @@ const activities = [
   },
 ];
 
+const COLORS = ["#22c55e", "#ef4444", "#f59e0b",];
+
 export function AdminDashboard() {
+  const [summary, setSummary] = useState<ReportSummary | null>(null);
+  const [weeklyData, setWeeklyData] = useState<WeeklyApplications[]>([]);
+  const [campusData, setCampusData] = useState<ApplicationsByCampus[]>([]);
+  const [status, setStatus] = useState<ApplicationStatusCounts | null>(null);
+
+  const stats = [
+    {
+      label: "Tổng sinh viên",
+      value: summary?.numApplicant ?? "—",
+      bg: "bg-purple-50",
+      color: "text-purple-500",
+      icon: <User color="#8b5cf6" size={20} />
+    },
+
+    {
+      label: "Hồ sơ mới",
+      value: summary?.numApplication ?? "—",
+      bg: "bg-yellow-50",
+      color: "text-yellow-500",
+      icon: <FileText color="#f59e0b" size={20} />
+    },
+
+    {
+      label: "Thanh toán chờ xử lý",
+      value: summary?.numPaymentNeedCheck ?? "—",
+      bg: "bg-blue-50",
+      color: "text-blue-500",
+      icon: <DollarSign color="#22c55e" size={20} />
+    },
+
+    {
+      label: "Chương trình đào tạo",
+      value: summary?.numProgram ?? "—",
+      bg: "bg-green-50",
+      color: "text-green-500",
+      icon: <LayoutDashboard color="#3b82f6" size={20} />
+    },
+
+  ];
+
+  // fecth
+  useEffect(() => {
+    const fetchAll = async () => {
+      const [s, w, c, st] = await Promise.all([
+        getReportSummary(),
+        getWeeklyApplications({}),
+        getApplicationsByCampus(),
+        getApplicationStatusCounts(),
+      ]);
+
+      setSummary(s);
+      setWeeklyData(w);
+      setCampusData(c);
+      setStatus(st);
+    };
+
+    fetchAll();
+  }, []);
+
+
   return (
     <AdminLayout>
       <Title level={4} className="!mb-6 !text-gray-700 !font-semibold">
         Tổng quan hệ thống
       </Title>
 
-      {/* ===== Stats Section ===== */}
+      {/* stats */}
       <Row gutter={[16, 16]} className="mb-6">
         {stats.map((item) => (
           <Col xs={12} md={6} key={item.label}>
@@ -70,7 +131,9 @@ export function AdminDashboard() {
                     {item.value}
                   </div>
                 </div>
-                <div className="text-gray-400">{item.icon}</div>
+                <div className={`w-9 h-9 ${item.bg} rounded-xl flex items-center justify-center`}>
+                  {item.icon}
+                </div>
               </Space>
             </Card>
           </Col>
@@ -79,36 +142,110 @@ export function AdminDashboard() {
 
       {/* ===== Middle Section ===== */}
       <Row gutter={[16, 16]} className="mb-6">
-        <Col xs={24} md={12}>
+        <Col xs={24} md={12} style={{ display: "flex" }}>
           <Card
-            className="rounded-2xl border border-gray-100 shadow-sm"
-            styles={{ body: { padding: "24px" } }}
+            className="rounded-2xl border border-gray-100 shadow-sm flex-1"
+            styles={{ body: { padding: "24px", height: 360 } }}
           >
             <Title level={5} className="!mb-2">
-              Xu hướng tuyển sinh
+              Hồ sơ theo cơ sở
             </Title>
-            <Text className="text-gray-400 text-sm">
-              (Khu vực biểu đồ – sẽ tích hợp sau)
-            </Text>
+            <div style={{ width: "100%", height: 260 }}>
+              <ResponsiveContainer>
+                <BarChart data={campusData}>
+                  <XAxis dataKey="campusName" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="count" fill="#3b82f6" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </Card>
         </Col>
 
-        <Col xs={24} md={12}>
+        <Col xs={24} md={12} style={{ display: "flex" }}>
           <Card
-            className="rounded-2xl border border-gray-100 shadow-sm"
-            styles={{ body: { padding: "24px" } }}
+            className="rounded-2xl border border-gray-100 shadow-sm  flex-1"
+            styles={{ body: { padding: "24px", height: 360 } }}
           >
             <Title level={5} className="!mb-2">
-              Phân bố sinh viên theo ngành
+              Hồ sơ theo trạng thái
             </Title>
-            <Text className="text-gray-400 text-sm">
-              (Khu vực biểu đồ tròn – sẽ tích hợp sau)
-            </Text>
+            <div style={{ width: "100%", height: 240 }}>
+              <ResponsiveContainer>
+                <PieChart>
+                  <Pie
+                    data={[
+                      {
+                        name: "Approved",
+                        value: status?.numApproved ?? 0,
+                      },
+                      {
+                        name: "Rejected",
+                        value: status?.numRejected ?? 0,
+                      },
+                      {
+                        name: "Pending",
+                        value: status?.numPending ?? 0,
+                      },
+                    ]}
+
+                    innerRadius="80%"
+                    outerRadius="100%"
+                    // padding angle is the gap between each pie slice
+                    paddingAngle={3}
+                    dataKey="value"
+
+                  >
+                    {COLORS.map((c, i) => (
+                      <Cell key={i} fill={c} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="flex justify-center gap-4 mt-4 text-sm">
+              <Tag color="green">Đã phê duyệt</Tag>
+              <Tag color="red">Không được duyệt</Tag>
+              <Tag color="gold">Chờ xét duyệt</Tag>
+            </div>
           </Card>
         </Col>
       </Row>
+      {/*  trend */}
+      <Row gutter={[16, 16]} className="mb-6">
+        <Col span={24}>
+          <Card className="rounded-xl border border-gray-100 shadow-sm">
+            <Title level={5} className="!mb-4 text-gray-700">
+              Xu hướng hồ sơ theo tuần
+            </Title>
 
-      {/* ===== Recent Activity ===== */}
+            <div style={{ width: "100%", height: 300 }}>
+              <ResponsiveContainer>
+                <LineChart data={weeklyData}>
+                  <XAxis
+                    dataKey="weekStart"
+                    tickFormatter={(v) =>
+                      new Date(v).toLocaleDateString()
+                    }
+                  />
+                  <YAxis />
+                  <Tooltip />
+                  <Line
+                    type="monotone"
+                    dataKey="count"
+                    stroke="#3b82f6"
+                    strokeWidth={2}
+                    dot={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
+        </Col>
+      </Row>
+      {/* recent*/}
       <Card
         className="rounded-2xl border border-gray-100 shadow-sm"
         styles={{ body: { padding: "24px" } }}
