@@ -1,4 +1,6 @@
-export interface Document {
+import type { DocumentStatus } from "./enums";
+
+export type Document = {
     documentId: number,
     applicantId: number,
     documentType: string,
@@ -6,6 +8,6 @@ export interface Document {
     uploadedAt: string,
     fileName: string,
     fileFormat: string,
-    verificationResult: string,
+    verificationResult: DocumentStatus,
     verificationDetails: string | null,
 }

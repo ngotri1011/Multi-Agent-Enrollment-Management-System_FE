@@ -1,4 +1,4 @@
-// ─── Application ─────────────────────────────────────────────────────────────
+// ─── Application (mã trạng thái API) ────────────────────────────────────────
 
 export type ApplicationStatus =
   | "draft"
@@ -21,4 +21,9 @@ export type AuthRole = "admin" | "officer" | "qa" | "applicant";
 export type ArticleStatus = "draft" | "publish" | "deleted";
 
 // ─── Payment ──────────────────────────────────────────────────────────────────
-export type PaymentStatus = "pending" | "outdated" | "processing" | "paid" | "need_checking";
+export type PaymentStatus =
+  | "pending"
+  | "outdated"
+  | "processing"
+  | "paid"
+  | "need_checking";

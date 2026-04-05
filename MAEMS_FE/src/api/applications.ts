@@ -1,19 +1,13 @@
 import { apiClient } from "../services/axios";
 import type {
   Application,
+  ApplicationMe,
   CreateApplicationRequest,
   CreateApplicationResponse,
   SubmitApplicationFinalResponse,
 } from "../types/application";
 import type { ApiWrapper, PagedResult } from "../types/api.wrapper";
 import type { ApplicationStatus } from "../types/enums";
-//Lấy danh sách đơn ĐK ngành đào tạo của tôi
-export async function fetchMyApplications(): Promise<Application[]> {
-  const res = await apiClient.get<ApiWrapper<Application[]>>(
-    "/api/Applications/me",
-  );
-  return res.data.data;
-}
 
 export type FetchAllApplicationsParams = {
   programId?: number;
@@ -29,7 +23,7 @@ export type FetchAllApplicationsParams = {
   pageSize?: number;
 };
 
-//Lấy danh sách đơn ĐK ngành đào tạo của tất cả người dùng (role officer)
+//Lấy danh sách đơn ĐK của tất cả người dùng
 export async function fetchAllApplications(
   params?: FetchAllApplicationsParams,
 ): Promise<PagedResult<Application>> {
@@ -40,7 +34,15 @@ export async function fetchAllApplications(
   return res.data.data;
 }
 
-//Lấy thông tin chi tiết đơn ĐK ngành đào tạo theo ID (role officer)
+//Lấy danh sách đơn ĐK ngành đào tạo của tôi (DTO {@link ApplicationMe}, không đủ field như `/all`)
+export async function fetchMyApplications(): Promise<ApplicationMe[]> {
+  const res = await apiClient.get<ApiWrapper<ApplicationMe[]>>(
+    "/api/Applications/me",
+  );
+  return res.data.data;
+}
+
+//Lấy thông tin chi tiết đơn ĐK theo ID
 export async function fetchApplicationDetail(id: number): Promise<Application> {
   const res = await apiClient.get<ApiWrapper<Application>>(
     `/api/Applications/${id}`,
@@ -48,26 +50,31 @@ export async function fetchApplicationDetail(id: number): Promise<Application> {
   return res.data.data;
 }
 
-//Nộp đơn ĐK ngành đào tạo
-export async function submitApplication(payload: CreateApplicationRequest): Promise<CreateApplicationResponse> {
+//Nộp đơn ĐK ngành đào tạo (bản nháp)
+export async function submitApplication(
+  payload: CreateApplicationRequest,
+): Promise<CreateApplicationResponse> {
   const res = await apiClient.post<ApiWrapper<CreateApplicationResponse>>(
     "/api/Applications",
-    payload
+    payload,
   );
   return res.data.data;
 }
 
-//Nộp đơn ĐK ngành & tài liệu đính kèm cuối cùng
-export async function submitApplicationFinal(id: number): Promise<SubmitApplicationFinalResponse> {
+//Nộp đơn ĐK ngành & tài liệu đính kèm (đã nộp)
+export async function submitApplicationFinal(
+  id: number,
+): Promise<SubmitApplicationFinalResponse> {
   const res = await apiClient.post<ApiWrapper<SubmitApplicationFinalResponse>>(
-    `/api/Applications/${id}/submit`, {
-    headers: {
-      "Content-Type": "application/json",
+    `/api/Applications/${id}/submit`,
+    {
+      headers: {
+        "Content-Type": "application/json",
+      },
     },
-  });
+  );
   return res.data.data;
 }
-
 
 export type PatchApplicationPayload = {
   status?: ApplicationStatus;
@@ -75,7 +82,10 @@ export type PatchApplicationPayload = {
 };
 
 //Cập nhật trạng thái đơn ĐK ngành đào tạo
-export async function patchApplication(id: number, payload: PatchApplicationPayload): Promise<Application> {
+export async function patchApplication(
+  id: number,
+  payload: PatchApplicationPayload,
+): Promise<Application> {
   const res = await apiClient.patch<ApiWrapper<Application>>(
     `/api/Applications/${id}`,
     payload,
