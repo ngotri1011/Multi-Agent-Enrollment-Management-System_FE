@@ -25,10 +25,11 @@ import {
   FilePlus2,
   RefreshCw,
   Search,
+  TriangleAlert,
   XCircle,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   getActiveAdmissionTypesBasic,
   getAdmissionTypeById,
@@ -42,7 +43,14 @@ import { getActiveBasicCampuses } from "../../api/campuses";
 import { getActiveProgramsBasic } from "../../api/programs";
 import { OfficerLayout } from "../../components/layouts/OfficerLayout";
 import type { AdmissionTypeBasic } from "../../types/admission.type";
-import type { Application, ApplicationStatus } from "../../types/application";
+import {
+  APPLICATION_NEED_ACTION_PRESET_COMBO_LABEL,
+  APPLICATION_PENDING_PRESET_COMBO_LABEL,
+  APPLICATION_REQUIRES_REVIEW_LABEL,
+  APPLICATION_STATUS,
+  type Application,
+  type ApplicationStatus,
+} from "../../types/application";
 import type { CampusBasic } from "../../types/campus";
 import type { ProgramBasic } from "../../types/program";
 
@@ -51,17 +59,183 @@ const { Option } = Select;
 
 // ─── Status config ─────────────────────────────────────────────────────────────
 
+const STATUS_TAG_COLOR: Record<ApplicationStatus, string> = {
+  draft: "default",
+  submitted: "blue",
+  under_review: "processing",
+  approved: "success",
+  rejected: "error",
+  document_required: "warning",
+};
+
 const statusConfig: Record<ApplicationStatus, { label: string; color: string }> = {
-  draft:             { label: "Bản nháp",             color: "default"    },
-  submitted:         { label: "Đã nộp",               color: "blue"       },
-  under_review:      { label: "Chờ NV xét duyệt",     color: "processing" },
-  approved:          { label: "Đã chấp nhận",          color: "success"    },
-  rejected:          { label: "Từ chối",               color: "error"      },
-  document_required: { label: "Cần bổ sung tài liệu", color: "warning"    },
+  draft: {
+    label: APPLICATION_STATUS.draft,
+    color: STATUS_TAG_COLOR.draft,
+  },
+  submitted: {
+    label: APPLICATION_STATUS.submitted,
+    color: STATUS_TAG_COLOR.submitted,
+  },
+  under_review: {
+    label: APPLICATION_STATUS.under_review,
+    color: STATUS_TAG_COLOR.under_review,
+  },
+  approved: {
+    label: APPLICATION_STATUS.approved,
+    color: STATUS_TAG_COLOR.approved,
+  },
+  rejected: {
+    label: APPLICATION_STATUS.rejected,
+    color: STATUS_TAG_COLOR.rejected,
+  },
+  document_required: {
+    label: APPLICATION_STATUS.document_required,
+    color: STATUS_TAG_COLOR.document_required,
+  },
 };
 
 function isEscalated(app: Application) {
   return app.status === "under_review" || app.requiresReview;
+}
+
+const APPLICATION_STATUSES: ApplicationStatus[] = [
+  "draft",
+  "submitted",
+  "under_review",
+  "approved",
+  "rejected",
+  "document_required",
+];
+
+function isApplicationStatus(s: string): s is ApplicationStatus {
+  return APPLICATION_STATUSES.includes(s as ApplicationStatus);
+}
+
+/** Preset từ dashboard (API chỉ lọc 1 status / cờ — gộp nhiều request). */
+type DashboardListPreset = "pending" | "need_action";
+
+const DASHBOARD_PRESET_HINT_SUFFIX = " (từ dashboard)";
+
+function dashboardPresetHint(preset: DashboardListPreset | null): string | null {
+  if (preset === "pending")
+    return `Đang lọc: ${APPLICATION_PENDING_PRESET_COMBO_LABEL}${DASHBOARD_PRESET_HINT_SUFFIX}`;
+  if (preset === "need_action")
+    return `Đang lọc: ${APPLICATION_NEED_ACTION_PRESET_COMBO_LABEL}${DASHBOARD_PRESET_HINT_SUFFIX}`;
+  return null;
+}
+
+function sortByLastUpdatedDesc(a: Application, b: Application) {
+  return (
+    new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime()
+  );
+}
+
+function mergeApplicationsById(lists: Application[][]): Application[] {
+  const map = new Map<number, Application>();
+  for (const list of lists) {
+    for (const app of list) {
+      map.set(app.applicationId, app);
+    }
+  }
+  return [...map.values()].sort(sortByLastUpdatedDesc);
+}
+
+/** Giới hạn số bản ghi dùng để suy ra giá trị filter còn “có trong response” (API phân trang). */
+const FACET_LIST_PAGE_CAP = 1000;
+
+type FilterDimensionAvailability = {
+  statuses: Set<ApplicationStatus>;
+  campusIds: Set<number>;
+  programIds: Set<number>;
+  admissionTypeIds: Set<number>;
+  anyRequiresReview: boolean;
+};
+
+function emptyFilterAvailability(): FilterDimensionAvailability {
+  return {
+    statuses: new Set(),
+    campusIds: new Set(),
+    programIds: new Set(),
+    admissionTypeIds: new Set(),
+    anyRequiresReview: false,
+  };
+}
+
+/** Một tập hồ sơ (vd. preset đã merge) — mọi chiều lọc lấy từ cùng response. */
+function buildAvailabilityFromApps(apps: Application[]): FilterDimensionAvailability {
+  const out = emptyFilterAvailability();
+  for (const a of apps) {
+    out.statuses.add(a.status);
+    out.campusIds.add(a.campusId);
+    out.programIds.add(a.programId);
+    out.admissionTypeIds.add(a.admissionTypeId);
+    if (a.requiresReview) out.anyRequiresReview = true;
+  }
+  return out;
+}
+
+/**
+ * Bốn lát response API (mỗi lát bỏ một chiều lọc) để option không xuất hiện
+ * trong tập ứng viên thì disabled.
+ */
+function mergeAvailabilityFromFacetSlices(
+  statusItems: Application[],
+  campusItems: Application[],
+  programItems: Application[],
+  admissionItems: Application[],
+): FilterDimensionAvailability {
+  const statuses = new Set<ApplicationStatus>();
+  for (const a of statusItems) statuses.add(a.status);
+  const campusIds = new Set<number>();
+  for (const a of campusItems) campusIds.add(a.campusId);
+  const programIds = new Set<number>();
+  for (const a of programItems) programIds.add(a.programId);
+  const admissionTypeIds = new Set<number>();
+  for (const a of admissionItems) admissionTypeIds.add(a.admissionTypeId);
+  const scan = [
+    ...statusItems,
+    ...campusItems,
+    ...programItems,
+    ...admissionItems,
+  ];
+  const anyRequiresReview = scan.some((a) => a.requiresReview);
+  return {
+    statuses,
+    campusIds,
+    programIds,
+    admissionTypeIds,
+    anyRequiresReview,
+  };
+}
+
+/** Option disabled khi chưa có trong response; luôn cho phép giá trị đang chọn để đổi được. */
+function dimOptionDisabled(
+  facetReady: boolean,
+  presentInResponse: boolean,
+  isCurrentlySelected: boolean,
+): boolean {
+  if (!facetReady) return false;
+  return !presentInResponse && !isCurrentlySelected;
+}
+
+const SELECT_DISABLED_OPTION_CURSOR =
+  "[&_.ant-select-item-option-disabled]:cursor-not-allowed [&_.ant-select-item-option-disabled]:opacity-50";
+
+/** Đọc query lần đầu — tránh race: loadServerPage chạy trước khi useEffect đồng bộ URL. */
+function parseListQueryState(sp: URLSearchParams): {
+  dashboardPreset: DashboardListPreset | null;
+  filterStatus: ApplicationStatus | "all";
+} {
+  const preset = sp.get("preset");
+  if (preset === "pending" || preset === "need_action") {
+    return { dashboardPreset: preset, filterStatus: "all" };
+  }
+  const st = sp.get("status");
+  if (st && isApplicationStatus(st)) {
+    return { dashboardPreset: null, filterStatus: st };
+  }
+  return { dashboardPreset: null, filterStatus: "all" };
 }
 
 function normalizeRequiredDocumentList(raw: string | null | undefined) {
@@ -82,8 +256,11 @@ function normalizeRequiredDocumentList(raw: string | null | undefined) {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+const PRESET_PAGE_SIZE = 20;
+
 export function OfficerApplicationList() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [messageApi, contextHolder] = message.useMessage();
 
   const [applications, setApplications] = useState<Application[]>([]);
@@ -94,11 +271,19 @@ export function OfficerApplicationList() {
   // ── Server-side filter / sort / page params ──────────────────────────────
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch]           = useState<string | undefined>();
-  const [filterStatus, setFilterStatus] = useState<ApplicationStatus | "all">("all");
+  /** Khởi tạo từ URL ngay mount — tránh loadServerPage gọi API trước khi useEffect đồng bộ query. */
+  const [filterStatus, setFilterStatus] = useState<ApplicationStatus | "all">(() =>
+    parseListQueryState(searchParams).filterStatus
+  );
   const [filterCampusId, setFilterCampusId] = useState<number | "all">("all");
   const [filterProgramId, setFilterProgramId] = useState<number | "all">("all");
   const [filterAdmissionTypeId, setFilterAdmissionTypeId] = useState<number | "all">("all");
   const [onlyEscalated, setOnlyEscalated] = useState(false);
+  /** Gộp draft+submitted hoặc under_review+requiresReview (query ?preset=). */
+  const [dashboardPreset, setDashboardPreset] = useState<DashboardListPreset | null>(() =>
+    parseListQueryState(searchParams).dashboardPreset
+  );
+  const [mergedBuffer, setMergedBuffer] = useState<Application[]>([]);
   const [pageNumber, setPageNumber]   = useState(1);
   const [pageSize, setPageSize]       = useState(20);
   const [sortBy, setSortBy]           = useState<string | undefined>();
@@ -107,6 +292,9 @@ export function OfficerApplicationList() {
   const [campuses, setCampuses] = useState<CampusBasic[]>([]);
   const [programs, setPrograms] = useState<ProgramBasic[]>([]);
   const [admissionTypes, setAdmissionTypes] = useState<AdmissionTypeBasic[]>([]);
+  const [filterAvailability, setFilterAvailability] =
+    useState<FilterDimensionAvailability>(emptyFilterAvailability);
+  const [facetReady, setFacetReady] = useState(false);
 
   // Debounce search input (500 ms)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -145,15 +333,93 @@ export function OfficerApplicationList() {
     }
   }, [messageApi]);
 
-  const loadApplications = useCallback(async () => {
+  const listQueryBase = useMemo(
+    () => ({
+      search,
+      campusId: filterCampusId !== "all" ? filterCampusId : undefined,
+      programId: filterProgramId !== "all" ? filterProgramId : undefined,
+      admissionTypeId:
+        filterAdmissionTypeId !== "all" ? filterAdmissionTypeId : undefined,
+    }),
+    [search, filterCampusId, filterProgramId, filterAdmissionTypeId]
+  );
+
+  const loadDashboardPresetData = useCallback(async () => {
+    if (!dashboardPreset) return;
     setLoading(true);
+    setFacetReady(false);
     try {
+      if (dashboardPreset === "pending") {
+        const [draftRes, subRes] = await Promise.all([
+          fetchAllApplications({
+            ...listQueryBase,
+            status: "draft",
+            pageNumber: 1,
+            pageSize: PRESET_PAGE_SIZE,
+            sortBy: "lastUpdated",
+            sortDesc: true,
+          }),
+          fetchAllApplications({
+            ...listQueryBase,
+            status: "submitted",
+            pageNumber: 1,
+            pageSize: PRESET_PAGE_SIZE,
+            sortBy: "lastUpdated",
+            sortDesc: true,
+          }),
+        ]);
+        const merged = mergeApplicationsById([draftRes.items, subRes.items]);
+        setMergedBuffer(merged);
+        setTotalCount(merged.length);
+        setFilterAvailability(buildAvailabilityFromApps(merged));
+        setFacetReady(true);
+        return;
+      }
+
+      const [urRes, rrRes] = await Promise.all([
+        fetchAllApplications({
+          ...listQueryBase,
+          status: "under_review",
+          pageNumber: 1,
+          pageSize: PRESET_PAGE_SIZE,
+          sortBy: "lastUpdated",
+          sortDesc: true,
+        }),
+        fetchAllApplications({
+          ...listQueryBase,
+          requiresReview: true,
+          pageNumber: 1,
+          pageSize: PRESET_PAGE_SIZE,
+          sortBy: "lastUpdated",
+          sortDesc: true,
+        }),
+      ]);
+      const merged = mergeApplicationsById([urRes.items, rrRes.items]);
+      setMergedBuffer(merged);
+      setTotalCount(merged.length);
+      setFilterAvailability(buildAvailabilityFromApps(merged));
+      setFacetReady(true);
+    } catch {
+      messageApi.error("Không thể tải danh sách hồ sơ.");
+      setMergedBuffer([]);
+      setTotalCount(0);
+      setApplications([]);
+      setFilterAvailability(emptyFilterAvailability());
+      setFacetReady(false);
+    } finally {
+      setLoading(false);
+    }
+  }, [dashboardPreset, listQueryBase, messageApi]);
+
+  const loadServerPage = useCallback(async () => {
+    if (dashboardPreset) return;
+    setLoading(true);
+    setFacetReady(false);
+    try {
+      setMergedBuffer([]);
       const result = await fetchAllApplications({
-        search,
-        campusId: filterCampusId !== "all" ? filterCampusId : undefined,
-        programId: filterProgramId !== "all" ? filterProgramId : undefined,
-        admissionTypeId: filterAdmissionTypeId !== "all" ? filterAdmissionTypeId : undefined,
-        status:         filterStatus !== "all" ? filterStatus : undefined,
+        ...listQueryBase,
+        status: filterStatus !== "all" ? filterStatus : undefined,
         requiresReview: onlyEscalated ? true : undefined,
         pageNumber,
         pageSize,
@@ -162,14 +428,135 @@ export function OfficerApplicationList() {
       });
       setApplications(result.items);
       setTotalCount(result.totalCount);
+
+      const facetPageSize = Math.min(
+        FACET_LIST_PAGE_CAP,
+        Math.max(result.totalCount, 1),
+      );
+      const facetSort = {
+        sortBy: "lastUpdated" as const,
+        sortDesc: true as const,
+      };
+      const esc = onlyEscalated ? ({ requiresReview: true as const } as const) : {};
+      const st =
+        filterStatus !== "all"
+          ? ({ status: filterStatus } as const)
+          : ({} as const);
+
+      if (result.totalCount === 0) {
+        setFilterAvailability(emptyFilterAvailability());
+      } else {
+        const [forStatus, forCampus, forProgram, forAdmission] =
+          await Promise.all([
+            fetchAllApplications({
+              search: listQueryBase.search,
+              campusId: listQueryBase.campusId,
+              programId: listQueryBase.programId,
+              admissionTypeId: listQueryBase.admissionTypeId,
+              ...esc,
+              pageNumber: 1,
+              pageSize: facetPageSize,
+              ...facetSort,
+            }),
+            fetchAllApplications({
+              search: listQueryBase.search,
+              programId: listQueryBase.programId,
+              admissionTypeId: listQueryBase.admissionTypeId,
+              ...st,
+              ...esc,
+              pageNumber: 1,
+              pageSize: facetPageSize,
+              ...facetSort,
+            }),
+            fetchAllApplications({
+              search: listQueryBase.search,
+              campusId: listQueryBase.campusId,
+              admissionTypeId: listQueryBase.admissionTypeId,
+              ...st,
+              ...esc,
+              pageNumber: 1,
+              pageSize: facetPageSize,
+              ...facetSort,
+            }),
+            fetchAllApplications({
+              search: listQueryBase.search,
+              campusId: listQueryBase.campusId,
+              programId: listQueryBase.programId,
+              ...st,
+              ...esc,
+              pageNumber: 1,
+              pageSize: facetPageSize,
+              ...facetSort,
+            }),
+          ]);
+        setFilterAvailability(
+          mergeAvailabilityFromFacetSlices(
+            forStatus.items,
+            forCampus.items,
+            forProgram.items,
+            forAdmission.items,
+          ),
+        );
+      }
+      setFacetReady(true);
     } catch {
       messageApi.error("Không thể tải danh sách hồ sơ.");
+      setFilterAvailability(emptyFilterAvailability());
+      setFacetReady(false);
     } finally {
       setLoading(false);
     }
-  }, [search, filterCampusId, filterProgramId, filterAdmissionTypeId, filterStatus, onlyEscalated, pageNumber, pageSize, sortBy, sortDesc, messageApi]);
+  }, [
+    dashboardPreset,
+    listQueryBase,
+    filterStatus,
+    filterCampusId,
+    filterProgramId,
+    filterAdmissionTypeId,
+    onlyEscalated,
+    pageNumber,
+    pageSize,
+    sortBy,
+    sortDesc,
+    messageApi,
+  ]);
 
-  useEffect(() => { loadApplications(); }, [loadApplications]);
+  const searchParamsKey = searchParams.toString();
+  useEffect(() => {
+    const preset = searchParams.get("preset");
+    const st = searchParams.get("status");
+    if (preset === "pending" || preset === "need_action") {
+      setDashboardPreset(preset);
+      setFilterStatus("all");
+      setOnlyEscalated(false);
+      setPageNumber(1);
+    } else if (st && isApplicationStatus(st)) {
+      setDashboardPreset(null);
+      setMergedBuffer([]);
+      setFilterStatus(st);
+      setOnlyEscalated(false);
+      setPageNumber(1);
+    } else {
+      setDashboardPreset(null);
+      setMergedBuffer([]);
+    }
+  }, [searchParamsKey]);
+
+  useEffect(() => {
+    if (!dashboardPreset) return;
+    void loadDashboardPresetData();
+  }, [dashboardPreset, loadDashboardPresetData]);
+
+  useEffect(() => {
+    if (dashboardPreset) return;
+    void loadServerPage();
+  }, [dashboardPreset, loadServerPage]);
+
+  useEffect(() => {
+    if (!dashboardPreset || mergedBuffer.length === 0) return;
+    const start = (pageNumber - 1) * pageSize;
+    setApplications(mergedBuffer.slice(start, start + pageSize));
+  }, [dashboardPreset, pageNumber, pageSize, mergedBuffer]);
   useEffect(() => { loadFilterOptions(); }, [loadFilterOptions]);
 
   // ── Table change handler (sort + page) ────────────────────────────────────
@@ -192,12 +579,35 @@ export function OfficerApplicationList() {
   };
 
   // ── Filter change helpers (reset to page 1) ───────────────────────────────
+  const syncListSearchParams = useCallback(
+    (mutate: (p: URLSearchParams) => void) => {
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        mutate(next);
+        return next;
+      });
+    },
+    [setSearchParams]
+  );
+
   const handleStatusChange = (val: ApplicationStatus | "all") => {
+    syncListSearchParams((p) => {
+      p.delete("preset");
+      if (val === "all") p.delete("status");
+      else p.set("status", val);
+    });
+    setDashboardPreset(null);
+    setMergedBuffer([]);
     setFilterStatus(val);
     setPageNumber(1);
   };
 
   const handleEscalatedChange = (checked: boolean) => {
+    syncListSearchParams((p) => {
+      p.delete("preset");
+    });
+    setDashboardPreset(null);
+    setMergedBuffer([]);
     setOnlyEscalated(checked);
     setPageNumber(1);
   };
@@ -218,6 +628,7 @@ export function OfficerApplicationList() {
   };
 
   const clearFilters = () => {
+    setSearchParams(new URLSearchParams());
     setSearchInput("");
     setSearch(undefined);
     setFilterStatus("all");
@@ -225,10 +636,17 @@ export function OfficerApplicationList() {
     setFilterProgramId("all");
     setFilterAdmissionTypeId("all");
     setOnlyEscalated(false);
+    setDashboardPreset(null);
+    setMergedBuffer([]);
     setPageNumber(1);
     setSortBy(undefined);
     setSortDesc(true);
   };
+
+  const refreshList = useCallback(() => {
+    if (dashboardPreset) void loadDashboardPresetData();
+    else void loadServerPage();
+  }, [dashboardPreset, loadDashboardPresetData, loadServerPage]);
 
   // ─── Actions ──────────────────────────────────────────────────────────────
 
@@ -404,12 +822,23 @@ export function OfficerApplicationList() {
       dataIndex: "status",
       key: "status",
       width: 150,
-      render: (status: ApplicationStatus) => {
-        const cfg = statusConfig[status];
+      render: (_: ApplicationStatus, record: Application) => {
+        const cfg = statusConfig[record.status];
         return (
-          <Tag color={cfg.color} className="text-xs">
-            {cfg.label}
-          </Tag>
+          <Space size={4} wrap className="max-w-[200px]">
+            <Tag color={cfg.color} className="text-xs">
+              {cfg.label}
+            </Tag>
+            {record.requiresReview && (
+              <Tag
+                color="error"
+                className="text-xs !inline-flex !items-center gap-1 !m-0"
+              >
+                <TriangleAlert className="size-3.5 shrink-0" aria-hidden />
+                {APPLICATION_REQUIRES_REVIEW_LABEL}
+              </Tag>
+            )}
+          </Space>
         );
       },
     },
@@ -435,30 +864,36 @@ export function OfficerApplicationList() {
               />
             </Tooltip>
 
-            <Tooltip
-              title={
-                canReview
-                  ? "Phê duyệt"
-                  : "Chỉ phê duyệt được khi hồ sơ ở trạng thái chờ xét duyệt"
-              }
-            >
+            {canReview ? (
               <Popconfirm
                 title="Phê duyệt hồ sơ này?"
                 okText="Phê duyệt"
                 cancelText="Huỷ"
                 onConfirm={() => handleApprove(id)}
-                disabled={!canReview}
               >
-                <Button
-                  size="small"
-                  icon={<CheckCircle2 size={13} />}
-                  type="primary"
-                  disabled={!canReview}
-                  loading={actionLoading === strId + "_approve"}
-                  className="!rounded-lg !bg-emerald-500 !border-emerald-500 hover:!bg-emerald-600"
-                />
+                <Tooltip title="Phê duyệt">
+                  <Button
+                    size="small"
+                    icon={<CheckCircle2 size={13} />}
+                    type="primary"
+                    loading={actionLoading === strId + "_approve"}
+                    className="!rounded-lg !bg-emerald-500 !border-emerald-500 hover:!bg-emerald-600"
+                  />
+                </Tooltip>
               </Popconfirm>
-            </Tooltip>
+            ) : (
+              <Tooltip title="Chỉ phê duyệt được khi hồ sơ ở trạng thái chờ xét duyệt">
+                <span>
+                  <Button
+                    size="small"
+                    icon={<CheckCircle2 size={13} />}
+                    type="primary"
+                    disabled
+                    className="!rounded-lg !bg-emerald-500 !border-emerald-500"
+                  />
+                </span>
+              </Tooltip>
+            )}
 
             <Tooltip
               title={
@@ -482,7 +917,7 @@ export function OfficerApplicationList() {
               title={
                 canRequestSupplement
                   ? "Yêu cầu bổ sung"
-                  : "Chỉ áp dụng khi hồ sơ ở trạng thái chờ xét duyệt"
+                  : "Chỉ yêu cầu bổ sung khi hồ sơ ở trạng thái chờ xét duyệt"
               }
             >
               <Button
@@ -509,7 +944,10 @@ export function OfficerApplicationList() {
     filterProgramId !== "all",
     filterAdmissionTypeId !== "all",
     onlyEscalated,
+    !!dashboardPreset,
   ].filter(Boolean).length;
+
+  const presetHint = dashboardPresetHint(dashboardPreset);
 
   // ─── Render ───────────────────────────────────────────────────────────────
 
@@ -517,32 +955,36 @@ export function OfficerApplicationList() {
     <OfficerLayout>
       {contextHolder}
 
-      {/* Header */}
-      <div className="mb-6 flex items-start justify-between">
-        <div>
-          <Title level={4} className="!mb-1 !text-gray-800 !font-bold">
-            Quản Lý Hồ Sơ Tuyển Sinh
-          </Title>
-          <Text className="text-gray-400 text-sm">
-            Tổng cộng {totalCount} hồ sơ
-            {activeFilterCount > 0 && ` (đang lọc)`}
-          </Text>
+      <div className="flex flex-col gap-6 pb-14 md:pb-16">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <Title level={4} className="!mb-1 !text-gray-800 !font-bold">
+              Quản Lý Hồ Sơ Tuyển Sinh
+            </Title>
+            <Text className="text-gray-400 text-sm">
+              Tổng cộng {totalCount} hồ sơ
+              {activeFilterCount > 0 && ` (đang lọc)`}
+            </Text>
+          </div>
+          <Button
+            icon={<RefreshCw size={14} />}
+            onClick={refreshList}
+            loading={loading}
+            className="!rounded-xl shrink-0"
+          >
+            Làm mới
+          </Button>
         </div>
-        <Button
-          icon={<RefreshCw size={14} />}
-          onClick={loadApplications}
-          loading={loading}
-          className="!rounded-xl"
-        >
-          Làm mới
-        </Button>
-      </div>
 
-      {/* Filter Card */}
-      <Card
-        className="rounded-2xl border border-gray-100 shadow-sm mb-4"
-        styles={{ body: { padding: "16px 20px" } }}
-      >
+        {/* Filter Card */}
+        <Card
+          className="rounded-2xl border border-gray-100 shadow-sm"
+          styles={{ body: { padding: "16px 20px" } }}
+        >
+        {presetHint && (
+          <Text className="text-xs text-violet-600 block mb-3">{presetHint}</Text>
+        )}
         <Row gutter={[12, 12]} align="middle">
           {/* Search */}
           <Col xs={24} md={6}>
@@ -564,10 +1006,19 @@ export function OfficerApplicationList() {
               onChange={handleStatusChange}
               className="w-full !rounded-xl"
               placeholder="Trạng thái"
+              popupClassName={SELECT_DISABLED_OPTION_CURSOR}
             >
               <Option value="all">Tất cả trạng thái</Option>
               {(Object.keys(statusConfig) as ApplicationStatus[]).map((s) => (
-                <Option key={s} value={s}>
+                <Option
+                  key={s}
+                  value={s}
+                  disabled={dimOptionDisabled(
+                    facetReady,
+                    filterAvailability.statuses.has(s),
+                    filterStatus === s,
+                  )}
+                >
                   {statusConfig[s].label}
                 </Option>
               ))}
@@ -581,10 +1032,19 @@ export function OfficerApplicationList() {
               onChange={handleCampusChange}
               className="w-full !rounded-xl"
               placeholder="Cơ sở"
+              popupClassName={SELECT_DISABLED_OPTION_CURSOR}
             >
               <Option value="all">Tất cả cơ sở</Option>
               {campuses.map((campus) => (
-                <Option key={campus.campusId} value={campus.campusId}>
+                <Option
+                  key={campus.campusId}
+                  value={campus.campusId}
+                  disabled={dimOptionDisabled(
+                    facetReady,
+                    filterAvailability.campusIds.has(campus.campusId),
+                    filterCampusId === campus.campusId,
+                  )}
+                >
                   {campus.name}
                 </Option>
               ))}
@@ -600,10 +1060,19 @@ export function OfficerApplicationList() {
               placeholder="Ngành"
               showSearch
               optionFilterProp="children"
+              popupClassName={SELECT_DISABLED_OPTION_CURSOR}
             >
               <Option value="all">Tất cả ngành</Option>
               {programs.map((program) => (
-                <Option key={program.programId} value={program.programId}>
+                <Option
+                  key={program.programId}
+                  value={program.programId}
+                  disabled={dimOptionDisabled(
+                    facetReady,
+                    filterAvailability.programIds.has(program.programId),
+                    filterProgramId === program.programId,
+                  )}
+                >
                   {program.programName}
                 </Option>
               ))}
@@ -617,10 +1086,21 @@ export function OfficerApplicationList() {
               onChange={handleAdmissionTypeChange}
               className="w-full !rounded-xl"
               placeholder="Phương thức"
+              popupClassName={SELECT_DISABLED_OPTION_CURSOR}
             >
               <Option value="all">Tất cả phương thức</Option>
               {admissionTypes.map((admissionType) => (
-                <Option key={admissionType.admissionTypeId} value={admissionType.admissionTypeId}>
+                <Option
+                  key={admissionType.admissionTypeId}
+                  value={admissionType.admissionTypeId}
+                  disabled={dimOptionDisabled(
+                    facetReady,
+                    filterAvailability.admissionTypeIds.has(
+                      admissionType.admissionTypeId,
+                    ),
+                    filterAdmissionTypeId === admissionType.admissionTypeId,
+                  )}
+                >
                   {admissionType.admissionTypeName}
                 </Option>
               ))}
@@ -633,9 +1113,17 @@ export function OfficerApplicationList() {
               value={onlyEscalated ? "escalated" : "all"}
               onChange={(v) => handleEscalatedChange(v === "escalated")}
               className="w-full !rounded-xl"
+              popupClassName={SELECT_DISABLED_OPTION_CURSOR}
             >
               <Option value="all">Tất cả hồ sơ</Option>
-              <Option value="escalated">
+              <Option
+                value="escalated"
+                disabled={dimOptionDisabled(
+                  facetReady,
+                  filterAvailability.anyRequiresReview,
+                  onlyEscalated,
+                )}
+              >
                 <span className="flex items-center gap-1 text-rose-600">
                   <AlertTriangle size={13} />
                   Hồ sơ cần xem xét
@@ -658,13 +1146,13 @@ export function OfficerApplicationList() {
             </Col>
           )}
         </Row>
-      </Card>
+        </Card>
 
-      {/* Table */}
-      <Card
-        className="rounded-2xl border border-gray-100 shadow-sm"
-        styles={{ body: { padding: "0" } }}
-      >
+        {/* Table */}
+        <Card
+          className="rounded-2xl border border-gray-100 shadow-sm"
+          styles={{ body: { padding: "0" } }}
+        >
         <Spin spinning={loading}>
           <Table
             columns={columns}
@@ -679,6 +1167,8 @@ export function OfficerApplicationList() {
               showSizeChanger: true,
               showTotal: (total) => `Tổng ${total} hồ sơ`,
               pageSizeOptions: ["10", "20", "50"],
+              className:
+                "!px-4 !pb-4 !pt-3 !box-border sm:!px-6 sm:!pb-5",
             }}
             rowClassName={(record) =>
               isEscalated(record)
@@ -706,7 +1196,8 @@ export function OfficerApplicationList() {
             size="middle"
           />
         </Spin>
-      </Card>
+        </Card>
+      </div>
 
       {/* Reject Modal */}
       <Modal

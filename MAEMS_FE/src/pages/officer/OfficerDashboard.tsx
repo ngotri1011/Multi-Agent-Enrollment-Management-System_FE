@@ -1,15 +1,24 @@
-import { Badge, Button, Card, Col, Row, Spin, Table, Tag, Typography } from "antd";
+import {
+  Button,
+  Card,
+  Col,
+  Row,
+  Spin,
+  Table,
+  Tag,
+  Typography,
+} from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
   AlertTriangle,
+  Check,
   ClipboardList,
   Eye,
-  FileText,
-  TrendingUp,
   Users,
+  X,
   Zap,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Bar,
@@ -26,27 +35,38 @@ import {
 import { fetchAllApplications } from "../../api/applications";
 import { OfficerLayout } from "../../components/layouts/OfficerLayout";
 import type { Application } from "../../types/application";
+import {
+  APPLICATION_NEED_ACTION_PRESET_COMBO_LABEL,
+  APPLICATION_PENDING_PRESET_COMBO_LABEL,
+  APPLICATION_REQUIRES_REVIEW_LABEL,
+  APPLICATION_STATUS,
+  APPLICATION_STATUS_CARD_TW,
+  APPLICATION_STATUS_HEX,
+  type ApplicationStatus,
+} from "../../types/application";
 
 const { Title, Text } = Typography;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-const STATUS_CHART_COLORS: Record<string, string> = {
-  submitted:    "#f59e0b",
-  draft:        "#d1d5db",
-  under_review: "#f43f5e",
-  approved:     "#10b981",
-  rejected:     "#9ca3af",
-};
+const TOTAL_CARD_TW = {
+  bg: "bg-blue-50",
+  iconColor: "text-blue-500",
+  border: "border-blue-100",
+} as const;
 
-const STATUS_CHART_LABELS: Record<string, string> = {
-  submitted:    "Đã nộp",
-  draft:        "Bản nháp",
-  under_review: "Cần kiểm tra",
-  approved:     "Đủ điều kiện",
-  rejected:     "Bị từ chối",
-  document_required: "Cần bổ sung tài liệu",
-};
+const OFFICER_APP_LIST_PATH = "/officer/review-applications";
+
+type ApplicationListFilter =
+  | { kind: "all" }
+  | { kind: "preset"; preset: "pending" | "need_action" }
+  | { kind: "status"; status: ApplicationStatus };
+
+function applicationListHref(f: ApplicationListFilter): string {
+  if (f.kind === "all") return OFFICER_APP_LIST_PATH;
+  if (f.kind === "preset") return `${OFFICER_APP_LIST_PATH}?preset=${f.preset}`;
+  return `${OFFICER_APP_LIST_PATH}?status=${f.status}`;
+}
 
 function pct(part: number, total: number) {
   if (!total) return "0%";
@@ -62,19 +82,23 @@ function parseAgentNote(notes: string | null) {
 
 // ─── Escalated table columns ─────────────────────────────────────────────────
 
-function useEscalatedColumns(navigate: ReturnType<typeof useNavigate>): ColumnsType<Application> {
+function useEscalatedColumns(
+  navigate: ReturnType<typeof useNavigate>,
+): ColumnsType<Application> {
   return [
     {
-      title: "Mã hồ sơ",
+      title: "Mã đơn",
       dataIndex: "applicationId",
       key: "id",
       width: 80,
       render: (id: number) => (
-        <Text className="font-mono text-xs text-indigo-600 font-semibold">#{id}</Text>
+        <Text className="font-mono text-xs text-indigo-600 font-semibold">
+          #{id}
+        </Text>
       ),
     },
     {
-      title: "Thí sinh",
+      title: "Tên thí sinh",
       dataIndex: "applicantName",
       key: "name",
       render: (name: string) => (
@@ -82,10 +106,12 @@ function useEscalatedColumns(navigate: ReturnType<typeof useNavigate>): ColumnsT
       ),
     },
     {
-      title: "Ngành",
+      title: "Ngành đăng ký",
       dataIndex: "programName",
       key: "major",
-      render: (prog: string) => <Text className="text-gray-600 text-sm">{prog}</Text>,
+      render: (prog: string) => (
+        <Text className="text-gray-600 text-sm">{prog}</Text>
+      ),
     },
     {
       title: "Trạng thái",
@@ -94,9 +120,11 @@ function useEscalatedColumns(navigate: ReturnType<typeof useNavigate>): ColumnsT
       width: 130,
       render: (status: string, record: Application) => {
         if (status === "under_review")
-          return <Tag color="error">Cần xem xét</Tag>;
+          return (
+            <Tag color="processing">{APPLICATION_STATUS.under_review}</Tag>
+          );
         if (record.requiresReview)
-          return <Tag color="warning">Cần quyết định</Tag>;
+          return <Tag color="error">{APPLICATION_REQUIRES_REVIEW_LABEL}</Tag>;
         return <Tag color="processing">Đang chờ</Tag>;
       },
     },
@@ -109,10 +137,16 @@ function useEscalatedColumns(navigate: ReturnType<typeof useNavigate>): ColumnsT
         if (missingDocs.length > 0) {
           return (
             <div>
-              <Text className="text-amber-600 text-xs block mb-1">Thiếu tài liệu:</Text>
+              <Text className="text-amber-600 text-xs block mb-1">
+                Thiếu tài liệu:
+              </Text>
               <div className="flex flex-wrap gap-1">
                 {missingDocs.map((d) => (
-                  <Tag key={d} color="orange" className="!text-[10px] !m-0 !px-1">
+                  <Tag
+                    key={d}
+                    color="orange"
+                    className="!text-[10px] !m-0 !px-1"
+                  >
                     {d.replace(/_/g, " ")}
                   </Tag>
                 ))}
@@ -120,10 +154,13 @@ function useEscalatedColumns(navigate: ReturnType<typeof useNavigate>): ColumnsT
             </div>
           );
         }
-        if (notes) return <Text className="text-gray-500 text-xs">{notes}</Text>;
+        if (notes)
+          return <Text className="text-gray-500 text-xs">{notes}</Text>;
         return (
           <Text className="text-gray-300 text-xs">
-            {record.requiresReview ? "Cần xem xét thủ công" : "Chờ xử lý"}
+            {record.requiresReview
+              ? APPLICATION_REQUIRES_REVIEW_LABEL
+              : "Chờ xử lý"}
           </Text>
         );
       },
@@ -137,7 +174,9 @@ function useEscalatedColumns(navigate: ReturnType<typeof useNavigate>): ColumnsT
           size="small"
           icon={<Eye size={13} />}
           type="link"
-          onClick={() => navigate(`/officer/applications/${record.applicationId}`)}
+          onClick={() =>
+            navigate(`/officer/applications/${record.applicationId}`)
+          }
         >
           Xem
         </Button>
@@ -162,11 +201,15 @@ export function OfficerDashboard() {
 
   // ── Derived stats ──────────────────────────────────────────────────────────
   const stats = useMemo(() => {
-    const total      = applications.length;
-    const pending    = applications.filter((a) => a.status === "submitted" || a.status === "draft").length;
-    const needsCheck = applications.filter((a) => a.status === "under_review" || a.requiresReview).length;
-    const approved   = applications.filter((a) => a.status === "approved").length;
-    const rejected   = applications.filter((a) => a.status === "rejected").length;
+    const total = applications.length;
+    const pending = applications.filter(
+      (a) => a.status === "submitted" || a.status === "draft",
+    ).length;
+    const needsCheck = applications.filter(
+      (a) => a.status === "under_review" || a.requiresReview,
+    ).length;
+    const approved = applications.filter((a) => a.status === "approved").length;
+    const rejected = applications.filter((a) => a.status === "rejected").length;
     return { total, pending, needsCheck, approved, rejected };
   }, [applications]);
 
@@ -178,9 +221,15 @@ export function OfficerDashboard() {
     }
     return Object.entries(counts)
       .map(([status, value]) => ({
-        name: STATUS_CHART_LABELS[status] ?? status,
+        name:
+          status in APPLICATION_STATUS
+            ? APPLICATION_STATUS[status as ApplicationStatus]
+            : status,
         value,
-        color: STATUS_CHART_COLORS[status] ?? "#6366f1",
+        color:
+          status in APPLICATION_STATUS_HEX
+            ? APPLICATION_STATUS_HEX[status as ApplicationStatus]
+            : "#6366f1",
       }))
       .sort((a, b) => b.value - a.value);
   }, [applications]);
@@ -203,60 +252,133 @@ export function OfficerDashboard() {
       applications
         .filter((a) => a.status === "under_review" || a.requiresReview)
         .slice(0, 5),
-    [applications]
+    [applications],
   );
 
   // ── Quick stats cards config ───────────────────────────────────────────────
-  const quickStats = [
+  const quickStats: Array<{
+    label: string;
+    value: number;
+    bg: string;
+    iconColor: string;
+    border: string;
+    trendDotClass: string;
+    icon: ReactNode;
+    trend: string;
+  }> = [
     {
       label: "Tổng hồ sơ",
       value: stats.total,
+      ...TOTAL_CARD_TW,
+      trendDotClass: "bg-blue-500",
       icon: <Users size={20} />,
-      bg: "bg-blue-50",
-      iconColor: "text-blue-500",
-      border: "border-blue-100",
       trend: `${stats.total} hồ sơ`,
-      trendUp: true,
     },
     {
-      label: "Chờ xử lý",
+      label: APPLICATION_PENDING_PRESET_COMBO_LABEL,
       value: stats.pending,
+      ...APPLICATION_STATUS_CARD_TW.submitted,
+      trendDotClass: "bg-amber-500",
       icon: <ClipboardList size={20} />,
-      bg: "bg-amber-50",
-      iconColor: "text-amber-500",
-      border: "border-amber-100",
       trend: `${pct(stats.pending, stats.total)} tổng hồ sơ`,
-      trendUp: false,
     },
     {
-      label: "Cần kiểm tra thủ công",
+      label: APPLICATION_NEED_ACTION_PRESET_COMBO_LABEL,
       value: stats.needsCheck,
+      ...APPLICATION_STATUS_CARD_TW.under_review,
+      trendDotClass: "bg-violet-600",
       icon: <AlertTriangle size={20} />,
-      bg: "bg-rose-50",
-      iconColor: "text-rose-500",
-      border: "border-rose-100",
       trend: stats.needsCheck > 0 ? "Cần xử lý gấp" : "Không có",
-      trendUp: false,
     },
     {
-      label: "Đủ điều kiện",
+      label: APPLICATION_STATUS.approved,
       value: stats.approved,
-      icon: <TrendingUp size={20} />,
-      bg: "bg-emerald-50",
-      iconColor: "text-emerald-500",
-      border: "border-emerald-100",
+      ...APPLICATION_STATUS_CARD_TW.approved,
+      trendDotClass: "bg-emerald-500",
+      icon: <Check size={20} strokeWidth={2.5} />,
       trend: `${pct(stats.approved, stats.total)} tổng hồ sơ`,
-      trendUp: true,
     },
     {
-      label: "Bị từ chối",
+      label: APPLICATION_STATUS.rejected,
       value: stats.rejected,
-      icon: <FileText size={20} />,
-      bg: "bg-gray-50",
-      iconColor: "text-gray-400",
-      border: "border-gray-100",
+      ...APPLICATION_STATUS_CARD_TW.rejected,
+      trendDotClass: "bg-red-500",
+      icon: <X size={20} strokeWidth={2.5} />,
       trend: `${pct(stats.rejected, stats.total)} tổng hồ sơ`,
-      trendUp: false,
+    },
+  ];
+
+  const quickAccessLinks: Array<{
+    title: string;
+    subtitle: string;
+    filter: ApplicationListFilter;
+    icon: ReactNode;
+    ring: string;
+    bg: string;
+    hoverBg: string;
+    iconBg: string;
+    titleClass: string;
+    subtitleClass: string;
+  }> = [
+    {
+      title: "Tất cả hồ sơ",
+      subtitle: loading ? "—" : `${stats.total} hồ sơ`,
+      filter: { kind: "all" },
+      icon: <Users size={18} />,
+      ring: "border-blue-100",
+      bg: "bg-blue-50",
+      hoverBg: "hover:bg-blue-100",
+      iconBg: "bg-blue-500",
+      titleClass: "text-blue-700",
+      subtitleClass: "text-blue-400",
+    },
+    {
+      title: APPLICATION_PENDING_PRESET_COMBO_LABEL,
+      subtitle: loading ? "—" : `${stats.pending} hồ sơ`,
+      filter: { kind: "preset", preset: "pending" },
+      icon: <ClipboardList size={18} />,
+      ring: "border-amber-100",
+      bg: "bg-amber-50",
+      hoverBg: "hover:bg-amber-100",
+      iconBg: "bg-amber-500",
+      titleClass: "text-amber-800",
+      subtitleClass: "text-amber-600",
+    },
+    {
+      title: APPLICATION_NEED_ACTION_PRESET_COMBO_LABEL,
+      subtitle: loading ? "—" : `${stats.needsCheck} hồ sơ`,
+      filter: { kind: "preset", preset: "need_action" },
+      icon: <Zap size={18} />,
+      ring: "border-violet-100",
+      bg: "bg-violet-50",
+      hoverBg: "hover:bg-violet-100",
+      iconBg: "bg-violet-600",
+      titleClass: "text-violet-700",
+      subtitleClass: "text-violet-500",
+    },
+    {
+      title: APPLICATION_STATUS.approved,
+      subtitle: loading ? "—" : `${pct(stats.approved, stats.total)} tổng`,
+      filter: { kind: "status", status: "approved" },
+      icon: <Check size={18} strokeWidth={2.5} />,
+      ring: "border-emerald-100",
+      bg: "bg-emerald-50",
+      hoverBg: "hover:bg-emerald-100",
+      iconBg: "bg-emerald-500",
+      titleClass: "text-emerald-700",
+      subtitleClass: "text-emerald-500",
+    },
+    {
+      title: APPLICATION_STATUS.rejected,
+      subtitle: loading ? "—" : `${pct(stats.rejected, stats.total)} tổng`,
+      filter: { kind: "status", status: "rejected" },
+      icon: <X size={18} strokeWidth={2.5} />,
+      ring: "border-red-100",
+      bg: "bg-red-50",
+      hoverBg: "hover:bg-red-100",
+      iconBg: "bg-red-500",
+      titleClass: "text-red-700",
+      subtitleClass: "text-red-500",
     },
   ];
 
@@ -297,7 +419,7 @@ export function OfficerDashboard() {
           {quickStats.map((s) => (
             <Col xs={12} sm={12} md={8} lg={8} xl={4} key={s.label}>
               <Card
-                className={`rounded-2xl border ${s.border} shadow-sm hover:shadow-md transition-all cursor-pointer`}
+                className={`rounded-2xl border ${s.border} shadow-sm`}
                 styles={{ body: { padding: "16px 20px" } }}
               >
                 <div className="flex items-start justify-between mb-3">
@@ -306,12 +428,13 @@ export function OfficerDashboard() {
                   >
                     {s.icon}
                   </div>
-                  <Badge
-                    status={s.trendUp ? "success" : "error"}
-                    text={
-                      <span className="text-[11px] text-gray-400">{s.trend}</span>
-                    }
-                  />
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`inline-block size-2 shrink-0 rounded-full ${s.trendDotClass}`}
+                      aria-hidden
+                    />
+                    <span className="text-[11px] text-gray-400">{s.trend}</span>
+                  </div>
                 </div>
                 <div className="text-2xl font-bold text-gray-800">
                   {loading ? "—" : s.value}
@@ -349,7 +472,24 @@ export function OfficerDashboard() {
                         <Cell key={index} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value) => [`${value} hồ sơ`]} />
+                    <Tooltip
+                      content={({ active, payload }) => {
+                        if (!active || !payload?.length) return null;
+                        const p = payload[0];
+                        const label = String(p.name ?? p.payload?.name ?? "");
+                        const count = Number(p.value ?? 0);
+                        return (
+                          <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-md">
+                            <div className="text-sm font-semibold text-gray-800">
+                              {label}
+                            </div>
+                            <div className="text-xs text-gray-600 mt-0.5">
+                              {count} hồ sơ
+                            </div>
+                          </div>
+                        );
+                      }}
+                    />
                     <Legend
                       iconType="circle"
                       iconSize={8}
@@ -399,11 +539,11 @@ export function OfficerDashboard() {
                     />
                     <Tooltip
                       formatter={(value) => [`${value} hồ sơ`, "Số lượng"]}
-                      cursor={{ fill: "#f9fafb" }}
+                      cursor={{ fill: "#eff6ff" }}
                     />
                     <Bar
                       dataKey="total"
-                      fill="#6366f1"
+                      fill="#3b82f6"
                       radius={[6, 6, 0, 0]}
                       maxBarSize={40}
                     />
@@ -429,9 +569,10 @@ export function OfficerDashboard() {
                 Danh sách hồ sơ cần xử lý
               </Title>
               <Text className="text-xs text-gray-400">
-                Các hồ sơ cần xem xét hoặc cần kiểm tra thủ công
+                {APPLICATION_STATUS.under_review} hoặc{" "}
+                {APPLICATION_REQUIRES_REVIEW_LABEL}
                 {!loading && escalatedList.length > 0 && (
-                  <span className="ml-1 text-rose-500 font-medium">
+                  <span className="ml-1 text-violet-600 font-medium">
                     ({escalatedList.length})
                   </span>
                 )}
@@ -457,71 +598,47 @@ export function OfficerDashboard() {
           />
         </Card>
 
-        {/* Quick Actions */}
-        <Card
-          className="rounded-2xl border border-gray-100 shadow-sm"
-          styles={{ body: { padding: "20px 24px" } }}
-        >
-          <Title level={5} className="!mb-4 !text-gray-700">
-            Truy cập nhanh
-          </Title>
-          <Row gutter={[12, 12]}>
-            <Col xs={24} sm={8}>
-              <button
-                onClick={() => navigate("/officer/review-applications")}
-                className="w-full flex items-center gap-3 p-4 rounded-xl border border-blue-100 bg-blue-50 hover:bg-blue-100 transition-colors text-left group"
-              >
-                <div className="w-10 h-10 rounded-xl bg-blue-500 flex items-center justify-center text-white group-hover:scale-105 transition-transform">
-                  <FileText size={18} />
-                </div>
-                <div>
-                  <div className="font-semibold text-blue-700 text-sm">
-                    Xem hồ sơ mới
-                  </div>
-                  <div className="text-xs text-blue-400">
-                    {loading ? "—" : `${stats.pending} hồ sơ chờ duyệt`}
-                  </div>
-                </div>
-              </button>
-            </Col>
-            <Col xs={24} sm={8}>
-              <button
-                onClick={() => navigate("/officer/review-applications")}
-                className="w-full flex items-center gap-3 p-4 rounded-xl border border-rose-100 bg-rose-50 hover:bg-rose-100 transition-colors text-left group"
-              >
-                <div className="w-10 h-10 rounded-xl bg-rose-500 flex items-center justify-center text-white group-hover:scale-105 transition-transform">
-                  <Zap size={18} />
-                </div>
-                <div>
-                  <div className="font-semibold text-rose-700 text-sm">
-                    Hồ sơ cần xử lý gấp
-                  </div>
-                  <div className="text-xs text-rose-400">
-                    {loading ? "—" : `${stats.needsCheck} hồ sơ ưu tiên`}
-                  </div>
-                </div>
-              </button>
-            </Col>
-            <Col xs={24} sm={8}>
-              <button
-                onClick={() => navigate("/officer/review-applications")}
-                className="w-full flex items-center gap-3 p-4 rounded-xl border border-amber-100 bg-amber-50 hover:bg-amber-100 transition-colors text-left group"
-              >
-                <div className="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center text-white group-hover:scale-105 transition-transform">
-                  <AlertTriangle size={18} />
-                </div>
-                <div>
-                  <div className="font-semibold text-amber-700 text-sm">
-                    Hồ sơ cần kiểm tra thủ công
-                  </div>
-                  <div className="text-xs text-amber-400">
-                    {loading ? "—" : `${escalatedList.length} hồ sơ cần xem xét`}
-                  </div>
-                </div>
-              </button>
-            </Col>
-          </Row>
-        </Card>
+        {/* Truy cập nhanh */}
+        <div className="block" style={{ marginTop: 32, paddingBottom: 32 }}>
+          <Card
+            className="rounded-2xl border border-gray-100 shadow-sm"
+            styles={{ body: { padding: "20px 24px" } }}
+          >
+            <Title level={5} className="!mb-1 !text-gray-700">
+              Truy cập nhanh
+            </Title>
+            <Text className="text-xs text-gray-400 block mb-4">
+              Mở trang quản lý hồ sơ với bộ lọc sẵn theo từng loại
+            </Text>
+            <Row gutter={[12, 12]}>
+              {quickAccessLinks.map((item) => (
+                <Col xs={24} sm={12} md={8} key={item.title}>
+                  <button
+                    type="button"
+                    onClick={() => navigate(applicationListHref(item.filter))}
+                    className={`w-full flex items-center gap-3 p-4 rounded-xl border ${item.ring} ${item.bg} ${item.hoverBg} transition-colors text-left group focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300`}
+                  >
+                    <div
+                      className={`w-10 h-10 rounded-xl ${item.iconBg} flex items-center justify-center text-white shrink-0 group-hover:scale-105 transition-transform`}
+                    >
+                      {item.icon}
+                    </div>
+                    <div className="min-w-0">
+                      <div
+                        className={`font-semibold text-sm ${item.titleClass}`}
+                      >
+                        {item.title}
+                      </div>
+                      <div className={`text-xs ${item.subtitleClass}`}>
+                        {item.subtitle}
+                      </div>
+                    </div>
+                  </button>
+                </Col>
+              ))}
+            </Row>
+          </Card>
+        </div>
       </Spin>
     </OfficerLayout>
   );

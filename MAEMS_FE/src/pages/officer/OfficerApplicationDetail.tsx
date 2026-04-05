@@ -28,6 +28,7 @@ import {
   FileText,
   RefreshCw,
   ShieldCheck,
+  TriangleAlert,
   User,
   XCircle,
 } from "lucide-react";
@@ -42,36 +43,89 @@ import {
 } from "../../api/applications";
 import type { CreateApplicantResponse } from "../../types/applicant";
 import { OfficerLayout } from "../../components/layouts/OfficerLayout";
-import type {
-  Application,
-  ApplicationStatus,
-  Document,
+import {
+  APPLICATION_REQUIRES_REVIEW_LABEL,
+  APPLICATION_STATUS,
+  type Application,
+  type ApplicationStatus,
 } from "../../types/application";
+import type { Document } from "../../types/document";
+import type { DocumentStatus } from "../../types/enums";
 
 const { Title, Text } = Typography;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+const STATUS_TAG_COLOR: Record<ApplicationStatus, string> = {
+  draft: "default",
+  submitted: "blue",
+  under_review: "processing",
+  approved: "success",
+  rejected: "error",
+  document_required: "warning",
+};
+
 const STATUS_CFG: Record<ApplicationStatus, { label: string; color: string }> =
   {
-    draft:             { label: "Bản nháp",             color: "default"    },
-    submitted:         { label: "Đã nộp",               color: "blue"       },
-    under_review:      { label: "Chờ NV xét duyệt",     color: "processing" },
-    approved:          { label: "Đã chấp nhận",          color: "success"    },
-    rejected:          { label: "Từ chối",               color: "error"      },
-    document_required: { label: "Cần bổ sung tài liệu", color: "warning"    },
+    draft: {
+      label: APPLICATION_STATUS.draft,
+      color: STATUS_TAG_COLOR.draft,
+    },
+    submitted: {
+      label: APPLICATION_STATUS.submitted,
+      color: STATUS_TAG_COLOR.submitted,
+    },
+    under_review: {
+      label: APPLICATION_STATUS.under_review,
+      color: STATUS_TAG_COLOR.under_review,
+    },
+    approved: {
+      label: APPLICATION_STATUS.approved,
+      color: STATUS_TAG_COLOR.approved,
+    },
+    rejected: {
+      label: APPLICATION_STATUS.rejected,
+      color: STATUS_TAG_COLOR.rejected,
+    },
+    document_required: {
+      label: APPLICATION_STATUS.document_required,
+      color: STATUS_TAG_COLOR.document_required,
+    },
   };
 
+const DOCUMENT_VERIFICATION: Record<
+  DocumentStatus,
+  { text: string; status: "success" | "warning" | "error" }
+> = {
+  pending:  { text: "Chờ xác minh",  status: "warning" },
+  verified: { text: "Đã xác minh",  status: "success" },
+  rejected: { text: "Không hợp lệ", status: "error" },
+};
 
-function verificationBadge(result: string) {
-  const r = result?.toLowerCase();
-  if (r === "passed" || r === "verified")
-    return <Badge status="success" text="Đã xác minh" />;
-  if (r === "pending")
-    return <Badge status="warning" text="Chờ xác minh" />;
-  if (r === "failed" || r === "rejected")
-    return <Badge status="error" text="Không hợp lệ" />;
-  return <Badge status="default" text={result || "Chưa xác minh"} />;
+/** Chuẩn hóa về DocumentStatus; hỗ trợ giá trị cũ từ API nếu có. */
+function normalizeDocumentStatus(
+  raw: DocumentStatus | string | null | undefined,
+): DocumentStatus | null {
+  if (raw == null || raw === "") return null;
+  const r = String(raw).toLowerCase().trim();
+  if (r === "pending") return "pending";
+  if (r === "verified" || r === "passed") return "verified";
+  if (r === "rejected" || r === "failed") return "rejected";
+  return null;
+}
+
+function verificationBadge(result: DocumentStatus | string | null | undefined) {
+  const status = normalizeDocumentStatus(result);
+  if (!status) {
+    return (
+      <Badge
+        status="default"
+        text={result == null || result === "" ? "Chưa xác minh" : String(result)}
+      />
+    );
+  }
+  const cfg = DOCUMENT_VERIFICATION[status];
+  return <Badge status={cfg.status} text={cfg.text} />;
 }
 
 function isImageFile(fileFormat?: string) {
@@ -281,50 +335,57 @@ export function OfficerApplicationDetail() {
     <OfficerLayout>
       {contextHolder}
 
-      {/* Back + header */}
-      <div className="mb-6 flex items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Button
-            icon={<ArrowLeft size={15} />}
-            onClick={() => navigate(-1)}
-            className="!rounded-xl"
-          >
-            Quay lại
-          </Button>
-          <div>
-            <Title level={4} className="!mb-0.5 !text-gray-800 !font-bold">
-              Chi tiết hồ sơ
-              {app && (
-                <span className="ml-2 font-mono text-indigo-500 text-lg">
-                  #{app.applicationId}
-                </span>
-              )}
-            </Title>
-            <Text className="text-gray-400 text-sm">
-              Thông tin đầy đủ về hồ sơ đăng ký
-            </Text>
-          </div>
-        </div>
-        <Button
-          icon={<RefreshCw size={14} />}
-          onClick={loadApp}
-          loading={loading}
-          className="!rounded-xl"
-        >
-          Làm mới
-        </Button>
-      </div>
-
-      <Spin spinning={loading}>
-        {app && (
-          <Row gutter={[16, 16]}>
-            {/* Left column */}
-            <Col xs={24} lg={16}>
-              {/* Applicant info */}
-              <Card
-                className="rounded-2xl border border-gray-100 shadow-sm mb-4"
-                styles={{ body: { padding: "20px 24px" } }}
+      <div className="flex flex-col gap-6 pb-14 md:pb-16">
+        {/* Back + header */}
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <Button
+              icon={<ArrowLeft size={15} />}
+              onClick={() => navigate(-1)}
+              className="!rounded-xl shrink-0"
+            >
+              Quay lại
+            </Button>
+            <div className="min-w-0 flex-1">
+              <Title
+                level={4}
+                className="!mb-0.5 !text-gray-800 !font-bold !flex !items-center gap-2 flex-wrap"
               >
+                <span>
+                  Chi tiết hồ sơ
+                  {app && (
+                    <span className="ml-2 font-mono text-indigo-500 text-lg">
+                      #{app.applicationId}
+                    </span>
+                  )}
+                </span>
+              </Title>
+              <Text className="text-gray-400 text-sm">
+                Thông tin đầy đủ về hồ sơ đăng ký
+              </Text>
+            </div>
+          </div>
+          <Button
+            icon={<RefreshCw size={14} />}
+            onClick={loadApp}
+            loading={loading}
+            className="!rounded-xl shrink-0"
+          >
+            Làm mới
+          </Button>
+        </div>
+
+        <Spin spinning={loading}>
+          {app && (
+            <Row gutter={[16, 24]}>
+              {/* Left column */}
+              <Col xs={24} lg={16}>
+                <div className="flex flex-col gap-6 md:gap-8">
+                {/* Applicant info */}
+                <Card
+                  className="rounded-2xl border border-gray-100 shadow-sm"
+                  styles={{ body: { padding: "20px 24px" } }}
+                >
                 <div className="flex items-center justify-between mb-4">
                   <Title level={5} className="!mb-0 !text-gray-700">
                     Thông tin hồ sơ
@@ -333,9 +394,13 @@ export function OfficerApplicationDetail() {
                     <Tag color={STATUS_CFG[app.status].color} className="text-sm px-3 py-0.5">
                       {STATUS_CFG[app.status].label}
                     </Tag>
-                    {(app.status === "under_review" || app.requiresReview) && (
-                      <Tag color="red" className="text-xs">
-                        Cần xem xét
+                    {app.requiresReview && (
+                      <Tag
+                        color="red"
+                        className="text-xs !inline-flex !items-center gap-1 !m-0"
+                      >
+                        <TriangleAlert className="size-3.5 shrink-0" aria-hidden />
+                        {APPLICATION_REQUIRES_REVIEW_LABEL}
                       </Tag>
                     )}
                   </Space>
@@ -403,21 +468,14 @@ export function OfficerApplicationDetail() {
                       <Text className="text-gray-300">Chưa phân công</Text>
                     )}
                   </Descriptions.Item>
-                  <Descriptions.Item label="Cần xét thủ công">
-                    {app.requiresReview ? (
-                      <Tag color="orange">Có</Tag>
-                    ) : (
-                      <Tag color="green">Không</Tag>
-                    )}
-                  </Descriptions.Item>
                 </Descriptions>
-              </Card>
+                </Card>
 
-              {/* Agent note */}
-              <Card
-                className={`rounded-2xl shadow-sm mb-4 ${app.notes ? "border border-indigo-100 bg-indigo-50" : "border border-gray-100"}`}
-                styles={{ body: { padding: "20px 24px" } }}
-              >
+                {/* Agent note */}
+                <Card
+                  className={`rounded-2xl shadow-sm ${app.notes ? "border border-indigo-100 bg-indigo-50" : "border border-gray-100"}`}
+                  styles={{ body: { padding: "20px 24px" } }}
+                >
                 <div className="flex items-center gap-2 mb-3">
                   <ShieldCheck size={18} className={app.notes ? "text-indigo-500" : "text-gray-300"} />
                   <Title level={5} className={`!mb-0 ${app.notes ? "!text-indigo-700" : "!text-gray-400"}`}>
@@ -442,13 +500,13 @@ export function OfficerApplicationDetail() {
                     Chưa có ghi chú từ agent hệ thống.
                   </Text>
                 )}
-              </Card>
+                </Card>
 
-              {/* Documents */}
-              <Card
-                className="rounded-2xl border border-gray-100 shadow-sm"
-                styles={{ body: { padding: "20px 24px" } }}
-              >
+                {/* Documents */}
+                <Card
+                  className="rounded-2xl border border-gray-100 shadow-sm"
+                  styles={{ body: { padding: "20px 24px" } }}
+                >
                 <div className="flex items-center justify-between mb-4">
                   <Title level={5} className="!mb-0 !text-gray-700">
                     Tài liệu đính kèm
@@ -544,15 +602,16 @@ export function OfficerApplicationDetail() {
                     })}
                   </div>
                 )}
-              </Card>
-            </Col>
+                </Card>
+                </div>
+              </Col>
 
-            {/* Right column — Actions */}
-            <Col xs={24} lg={8}>
-              <Card
-                className="rounded-2xl border border-gray-100 shadow-sm sticky top-4"
-                styles={{ body: { padding: "20px 24px" } }}
-              >
+              {/* Right column — Actions */}
+              <Col xs={24} lg={8}>
+                <Card
+                  className="rounded-2xl border border-gray-100 shadow-sm lg:sticky lg:top-4"
+                  styles={{ body: { padding: "20px 24px" } }}
+                >
                 <Title level={5} className="!mb-4 !text-gray-700">
                   Hành động
                 </Title>
@@ -634,11 +693,12 @@ export function OfficerApplicationDetail() {
                     <span>{app.documents?.length ?? 0} file</span>
                   </div>
                 </div>
-              </Card>
-            </Col>
-          </Row>
-        )}
-      </Spin>
+                </Card>
+              </Col>
+            </Row>
+          )}
+        </Spin>
+      </div>
 
       {/* Applicant profile modal */}
       <Modal

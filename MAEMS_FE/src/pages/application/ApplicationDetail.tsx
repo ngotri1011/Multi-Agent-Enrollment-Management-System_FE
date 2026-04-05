@@ -36,20 +36,40 @@ import {
 import { ApplicantLayout } from "../../components/layouts/ApplicantLayout";
 import { ApplicantMenu } from "../applicant/ApplicantMenu";
 import { fetchApplicationDetail } from "../../api/applications";
-import type { Application, ApplicationStatus, Document } from "../../types/application";
+import {
+  APPLICATION_STATUS,
+  type Application,
+  type ApplicationStatus,
+  type Document,
+} from "../../types/application";
 import type { DocumentStatus } from "../../types/enums";
 
 const { Title, Text } = Typography;
 
 // ─── Status config ────────────────────────────────────────────────────────────
 
+const STATUS_TAG_COLOR: Record<ApplicationStatus, string> = {
+  draft: "default",
+  submitted: "blue",
+  under_review: "processing",
+  approved: "success",
+  rejected: "error",
+  document_required: "warning",
+};
+
 const statusConfig: Record<ApplicationStatus, { label: string; color: string }> = {
-  draft:        { label: "Bản nháp",       color: "default"    },
-  submitted:    { label: "Đã nộp",         color: "blue"       },
-  under_review: { label: "Chờ NV xét duyệt", color: "processing" },
-  approved:     { label: "Đã chấp nhận",   color: "success"    },
-  rejected:     { label: "Từ chối",        color: "error"      },
-  document_required: { label: "Cần bổ sung tài liệu", color: "warning" },
+  draft: { label: APPLICATION_STATUS.draft, color: STATUS_TAG_COLOR.draft },
+  submitted: { label: APPLICATION_STATUS.submitted, color: STATUS_TAG_COLOR.submitted },
+  under_review: {
+    label: APPLICATION_STATUS.under_review,
+    color: STATUS_TAG_COLOR.under_review,
+  },
+  approved: { label: APPLICATION_STATUS.approved, color: STATUS_TAG_COLOR.approved },
+  rejected: { label: APPLICATION_STATUS.rejected, color: STATUS_TAG_COLOR.rejected },
+  document_required: {
+    label: APPLICATION_STATUS.document_required,
+    color: STATUS_TAG_COLOR.document_required,
+  },
 };
 
 // ─── Date helpers ─────────────────────────────────────────────────────────────
