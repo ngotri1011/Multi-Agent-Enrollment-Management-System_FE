@@ -52,12 +52,11 @@ function rowFromApp(a: Application) {
     "Mã đơn": a.applicationId,
     "Thí sinh": a.applicantName,
     "Ngành": a.programName,
-    "Năm TS": a.enrollmentYear,
     "Cơ sở": a.campusName,
     "Loại TS": a.admissionTypeName,
     "Trạng thái": APPLICATION_STATUS[a.status],
     "Cần xem xét":
-      a.requiresReview ? APPLICATION_REQUIRES_REVIEW_LABEL : "Không",
+      a.requiresReview ? "Có" : "Không",
     "Ngày nộp": a.submittedAt
       ? dayjs(a.submittedAt).format("YYYY-MM-DD HH:mm")
       : "",
