@@ -210,8 +210,17 @@ export function ApplicantProfilePage() {
       setFileList([]);
       loadDocuments();
     } catch (err: unknown) {
-      const errData = (err as { response?: { data?: { message?: string } } }).response?.data;
-      messageApi.error(errData?.message ?? "Tải lên thất bại. Vui lòng thử lại.");
+      const errData = (err as { response?: { data?: { message?: string; errors?: string[] } } }).response?.data;
+      const errorDetails = Array.isArray(errData?.errors) ? errData.errors.filter(Boolean).join("; ") : "";
+      const errorMessage = [errData?.message, errorDetails].filter(Boolean).join(": ");
+      Modal.error({
+        title: "Tải lên thất bại",
+        content: errorMessage || "Tải lên thất bại. Vui lòng thử lại.",
+        okText: "Xác nhận",
+        maskClosable: false,
+        closable: false,
+        centered: true,
+      });
     } finally {
       setUploading(false);
     }
