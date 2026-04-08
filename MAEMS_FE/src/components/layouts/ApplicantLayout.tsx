@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { DashboardLayout } from "./DashboardLayout";
 import type { SidebarMenuItem } from "../DashboardSidebar";
-import { ApplicantChatWidget } from "../chat/ApplicantChatWidget";
+import { ApplicantChatWidget } from "../../pages/applicant/ApplicantChatWidget";
 
 type ApplicantLayoutProps = {
   menuItems: SidebarMenuItem[];
