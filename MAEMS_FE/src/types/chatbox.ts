@@ -4,3 +4,11 @@ export type ChatboxResponse = {
   answer: string;
   createdAt: string;
 };
+
+export type ChatboxHistoryResponse = {
+  messages: ChatboxResponse[];
+  totalCount: number;
+  currentPage: number;
+  totalPages: number;
+  pageSize: number;
+};
