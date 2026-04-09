@@ -22,7 +22,7 @@ const { Title, Paragraph, Text } = Typography;
 const { Option } = Select;
 
 const NoteSection = () => (
-  <div className="mt-6 flex items-start gap-3 rounded-lg bg-gray-50/80 px-5 py-4">
+  <div className="mt-6 flex items-start gap-3 rounded-xl border border-orange-100/70 bg-orange-50/50 px-4 sm:px-5 py-4">
     <span className="text-orange-500 text-2xl leading-none mt-0.5 shrink-0">✳︎</span>
     <div className="text-sm text-gray-700 leading-relaxed">
       <span className="font-bold text-gray-900">LƯU Ý</span>
@@ -68,16 +68,15 @@ export function AdmissionPage() {
   return (
     <GuestLayout>
       <div className="bg-gradient-to-br from-orange-200 via-amber-50 to-gray-50">
-      <img
-        src="https://res.cloudinary.com/ddtkccfxp/image/upload/v1773932965/Bannerweb-kythisotuyenArtboard-2-copy100_mnyvhw.png"
-        alt="Admission Hero Image"
-        style={{
-          width: "100vw",
-          height: "100vh",
-          objectFit: "cover",
-          display: "block",
-        }}
-      />
+      {/* Banner đầu trang: responsive theo tỉ lệ, tránh ép full 100vh trên mobile */}
+      <section className="relative w-full">
+        <img
+          src="https://res.cloudinary.com/ddtkccfxp/image/upload/v1773932965/Bannerweb-kythisotuyenArtboard-2-copy100_mnyvhw.png"
+          alt="Admission Hero Banner"
+          className="block w-full h-auto object-cover max-h-[78vh] sm:max-h-[70vh] md:max-h-[62vh] lg:max-h-[56vh]"
+        />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/15 via-transparent to-transparent" />
+      </section>
 
       <div className="w-full py-8 px-6 md:px-10 pb-16 box-border text-gray-900 max-md:px-4">
         <section className="mb-12 min-h-[calc(100vh-160px)] flex items-center">
@@ -132,15 +131,19 @@ export function AdmissionPage() {
           </Row>
         </section>
 
-        <section className="mt-12 max-w-[900px] mx-auto">
-          <Title level={2} className="!text-center !mb-8 !text-3xl md:!text-4xl">
+        <section className="mt-12 max-w-[980px] mx-auto">
+          <Title level={2} className="!text-center !mb-3 !text-2xl md:!text-4xl !leading-tight">
             Dự kiến phương thức tuyển sinh 2026
           </Title>
+          <Paragraph className="!text-center text-gray-500 !mb-8 max-w-2xl mx-auto">
+            Chọn từng phương thức để xem điều kiện áp dụng và lưu ý quan trọng.
+          </Paragraph>
 
-          <div className="admission-tabs-card">
+          <div className="rounded-3xl border border-orange-100/70 bg-white/95 shadow-[0_12px_40px_rgba(0,0,0,0.06)] p-2 sm:p-4">
             <Tabs
               type="card"
               defaultActiveKey="1"
+              className="[&_.ant-tabs-nav]:!mb-4 [&_.ant-tabs-tab]:!rounded-xl [&_.ant-tabs-tab]:!border [&_.ant-tabs-tab]:!border-gray-200 [&_.ant-tabs-tab]:!bg-gray-50 [&_.ant-tabs-tab]:hover:!text-orange-500 [&_.ant-tabs-tab-active]:!border-orange-400 [&_.ant-tabs-tab-active]:!bg-orange-50 [&_.ant-tabs-tab-btn]:!px-1 [&_.ant-tabs-tab]:!py-3 [&_.ant-tabs-content-holder]:rounded-2xl [&_.ant-tabs-content-holder]:bg-white [&_.ant-tabs-content-holder]:border [&_.ant-tabs-content-holder]:border-orange-100/60 [&_.ant-tabs-content-holder]:p-4 sm:[&_.ant-tabs-content-holder]:p-6"
               items={[
                 {
                   key: "1",
@@ -156,7 +159,7 @@ export function AdmissionPage() {
                   ),
                   children: (
                     <div className="min-h-[120px]">
-                      <p className="text-sm text-gray-700 leading-relaxed">
+                      <p className="text-sm md:text-[15px] text-gray-700 leading-relaxed">
                         Áp dụng cho thí sinh thuộc diện xét tuyển thẳng theo quy
                         định hiện hành của Bộ Giáo dục và Đào tạo.
                       </p>
@@ -177,7 +180,7 @@ export function AdmissionPage() {
                     </span>
                   ),
                   children: (
-                    <div className="min-h-[120px] text-sm text-gray-700 leading-relaxed space-y-1">
+                    <div className="min-h-[120px] text-sm md:text-[15px] text-gray-700 leading-relaxed space-y-2">
                       <p>
                         Xét tuyển dựa trên kết quả kỳ thi tốt nghiệp THPT kết hợp với kết quả học tập THPT, cùng với điểm ưu tiên theo quy định, nhằm đánh giá toàn diện quá trình học tập của thí sinh thay vì chỉ dựa trên một tiêu chí đơn lẻ.
                       </p>
@@ -186,12 +189,12 @@ export function AdmissionPage() {
                       <p>Điểm xét tuyển làm tròn đến 2 số lẻ.</p>
                       <p>Trong đó:</p>
                       <p><strong>Điểm thi THPT quy định như sau:</strong></p>
-                      <ul className="list-disc pl-6 space-y-1">
+                      <ul className="list-disc pl-6 space-y-1.5">
                         <li>Tổ hợp Axx = (Điểm Toán*2 + Điểm 2 môn)/4*3, làm tròn đến 2 số lẻ; áp dụng đối với thí sinh đăng ký vào tất cả các ngành.</li>
                         <li>Tổ hợp Cxx = (Điểm Văn*2 + Điểm 2 môn)/4*3, làm tròn đến 2 số lẻ; áp dụng đối với thí sinh đăng ký vào các ngành ngoài các ngành Công nghệ thông tin và Khoa học máy tính</li>
                       </ul>
                       <p><strong>ĐTB các năm học được tính như sau:</strong></p>
-                      <ul className="list-disc pl-6 space-y-1">
+                      <ul className="list-disc pl-6 space-y-1.5">
                         <li>ĐTB các năm học = [(ĐTB lớp 10) + (ĐTB lớp 11)*2 + (ĐTB lớp 12)*3]/2</li>
                         <li>ĐTB các năm học được làm tròn đến 2 số lẻ.</li>
                       </ul>
@@ -215,11 +218,11 @@ export function AdmissionPage() {
                     </span>
                   ),
                   children: (
-                    <div className="min-h-[120px] text-sm text-gray-700 leading-relaxed space-y-2">
+                    <div className="min-h-[120px] text-sm md:text-[15px] text-gray-700 leading-relaxed space-y-2">
                       <p>
                         Áp dụng đối với các nhóm thí sinh có nền tảng học tập hoặc quá trình đào tạo phù hợp, bao gồm:
                       </p>
-                      <ul className="list-disc pl-6 space-y-1">
+                      <ul className="list-disc pl-6 space-y-1.5">
                         <li>Thí sinh tốt nghiệp THPT nước ngoài, tốt nghiệp THPT các trường thuộc Tổ chức giáo dục FPT;</li>
                         <li>Thí sinh có các chứng chỉ hoặc văn bằng: Chứng chỉ APTECH HDSE/ADSE, ARENA ADIM, SKILLKING, JETKING; Tốt nghiệp chương trình BTEC HND, Melbourne Polytechnic, FUNiX Software Engineering, Cao đẳng FPT Polytechnic.</li>
                       </ul>
