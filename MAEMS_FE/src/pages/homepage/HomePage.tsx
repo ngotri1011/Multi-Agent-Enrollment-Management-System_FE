@@ -2,6 +2,7 @@ import { Button, Col, Row, Typography } from "antd";
 import {
   ArrowRight,
   Bot,
+  ChevronDown,
   CheckCircle2,
   CircleCheck,
   FileSearch,
@@ -153,9 +154,10 @@ export function HomePage() {
           </div>
         </div>
 
+        {/* Chỉ báo cuộn xuống: icon mập hơn, dễ nhìn và thân thiện hơn */}
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
-          <div className="w-6 h-10 rounded-full border-2 border-white/40 flex items-start justify-center pt-2">
-            <div className="w-1 h-2 bg-white/60 rounded-full" />
+          <div className="w-10 h-10 rounded-full bg-white/15 border border-white/25 flex items-center justify-center shadow-sm">
+            <ChevronDown size={24} strokeWidth={2.75} className="text-white/90" />
           </div>
         </div>
       </section>

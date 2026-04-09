@@ -243,19 +243,19 @@ export function ProgramList() {
       </div>
 
       {/* Filter & Search */}
-      <section className="py-10 px-6 bg-gray-50 border-b border-gray-100 sticky top-0 z-40">
+      <section className="py-6 sm:py-8 px-6 bg-gray-50/95 backdrop-blur-sm border-b border-gray-100 sticky top-[84px] z-30">
         <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+          <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center">
             <div className="flex items-center gap-2 text-gray-500 text-sm flex-shrink-0">
               <SlidersHorizontal size={16} className="text-orange-500" />
               <span className="font-medium">Lọc & Tìm kiếm</span>
             </div>
 
-            <div className="flex-1 flex flex-col sm:flex-row gap-3">
+            <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-[240px_220px_minmax(0,1fr)] gap-3">
               <Select
                 allowClear
                 placeholder="Tất cả khoa / ngành"
-                className="sm:w-56 w-full"
+                className="w-full"
                 size="large"
                 value={selectedMajorId}
                 onChange={handleMajorChange}
@@ -271,7 +271,7 @@ export function ProgramList() {
               <Select
                 allowClear
                 placeholder="Sắp xếp theo..."
-                className="sm:w-52 w-full"
+                className="w-full"
                 size="large"
                 value={sortKey || undefined}
                 onChange={handleSortChange}
@@ -303,7 +303,7 @@ export function ProgramList() {
             </div>
 
             {(selectedMajorId !== undefined || searchName || sortKey) && (
-              <div className="flex items-center gap-2 flex-shrink-0">
+              <div className="flex items-center gap-2 flex-shrink-0 justify-start lg:justify-end">
                 <Badge count={[selectedMajorId, searchName, sortKey].filter(Boolean).length} color="orange">
                   <Tag
                     closable
