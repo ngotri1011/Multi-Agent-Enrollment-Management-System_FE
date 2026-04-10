@@ -21,6 +21,12 @@ const qaMenuItems: SidebarMenuItem[] = [
     path: "/qa/review-evaluation",
   },
   {
+    key: "llm-chat-logs",
+    label: "LLM Chat Logs",
+    icon: <ClipboardCheck size={16} />,
+    path: "/qa/llm-chat-logs",
+  },
+  {
     key: "profile",
     label: "Hồ sơ cá nhân",
     icon: <User size={16} />,
