@@ -23,3 +23,14 @@ export type GetMyPaymentsParams = {
   paidTo?: string;
   sortBy?: string;
 };
+
+export type GetPaymentsParams = {
+  status?: string;
+  transactionId?: string;
+  paidFrom?: string;
+  paidTo?: string;
+  sortBy?: string;
+  sortDesc?: boolean;
+  pageNumber?: number;
+  pageSize?: number;
+};

@@ -34,7 +34,7 @@ import { HomePage } from "../pages/homepage/HomePage";
 import { AuthPage } from "../pages/auth/AuthPage";
 import { ProgramList } from "../pages/programs/ProgramList";
 import { ProgramDetail } from "../pages/programs/ProgramDetail";
-import { ReviewEvaluationPage } from "../pages/qa/ReviewEvaluationPage";
+import { AgentLogsPage } from "../pages/qa/AgentLogsPage";
 import { ContactPage } from "../pages/contact/ContactPage";
 import { AdminApplicationList } from "../pages/admin/AdminApplicationList";
 import { AdminStudentManagement } from "../pages/admin/AdminStudentManagement";
@@ -202,7 +202,7 @@ export function AppRouter() {
         path="/qa/review-evaluation"
         element={
           <RoleGuard allowedRoles={["qa"]}>
-            <ReviewEvaluationPage />
+            <AgentLogsPage />
           </RoleGuard>
         }
       />

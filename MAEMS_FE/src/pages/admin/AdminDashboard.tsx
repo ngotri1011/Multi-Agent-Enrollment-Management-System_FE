@@ -1,4 +1,4 @@
-import { Card, Col, Row, Typography, Tag, Space } from "antd";
+import { Card, Col, Row, Typography, Tag, Space, Spin } from "antd";
 import {
   CheckCircle2,
   DollarSign,
@@ -48,6 +48,7 @@ const activities = [
 const COLORS = ["#22c55e", "#ef4444", "#f59e0b",];
 
 export function AdminDashboard() {
+  const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState<ReportSummary | null>(null);
   const [weeklyData, setWeeklyData] = useState<WeeklyApplications[]>([]);
   const [campusData, setCampusData] = useState<ApplicationsByCampus[]>([]);
@@ -91,23 +92,37 @@ export function AdminDashboard() {
   // fecth
   useEffect(() => {
     const fetchAll = async () => {
-      const [s, w, c, st] = await Promise.all([
-        getReportSummary(),
-        getWeeklyApplications({}),
-        getApplicationsByCampus(),
-        getApplicationStatusCounts(),
-      ]);
+      try {
+        setLoading(true);
 
-      setSummary(s);
-      setWeeklyData(w);
-      setCampusData(c);
-      setStatus(st);
+        const [s, w, c, st] = await Promise.all([
+          getReportSummary(),
+          getWeeklyApplications({}),
+          getApplicationsByCampus(),
+          getApplicationStatusCounts(),
+        ]);
+
+        setSummary(s);
+        setWeeklyData(w);
+        setCampusData(c);
+        setStatus(st);
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchAll();
   }, []);
 
-
+if (loading) {
+  return (
+    <AdminLayout>
+      <div className="h-[60vh] flex items-center justify-center">
+        <Spin size="large" />
+      </div>
+    </AdminLayout>
+  );
+}
   return (
     <AdminLayout>
       <Title level={4} className="!mb-6 !text-gray-700 !font-semibold">
