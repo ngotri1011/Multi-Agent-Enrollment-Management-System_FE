@@ -6,3 +6,4 @@ export async function deleteDocument(id: number) {
     const res = await apiClient.delete<ApiWrapper<Document>>(`/api/Documents/${id}`);
     return res.data;
 }
+

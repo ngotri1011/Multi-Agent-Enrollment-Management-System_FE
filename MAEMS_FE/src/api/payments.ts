@@ -1,6 +1,6 @@
 import { apiClient } from "../services/axios";
 import type { ApiWrapper, PagedResult } from "../types/api.wrapper";
-import type { GetMyPaymentsParams, Payment } from "../types/payment.ts";
+import type { GetMyPaymentsParams, GetPaymentsParams, Payment } from "../types/payment.ts";
 
 function cleanPaymentParams(params: GetMyPaymentsParams): Record<string, string | number | boolean> {
   const cleaned: Record<string, string | number | boolean> = {
@@ -19,6 +19,18 @@ function cleanPaymentParams(params: GetMyPaymentsParams): Record<string, string 
   return cleaned;
 }
 
+function cleanParams(params: GetPaymentsParams) {
+  const cleaned: Record<string, any> = {};
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null) return;
+    if (typeof value === "string" && value.trim() === "") return;
+    cleaned[key] = value;
+  });
+
+  return cleaned;
+}
+
 export async function getMyPayments(
   params: GetMyPaymentsParams,
 ): Promise<PagedResult<Payment>> {
@@ -28,5 +40,18 @@ export async function getMyPayments(
       params: cleanPaymentParams(params),
     },
   );
+  return res.data.data;
+}
+
+export async function getPayments(
+  params: GetPaymentsParams
+): Promise<PagedResult<Payment>> {
+  const res = await apiClient.get<ApiWrapper<PagedResult<Payment>>>(
+    "/api/Payments",
+    {
+      params: cleanParams(params),
+    }
+  );
+
   return res.data.data;
 }
