@@ -45,6 +45,7 @@ import { AdminSettings } from "../pages/admin/settings/AdminSettings";
 import { AdminUserManagement } from "../pages/admin/AdminUserManagement";
 import { NotFound } from "../pages/notfound/NotFound";
 import { AdminProgramAdmissionConfig } from "../pages/admin/AdminProgramAdmissionConfig";
+import { LlmChatLogManagement } from "../pages/qa/LlmChatLogManagement";
 
 export function AppRouter() {
   return (
@@ -203,6 +204,14 @@ export function AppRouter() {
         element={
           <RoleGuard allowedRoles={["qa"]}>
             <AgentLogsPage />
+          </RoleGuard>
+        }
+      />
+      <Route
+        path="/qa/llm-chat-logs"
+        element={
+          <RoleGuard allowedRoles={["qa"]}>
+            <LlmChatLogManagement />
           </RoleGuard>
         }
       />

@@ -403,7 +403,7 @@ export function AgentLogsPage() {
   return (
     <QALayout>
       <div className="min-h-screen bg-slate-50">
-        <div className="mx-auto max-w-7xl px-6 py-6">
+        <div className="mx-auto px-6 py-6">
           <div className="mb-6 rounded-3xl bg-gradient-to-r from-slate-950 via-indigo-950 to-violet-950 p-6 text-white shadow-xl shadow-slate-900/10">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div>
