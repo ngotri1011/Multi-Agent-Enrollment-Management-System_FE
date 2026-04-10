@@ -309,7 +309,7 @@ export function LlmChatLogManagement() {
         ellipsis: true,
         render: (value: string) => (
           <Paragraph
-            ellipsis={{ rows: 2, tooltip: value }}
+            ellipsis={{ rows: 2 }}
             style={{ marginBottom: 0 }}
             className="!text-slate-700"
           >
