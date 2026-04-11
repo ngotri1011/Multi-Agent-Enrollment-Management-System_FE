@@ -46,3 +46,5 @@ export const APPLICATION_STATUS_CARD_TW: Record<
     border: "border-orange-100",
   },
 };
+
+export const PRIMARY_THEME_COLOR = "#ff6900";
