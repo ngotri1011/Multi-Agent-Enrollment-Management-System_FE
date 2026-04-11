@@ -16,7 +16,7 @@ export async function login(data: LoginRequest): Promise<LoginResponse> {
   // Gửi thông tin đăng nhập và nhận về token + thông tin người dùng.
   const res = await apiClient.post<ApiWrapper<ApiLoginData>>(
     "/api/Users/login",
-    data
+    data,
   );
   const { accessToken, refreshToken, user } = res.data.data;
   return {
@@ -31,11 +31,13 @@ export async function login(data: LoginRequest): Promise<LoginResponse> {
   };
 }
 
-export async function register(data: RegisterRequest): Promise<RegisterResponse> {
+export async function register(
+  data: RegisterRequest,
+): Promise<RegisterResponse> {
   // Tạo tài khoản mới và ánh xạ lại dữ liệu cần thiết cho UI.
   const res = await apiClient.post<ApiWrapper<ApiRegisterData>>(
     "/api/Users/register",
-    data
+    data,
   );
   return {
     message: res.data.message,
@@ -48,7 +50,7 @@ export async function googleLogin(idToken: string): Promise<LoginResponse> {
   // Đăng nhập bằng Google idToken và lấy thông tin xác thực tương tự login thường.
   const res = await apiClient.post<ApiWrapper<ApiLoginData>>(
     "/api/Users/google-login",
-    { idToken }
+    { idToken },
   );
   const { accessToken, refreshToken, user } = res.data.data;
   return {
@@ -66,19 +68,27 @@ export async function googleLogin(idToken: string): Promise<LoginResponse> {
 export async function getCurrentUser(): Promise<AuthUser | null> {
   // Lấy hồ sơ người dùng hiện tại từ API profile.
   const profile = await getProfile();
-  return { username: profile.username, email: profile.email, role: profile.role };
+  return {
+    username: profile.username,
+    email: profile.email,
+    role: profile.role,
+  };
 }
 
-export async function refreshToken(
+export async function refreshTokenApi(
   accessToken: string,
-  refreshTokenValue: string
+  refreshTokenValue: string,
 ): Promise<LoginResponse> {
   // Làm mới access token bằng cặp access/refresh token hiện tại.
   const res = await apiClient.post<ApiWrapper<ApiLoginData>>(
     "/api/Users/refresh-token",
-    { accessToken, refreshToken: refreshTokenValue }
+    { accessToken, refreshToken: refreshTokenValue },
   );
-  const { accessToken: newAccessToken, refreshToken: newRefreshToken, user } = res.data.data;
+  const {
+    accessToken: newAccessToken,
+    refreshToken: newRefreshToken,
+    user,
+  } = res.data.data;
   return {
     token: newAccessToken,
     refreshToken: newRefreshToken,

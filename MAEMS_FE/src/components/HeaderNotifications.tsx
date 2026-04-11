@@ -13,37 +13,57 @@ import {
 } from "antd";
 import { Bell, CheckCheck, Eye } from "lucide-react";
 import { useLocation } from "react-router-dom";
-import { getMyNotifications, markNotificationAsRead } from "../api/notifications";
+import {
+  getMyNotifications,
+  markNotificationAsRead,
+} from "../api/notifications";
 import { getStoredToken } from "../services/axios";
 import type { Notification as UserNotification } from "../types/notification";
 
 const { Text } = Typography;
 
 function formatTime(iso: string) {
-  return new Date(iso).toLocaleString("vi-VN");
+  // Giữ ngày + giờ phút để đủ ngữ cảnh, chỉ ẩn phần giây cho giao diện gọn hơn.
+  return new Date(iso).toLocaleString("vi-VN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
 }
 
 export function HeaderNotifications() {
-  const [notificationsApi, notificationsContextHolder] = notification.useNotification();
+  // API notification của Ant Design dùng để hiển thị toast thông báo nổi.
+  const [notificationsApi, notificationsContextHolder] =
+    notification.useNotification();
   const location = useLocation();
 
+  // Quản lý danh sách thông báo và các trạng thái UI liên quan.
   const [notifications, setNotifications] = useState<UserNotification[]>([]);
   const [loading, setLoading] = useState(false);
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [selected, setSelected] = useState<UserNotification | null>(null);
+
+  // Lưu id thông báo chưa đọc đã từng bật toast để tránh hiển thị lặp trong cùng phiên.
   const shownUnreadRef = useRef<Set<number>>(new Set());
+
+  // Gắn key theo token để mỗi phiên đăng nhập có lịch sử "đã hiện toast" độc lập.
   const dashboardSessionKey = useMemo(() => {
     const token = getStoredToken();
     return `maems_applicant_dashboard_noti_shown:${token ?? "anonymous"}`;
   }, []);
 
+  // Đếm số thông báo chưa đọc để hiển thị badge trên icon chuông.
   const unreadCount = useMemo(
     () => notifications.filter((item) => !item.isRead).length,
     [notifications],
   );
 
   const loadNotifications = useCallback(async () => {
+    // Tải danh sách thông báo mới nhất và sắp xếp giảm dần theo thời gian gửi.
     setLoading(true);
     try {
       const data = await getMyNotifications();
@@ -57,6 +77,7 @@ export function HeaderNotifications() {
   }, []);
 
   const markReadLocal = useCallback((id: number) => {
+    // Cập nhật local state ngay sau khi đọc để giao diện phản hồi tức thì.
     setNotifications((prev) =>
       prev.map((item) =>
         item.notificationId === id ? { ...item, isRead: true } : item,
@@ -66,6 +87,7 @@ export function HeaderNotifications() {
 
   const handleMarkAsRead = useCallback(
     async (item: UserNotification) => {
+      // Tránh gọi API thừa nếu thông báo đã được đánh dấu đọc.
       if (item.isRead) return;
       await markNotificationAsRead(item.notificationId);
       markReadLocal(item.notificationId);
@@ -74,37 +96,45 @@ export function HeaderNotifications() {
   );
 
   const openDetail = async (item: UserNotification) => {
+    // Mở modal chi tiết và đồng thời đánh dấu đã đọc nếu cần.
     setPopoverOpen(false);
     setSelected(item);
     setDetailOpen(true);
     try {
       await handleMarkAsRead(item);
     } catch {
-      // Keep modal open even if mark-read fails.
+      // Vẫn giữ modal mở để không làm gián đoạn trải nghiệm dù API đánh dấu đọc lỗi.
     }
   };
 
   const handleReadAll = async () => {
+    // Đánh dấu toàn bộ thông báo chưa đọc theo lô để người dùng thao tác nhanh.
     const unread = notifications.filter((item) => !item.isRead);
     if (!unread.length) return;
-    await Promise.all(unread.map((item) => markNotificationAsRead(item.notificationId)));
+    await Promise.all(
+      unread.map((item) => markNotificationAsRead(item.notificationId)),
+    );
     setNotifications((prev) => prev.map((item) => ({ ...item, isRead: true })));
   };
 
   useEffect(() => {
+    // Tải dữ liệu ngay khi component được mount.
     loadNotifications();
   }, [loadNotifications]);
 
   useEffect(() => {
+    // Chỉ tự bật toast trên trang dashboard applicant để tránh làm phiền ở trang khác.
     if (location.pathname !== "/applicant/dashboard") {
       return;
     }
+    // Mỗi phiên chỉ bật loạt toast đầu tiên một lần để hạn chế spam thông báo.
     if (sessionStorage.getItem(dashboardSessionKey) === "1") {
       return;
     }
 
     const unreadToShow = notifications.filter(
-      (item) => !item.isRead && !shownUnreadRef.current.has(item.notificationId),
+      (item) =>
+        !item.isRead && !shownUnreadRef.current.has(item.notificationId),
     );
     if (!unreadToShow.length) {
       return;
@@ -113,42 +143,49 @@ export function HeaderNotifications() {
     sessionStorage.setItem(dashboardSessionKey, "1");
 
     unreadToShow.forEach((item) => {
-        const key = `notification-${item.notificationId}`;
-        notificationsApi.open({
-          key,
-          message: "Thông báo mới",
-          description: (
-            <div className="pr-2">
-              <Text className="text-sm text-gray-700">{item.message}</Text>
-              <div className="mt-2">
-                <Button
-                  size="small"
-                  type="link"
-                  className="!px-0 !text-orange-600"
-                  onClick={async () => {
-                    notificationsApi.destroy(key);
-                    setSelected(item);
-                    setDetailOpen(true);
-                    try {
-                      await handleMarkAsRead(item);
-                    } catch {
-                      // Keep modal open even if mark-read fails.
-                    }
-                  }}
-                >
-                  Xem chi tiết
-                </Button>
-              </div>
+      const key = `notification-${item.notificationId}`;
+      notificationsApi.open({
+        key,
+        message: "Thông báo mới",
+        description: (
+          <div className="pr-2">
+            <Text className="text-sm text-gray-700">{item.message}</Text>
+            <div className="mt-2">
+              <Button
+                size="small"
+                type="link"
+                className="!px-0 !text-orange-600"
+                onClick={async () => {
+                  notificationsApi.destroy(key);
+                  setSelected(item);
+                  setDetailOpen(true);
+                  try {
+                    await handleMarkAsRead(item);
+                  } catch {
+                    // Vẫn giữ modal mở để người dùng xem nội dung dù thao tác đọc thất bại.
+                  }
+                }}
+              >
+                Xem chi tiết
+              </Button>
             </div>
-          ),
-          placement: "topRight",
-          duration: 6,
-        });
-        shownUnreadRef.current.add(item.notificationId);
+          </div>
+        ),
+        placement: "topRight",
+        duration: 6,
       });
-  }, [notifications, notificationsApi, handleMarkAsRead, location.pathname, dashboardSessionKey]);
+      shownUnreadRef.current.add(item.notificationId);
+    });
+  }, [
+    notifications,
+    notificationsApi,
+    handleMarkAsRead,
+    location.pathname,
+    dashboardSessionKey,
+  ]);
 
   const popoverContent = (
+    // Nội dung popover gồm danh sách thông báo + thao tác đọc tất cả/tải lại.
     <div className="w-[360px] max-w-[80vw]">
       <div className="flex items-center justify-between mb-3">
         <Text strong className="text-gray-800">
@@ -219,9 +256,13 @@ export function HeaderNotifications() {
                 }
                 description={
                   <div>
-                    <Text className="!text-xs !text-gray-600 line-clamp-2">{item.message}</Text>
+                    <Text className="!text-xs !text-gray-600 line-clamp-2">
+                      {item.message}
+                    </Text>
                     <div>
-                      <Text className="!text-[11px] !text-gray-400">{formatTime(item.sentAt)}</Text>
+                      <Text className="!text-[11px] !text-gray-400">
+                        {formatTime(item.sentAt)}
+                      </Text>
                     </div>
                   </div>
                 }
@@ -254,6 +295,7 @@ export function HeaderNotifications() {
       </Popover>
 
       <Modal
+        // Modal chi tiết hiển thị đầy đủ nội dung thông báo người dùng chọn.
         title="Chi tiết thông báo"
         open={detailOpen}
         onCancel={() => setDetailOpen(false)}
@@ -269,12 +311,15 @@ export function HeaderNotifications() {
               <Text strong>{selected.notificationType || "Thông báo"}</Text>
               {!selected.isRead && <Tag color="red">Mới</Tag>}
             </div>
-            <Text className="block text-gray-700 whitespace-pre-wrap">{selected.message}</Text>
-            <Text className="text-xs text-gray-400">{formatTime(selected.sentAt)}</Text>
+            <Text className="block text-gray-700 whitespace-pre-wrap">
+              {selected.message}
+            </Text>
+            <Text className="text-xs text-gray-400">
+              {formatTime(selected.sentAt)}
+            </Text>
           </div>
         ) : null}
       </Modal>
     </>
   );
 }
-
