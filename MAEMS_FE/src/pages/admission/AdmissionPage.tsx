@@ -73,7 +73,7 @@ export function AdmissionPage() {
         <img
           src="https://res.cloudinary.com/ddtkccfxp/image/upload/v1773932965/Bannerweb-kythisotuyenArtboard-2-copy100_mnyvhw.png"
           alt="Admission Hero Banner"
-          className="block w-full h-auto object-cover max-h-[78vh] sm:max-h-[70vh] md:max-h-[62vh] lg:max-h-[56vh]"
+          className="block w-full h-auto"
         />
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/15 via-transparent to-transparent" />
       </section>
