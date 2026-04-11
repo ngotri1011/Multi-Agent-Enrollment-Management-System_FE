@@ -11,7 +11,7 @@ const roleDashboard: Record<AuthRole, string> = {
   applicant: "/applicant/dashboard",
   admin: "/admin/dashboard",
   officer: "/officer/dashboard",
-  qa: "/qa/dashboard",
+  qa: "/qa/review-evaluation",
 };
 
 const { Content } = Layout;
