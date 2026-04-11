@@ -1,7 +1,6 @@
 import axios, { type InternalAxiosRequestConfig } from "axios";
 
-const baseURL =
-  import.meta.env.VITE_MAEMS_API_URL;
+const baseURL = import.meta.env.VITE_MAEMS_API_URL;
 
 export const apiClient = axios.create({
   baseURL,
@@ -46,9 +45,20 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      setStoredToken(null);
-      window.dispatchEvent(new CustomEvent("auth:logout"));
+      // Không logout ngay khi token hết hạn; ưu tiên phát tín hiệu để AuthInit thử refresh phiên trước.
+      const requestUrl: string = String(error.config?.url ?? "");
+      const isRefreshTokenRequest = requestUrl.includes(
+        "/api/Users/refresh-token",
+      );
+
+      if (isRefreshTokenRequest) {
+        // Nếu chính API refresh-token cũng 401 thì phiên đã hết hạn thật sự, cần logout.
+        window.dispatchEvent(new CustomEvent("auth:logout"));
+      } else {
+        // Với các request thông thường bị 401, chuyển sang luồng refresh token tự động.
+        window.dispatchEvent(new CustomEvent("auth:unauthorized"));
+      }
     }
     return Promise.reject(error);
-  }
+  },
 );
