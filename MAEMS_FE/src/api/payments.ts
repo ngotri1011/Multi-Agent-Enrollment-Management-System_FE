@@ -1,7 +1,7 @@
 // Gọi API thanh toán: lấy danh sách giao dịch của người dùng đang đăng nhập (có phân trang, lọc).
 import { apiClient } from "../services/axios";
 import type { ApiWrapper, PagedResult } from "../types/api.wrapper";
-import type { GetMyPaymentsParams, Payment } from "../types/payment.ts";
+import type { GetMyPaymentsParams, GetPaymentsParams, Payment } from "../types/payment.ts";
 
 /**
  * Chuẩn hóa object query gửi lên backend: luôn có sort/phân trang,
@@ -29,6 +29,18 @@ function cleanPaymentParams(
   return cleaned;
 }
 
+function cleanParams(params: GetPaymentsParams) {
+  const cleaned: Record<string, any> = {};
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null) return;
+    if (typeof value === "string" && value.trim() === "") return;
+    cleaned[key] = value;
+  });
+
+  return cleaned;
+}
+
 /** Lấy danh sách thanh toán của tôi theo tham số phân trang/lọc; trả về dữ liệu phân trang từ lớp bọc API. */
 export async function getMyPayments(
   params: GetMyPaymentsParams,
@@ -40,5 +52,19 @@ export async function getMyPayments(
     },
   );
   // ApiWrapper bọc payload trong data; chỉ trả phần PagedResult cho caller.
+  return res.data.data;
+}
+
+
+export async function getPayments(
+  params: GetPaymentsParams
+): Promise<PagedResult<Payment>> {
+  const res = await apiClient.get<ApiWrapper<PagedResult<Payment>>>(
+    "/api/Payments",
+    {
+      params: cleanParams(params),
+    }
+  );
+
   return res.data.data;
 }

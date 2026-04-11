@@ -34,7 +34,7 @@ import { HomePage } from "../pages/homepage/HomePage";
 import { AuthPage } from "../pages/auth/AuthPage";
 import { ProgramList } from "../pages/programs/ProgramList";
 import { ProgramDetail } from "../pages/programs/ProgramDetail";
-import { ReviewEvaluationPage } from "../pages/qa/ReviewEvaluationPage";
+import { AgentLogsPage } from "../pages/qa/AgentLogsPage";
 import { ContactPage } from "../pages/contact/ContactPage";
 import { AdminApplicationList } from "../pages/admin/AdminApplicationList";
 import { AdminStudentManagement } from "../pages/admin/AdminStudentManagement";
@@ -45,6 +45,7 @@ import { AdminSettings } from "../pages/admin/settings/AdminSettings";
 import { AdminUserManagement } from "../pages/admin/AdminUserManagement";
 import { NotFound } from "../pages/notfound/NotFound";
 import { AdminProgramAdmissionConfig } from "../pages/admin/AdminProgramAdmissionConfig";
+import { LlmChatLogManagement } from "../pages/qa/LlmChatLogManagement";
 
 export function AppRouter() {
   return (
@@ -202,7 +203,15 @@ export function AppRouter() {
         path="/qa/review-evaluation"
         element={
           <RoleGuard allowedRoles={["qa"]}>
-            <ReviewEvaluationPage />
+            <AgentLogsPage />
+          </RoleGuard>
+        }
+      />
+      <Route
+        path="/qa/llm-chat-logs"
+        element={
+          <RoleGuard allowedRoles={["qa"]}>
+            <LlmChatLogManagement />
           </RoleGuard>
         }
       />

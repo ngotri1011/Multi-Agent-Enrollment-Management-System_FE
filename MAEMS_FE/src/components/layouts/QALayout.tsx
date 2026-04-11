@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { ClipboardCheck, LayoutDashboard, User } from "lucide-react";
+import { ClipboardCheck, User } from "lucide-react";
 import { DashboardLayout } from "./DashboardLayout";
 import type { SidebarMenuItem } from "../DashboardSidebar";
 
@@ -8,17 +8,23 @@ type QALayoutProps = {
 };
 
 const qaMenuItems: SidebarMenuItem[] = [
-  {
-    key: "dashboard",
-    label: "Tổng quan",
-    icon: <LayoutDashboard size={16} />,
-    path: "/qa/dashboard",
-  },
+  // {
+  //   key: "dashboard",
+  //   label: "Tổng quan",
+  //   icon: <LayoutDashboard size={16} />,
+  //   path: "/qa/dashboard",
+  // },
   {
     key: "review",
-    label: "Xem xét & Đánh giá",
+    label: "Agent Logs",
     icon: <ClipboardCheck size={16} />,
     path: "/qa/review-evaluation",
+  },
+  {
+    key: "llm-chat-logs",
+    label: "LLM Chat Logs",
+    icon: <ClipboardCheck size={16} />,
+    path: "/qa/llm-chat-logs",
   },
   {
     key: "profile",
