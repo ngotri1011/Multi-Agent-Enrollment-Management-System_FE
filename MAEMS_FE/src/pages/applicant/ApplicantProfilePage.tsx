@@ -46,6 +46,8 @@ import { deleteDocument } from "../../api/documents";
 import type { UserProfile } from "../../types/auth";
 import type { CreateApplicantRequest, CreateApplicantResponse } from "../../types/applicant";
 import type { Document as ApplicantDocument } from "../../types/document";
+import type { DocumentStatus } from "../../types/enums";
+import { DOCUMENT_STATUS } from "../../constants/labels";
 import { ApplicantMenu } from "./ApplicantMenu";
 
 const { Title, Text } = Typography;
@@ -69,17 +71,18 @@ function isImageDocument(doc?: ApplicantDocument | null) {
   return IMAGE_FORMATS.some((ext) => path.includes(`.${ext}`));
 }
 
-const VERIFICATION_BADGE: Record<string, { color: string; label: string }> = {
-  PENDING:  { color: "orange",  label: "Chờ duyệt" },
-  APPROVED: { color: "success", label: "Đã duyệt" },
-  VERIFIED: { color: "success", label: "Đã duyệt" },
-  REJECTED: { color: "error",   label: "Từ chối" },
-  FAILED:   { color: "error",   label: "Từ chối" },
+const VERIFICATION_BADGE: Record<DocumentStatus, { color: string; label: string }> = {
+  // Dùng nhãn tập trung từ constants để đồng nhất wording giữa các màn hình.
+  pending: { color: "orange", label: DOCUMENT_STATUS.pending },
+  verified: { color: "success", label: DOCUMENT_STATUS.verified },
+  rejected: { color: "error", label: DOCUMENT_STATUS.rejected },
 };
 
 function getVerificationBadge(result?: string | null) {
   if (!result) return { color: "default", label: "—" };
-  return VERIFICATION_BADGE[result.toUpperCase()] ?? { color: "default", label: result };
+  // Chuẩn hóa trạng thái từ API về đúng union type đã khai báo để tránh lệ thuộc vào key tự sinh.
+  const normalizedResult = result.trim().toLowerCase() as DocumentStatus;
+  return VERIFICATION_BADGE[normalizedResult] ?? { color: "default", label: result };
 }
 
 const DOC_TYPE_OPTIONS = [
@@ -311,15 +314,17 @@ export function ApplicantProfilePage() {
   return (
     <ApplicantLayout menuItems={ApplicantMenu}>
       {contextHolder}
-      <Title level={4} className="!mb-6 !text-gray-700 !font-semibold">
-        Hồ sơ cá nhân
-      </Title>
+      {/* Căn giữa toàn bộ khối nội dung theo chiều ngang để giao diện đồng nhất trên toàn trang. */}
+      <div className="mx-auto w-full max-w-3xl">
+        <Title level={4} className="!mb-6 !text-gray-700 !font-semibold">
+          Hồ sơ cá nhân
+        </Title>
 
-      {/* Account summary card */}
-      <Card
-        className="rounded-2xl border border-gray-100 shadow-sm max-w-3xl mb-6"
-        styles={{ body: { padding: "32px" } }}
-      >
+        {/* Thông tin tài khoản */}
+        <Card
+          className="w-full rounded-2xl border border-gray-100 shadow-sm mb-6"
+          styles={{ body: { padding: "32px" } }}
+        >
         {loading ? (
           <div className="flex items-center gap-6">
             <Skeleton.Avatar active size={80} />
@@ -378,14 +383,14 @@ export function ApplicantProfilePage() {
             </div>
           </div>
         )}
-      </Card>
+        </Card>
 
-      {/* Applicant info — read-only if already submitted */}
-      {!loading && applicant && !isEditing ? (
-        <Card
-          className="rounded-2xl border border-green-100 shadow-sm max-w-3xl"
-          styles={{ body: { padding: "32px" } }}
-        >
+        {/* Thông tin thí sinh */}
+        {!loading && applicant && !isEditing ? (
+          <Card
+            className="w-full rounded-2xl border border-green-100 shadow-sm"
+            styles={{ body: { padding: "32px" } }}
+          >
           <div className="flex items-center justify-between mb-1">
             <Title level={5} className="!mb-0 !text-gray-800">
               Thông tin thí sinh
@@ -461,15 +466,15 @@ export function ApplicantProfilePage() {
             <ReadOnlyField label="Email liên lạc" value={applicant.contactEmail} />
             <ReadOnlyField label="Địa chỉ liên lạc" value={applicant.contactAddress} />
           </div>
-        </Card>
-      ) : null}
+          </Card>
+        ) : null}
 
-      {/* Document section — shown when applicant exists and not editing */}
-      {!loading && applicant && !isEditing && (
-        <Card
-          className="rounded-2xl border border-gray-100 shadow-sm max-w-3xl mt-6"
-          styles={{ body: { padding: "32px" } }}
-        >
+        {/* Danh sách tài liệu đính kèm */}
+        {!loading && applicant && !isEditing && (
+          <Card
+            className="w-full rounded-2xl border border-gray-100 shadow-sm mt-6"
+            styles={{ body: { padding: "32px" } }}
+          >
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-2">
               <Paperclip size={16} className="text-orange-500" />
@@ -572,10 +577,10 @@ export function ApplicantProfilePage() {
               })}
             </div>
           )}
-        </Card>
-      )}
+          </Card>
+        )}
 
-      {/* Document preview modal */}
+      {/* Xem chi tiết tài liệu */}
       <Modal
         open={!!previewDoc}
         onCancel={() => setPreviewDoc(null)}
@@ -719,12 +724,12 @@ export function ApplicantProfilePage() {
         </Form>
       </Modal>
 
-      {!loading && (!applicant || isEditing) ? (
-        /* Creation / Edit form */
-        <Card
-          className="rounded-2xl border border-gray-100 shadow-sm max-w-3xl mt-6"
-          styles={{ body: { padding: "32px" } }}
-        >
+        {!loading && (!applicant || isEditing) ? (
+          /* Form tạo/chỉnh sửa hồ sơ */
+          <Card
+            className="w-full rounded-2xl border border-gray-100 shadow-sm mt-6"
+            styles={{ body: { padding: "32px" } }}
+          >
           <Title level={5} className="!mb-1 !text-gray-800">
             {isEditing ? "Chỉnh sửa thông tin thí sinh" : "Thông tin thí sinh"}
           </Title>
@@ -951,12 +956,13 @@ export function ApplicantProfilePage() {
               </Button>
             </div>
           </Form>
-        </Card>
-      ) : loading ? (
-        <Card className="rounded-2xl border border-gray-100 shadow-sm max-w-3xl mt-6" styles={{ body: { padding: "32px" } }}>
-          <Skeleton active paragraph={{ rows: 8 }} />
-        </Card>
-      ) : null}
+          </Card>
+        ) : loading ? (
+          <Card className="w-full rounded-2xl border border-gray-100 shadow-sm mt-6" styles={{ body: { padding: "32px" } }}>
+            <Skeleton active paragraph={{ rows: 8 }} />
+          </Card>
+        ) : null}
+      </div>
     </ApplicantLayout>
   );
 }
