@@ -118,6 +118,16 @@ function formatVnd(amount: number): string {
   }).format(amount);
 }
 
+function hasPaymentQr(
+  payload: { url?: string; transactionId?: string } | null,
+): payload is { url: string; transactionId: string } {
+  // Backend có thể trả object rỗng khi đơn đã được thanh toán từ trước, nên chỉ mở modal khi QR và mã giao dịch đều có giá trị.
+  if (!payload) return false;
+  const qrUrl = payload.url?.trim();
+  const transactionId = payload.transactionId?.trim();
+  return Boolean(qrUrl && transactionId);
+}
+
 /** `/me` không có programId — lọc theo tên hiển thị; tiền tố tránh trùng key giữa các chiều. */
 function meProgramFilterKey(a: ApplicationMe): string {
   const t = (a.programName || "").trim();
@@ -214,6 +224,7 @@ export function ApplicationList() {
   const filteredApps = useMemo(() => {
     const q = searchText.trim().toLowerCase();
     return apps.filter((app) => {
+      // Ưu tiên lọc theo trạng thái nghiệp vụ trước để giảm số bản ghi cần xử lý cho các bước lọc tiếp theo.
       if (statusFilter !== "all" && app.status !== statusFilter) return false;
       if (programFilter !== "all" && meProgramFilterKey(app) !== programFilter)
         return false;
@@ -225,6 +236,7 @@ export function ApplicationList() {
       )
         return false;
       if (!q) return true;
+      // Tìm kiếm full-text trên các trường mà người dùng thường nhớ (tên CT, cơ sở, loại xét tuyển, mã đơn, tên thí sinh).
       const blob = [
         app.programName,
         app.campusName,
@@ -266,17 +278,20 @@ export function ApplicationList() {
     loadApps();
   }, [loadApps]);
 
+  // Chức năng nộp đơn và thanh toán QR.
   const handleSubmitFinal = useCallback(
     async (app: ApplicationMe) => {
       setSubmittingId(app.applicationId);
       try {
+        // Gọi API "nộp đơn cuối cùng": backend sẽ quyết định trả QR thanh toán mới hay thông báo đã thanh toán trước đó.
         const payment = await submitApplicationFinal(Number(app.applicationId));
 
-        if (payment) {
+        if (hasPaymentQr(payment)) {
           const paymentAmount = getAmountFromPaymentUrl(payment.url);
           messageApi.info(
             "Mã thanh toán QR đã sẵn sàng. Vui lòng quét QR để thanh toán.",
           );
+          // Hiển thị modal QR ngay sau khi nộp để ép luồng thanh toán diễn ra liền mạch, tránh người dùng bỏ sót bước này.
           Modal.info({
             title: "Thanh toán bằng QR",
             width: 420,
@@ -313,11 +328,13 @@ export function ApplicationList() {
               </div>
             ),
             okText: "Đã hiểu",
+            // Sau khi người dùng đóng modal, tải lại danh sách để đồng bộ trạng thái đơn mới nhất từ hệ thống.
             onOk: () => loadApps(),
           });
           return;
         }
 
+        // Trường hợp không có QR: backend xác nhận đơn đã thanh toán trước đó, chỉ cần thông báo và reload trạng thái.
         messageApi.success(
           `Bạn đã thanh toán trước đó. Đơn "${app.programName}" đang được gửi xét duyệt!`,
         );
@@ -452,8 +469,12 @@ export function ApplicationList() {
         fixed: "right",
         className: "!pr-5 sm:!pr-7",
         render: (_, app) => {
+          // Chỉ cho phép nộp ở 2 trạng thái:
+          // - draft: đơn mới tạo, chưa nộp lần nào.
+          // - document_required: đơn bị yêu cầu bổ sung hồ sơ và được phép nộp lại.
           const canSubmitFinal =
             app.status === "draft" || app.status === "document_required";
+          // Dùng cờ này để đổi copywriting (nộp mới vs nộp lại) giúp người dùng hiểu đúng ngữ cảnh xử lý.
           const isResubmit = app.status === "document_required";
           const isSubmitting = submittingId === app.applicationId;
           return (

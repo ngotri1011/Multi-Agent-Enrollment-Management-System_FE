@@ -140,7 +140,7 @@ function MethodCard({
           }}
         >
           <FileText size={13} />
-          Tài liệu bắt buộc
+          Xem danh sách tài liệu
         </button>
       </div>
     </div>
@@ -221,7 +221,7 @@ export function SubmitApplication() {
           </Text>
         </div>
 
-        {/* Method list */}
+        {/* Danh sách phương thức xét tuyển */}
         <div
           style={{
             display: "flex",
@@ -258,7 +258,7 @@ export function SubmitApplication() {
               })}
         </div>
 
-        {/* CTA */}
+        {/* Nút đăng ký xét tuyển */}
         <div
           style={{
             background: "linear-gradient(135deg, #fff7ed 0%, #fef3c7 100%)",
@@ -309,92 +309,77 @@ export function SubmitApplication() {
       <Modal
         open={!!selected}
         onCancel={closeModal}
-        footer={null}
         width={480}
         centered
-        styles={{
-          body: { padding: 0 },
-          mask: { backdropFilter: "blur(4px)" },
-        }}
-        style={{ borderRadius: 20, overflow: "hidden", padding: 0 }}
-        closeIcon={null}
-      >
-        {selected && (
-          <div>
-            {/* Modal header */}
-            <div
-              style={{
-                background: selectedPalette.bg,
-                padding: "24px 28px 20px",
-                borderBottom: `1px solid ${selectedPalette.border}`,
-                position: "relative",
-              }}
-            >
-              <button
-                onClick={closeModal}
+        destroyOnClose
+        title={
+          selected ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div
                 style={{
-                  position: "absolute",
-                  top: 16,
-                  right: 16,
-                  width: 30,
-                  height: 30,
-                  borderRadius: 99,
-                  background: "#fff",
-                  border: "1px solid #e5e7eb",
+                  width: 40,
+                  height: 40,
+                  borderRadius: 12,
+                  background: selectedPalette.bg,
+                  color: selectedPalette.color,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  cursor: "pointer",
-                  color: "#6b7280",
-                  fontSize: 13,
                 }}
               >
-                ✕
-              </button>
-              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                {selectedPalette.icon}
+              </div>
+              <div style={{ minWidth: 0 }}>
                 <div
                   style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 14,
-                    background: "#fff",
+                    fontSize: 10,
+                    fontWeight: 800,
+                    letterSpacing: "0.12em",
+                    textTransform: "uppercase",
                     color: selectedPalette.color,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
                   }}
                 >
-                  {selectedPalette.icon}
+                  {selected.type}
                 </div>
-                <div>
-                  <span
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 800,
-                      letterSpacing: "0.12em",
-                      textTransform: "uppercase",
-                      color: selectedPalette.color,
-                    }}
-                  >
-                    {selected.type}
-                  </span>
-                  <div
-                    style={{
-                      fontWeight: 700,
-                      fontSize: 15,
-                      color: "#1f2937",
-                      marginTop: 2,
-                    }}
-                  >
-                    {selected.admissionTypeName}
-                  </div>
+                <div
+                  style={{
+                    fontWeight: 700,
+                    fontSize: 15,
+                    color: "#1f2937",
+                    marginTop: 2,
+                    lineHeight: 1.3,
+                  }}
+                >
+                  {selected.admissionTypeName}
                 </div>
               </div>
             </div>
-
-            {/* Modal body */}
-            <div style={{ padding: "20px 28px 28px", background: "#fff" }}>
+          ) : null
+        }
+        // Dùng footer mặc định của Ant Design để tận dụng animation/tương tác tối ưu sẵn, giảm cảm giác giật khi mở modal.
+        footer={[
+          <Button
+            key="ok"
+            type="primary"
+            onClick={closeModal}
+            style={{
+              background: selectedPalette.color,
+              borderColor: selectedPalette.color,
+              borderRadius: 10,
+              fontWeight: 700,
+            }}
+          >
+            Đã hiểu
+          </Button>,
+        ]}
+        // Bỏ blur nền vì filter trên mask dễ gây lag khi animate modal trên một số máy.
+        styles={{ body: { padding: "18px 22px 10px" }, mask: {} }}
+        style={{ borderRadius: 16, overflow: "hidden" }}
+      >
+        {selected && (
+          <div>
+            {/* Giữ body gọn nhẹ, chỉ render danh sách tài liệu để hạn chế repaint/reflow khi modal animate. */}
+            <div style={{ background: "#fff" }}>
               <div
                 style={{
                   display: "flex",
@@ -416,7 +401,7 @@ export function SubmitApplication() {
                   Danh sách tài liệu bắt buộc
                 </span>
                 {selectedDocs.length > 0 && (
-                  <span
+                  <Text
                     style={{
                       marginLeft: "auto",
                       fontSize: 11,
@@ -429,7 +414,7 @@ export function SubmitApplication() {
                     }}
                   >
                     {selectedDocs.length} mục
-                  </span>
+                  </Text>
                 )}
               </div>
 
@@ -473,32 +458,6 @@ export function SubmitApplication() {
                   </Text>
                 )}
               </div>
-
-              <button
-                onClick={closeModal}
-                style={{
-                  marginTop: 20,
-                  width: "100%",
-                  padding: "11px 0",
-                  borderRadius: 12,
-                  background: selectedPalette.color,
-                  color: "#fff",
-                  border: "none",
-                  fontWeight: 700,
-                  fontSize: 14,
-                  cursor: "pointer",
-                  boxShadow: `0 4px 12px ${selectedPalette.color}40`,
-                  transition: "opacity 0.15s",
-                }}
-                onMouseEnter={(e) =>
-                  ((e.currentTarget as HTMLButtonElement).style.opacity = "0.88")
-                }
-                onMouseLeave={(e) =>
-                  ((e.currentTarget as HTMLButtonElement).style.opacity = "1")
-                }
-              >
-                Đã hiểu
-              </button>
             </div>
           </div>
         )}
