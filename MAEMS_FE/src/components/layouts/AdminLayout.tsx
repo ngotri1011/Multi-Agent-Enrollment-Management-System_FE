@@ -45,12 +45,12 @@ const menuItems: SidebarMenuItem[] = [
     icon: <DollarSign size={16} />,
     path: "/admin/payments",
   },
-  {
-    key: "reports",
-    label: "Báo cáo",
-    icon: <FileText size={16} />,
-    path: "/admin/reports",
-  },
+  // {
+  //   key: "reports",
+  //   label: "Báo cáo",
+  //   icon: <FileText size={16} />,
+  //   path: "/admin/reports",
+  // },
   {
     key: "users",
     label: "Quản lý người dùng",
