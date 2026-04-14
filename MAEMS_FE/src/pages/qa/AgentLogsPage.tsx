@@ -31,7 +31,7 @@ import {
 import type { AgentLog } from "../../types/agent-log";
 import { QALayout } from "../../components/layouts/QALayout";
 
-const { Search } = Input;
+type SearchType = "applicationId" | "documentId";
 
 type ParsedOutput = {
   result?: string;
@@ -110,9 +110,9 @@ function safeParseOutput(outputData: string): ParsedOutput {
 function getResultMeta(result?: string) {
   const value = (result || "").toLowerCase();
 
-  if (value === "accepted" || value === "approve" || value === "approved") {
+  if (value === "accepted" || value === "passed" || value === "approved") {
     return {
-      label: result || "accepted",
+      label: result || "Passed",
       className:
         "bg-emerald-50 text-emerald-700 border-emerald-200 ring-emerald-100",
       accent: "from-emerald-500 to-emerald-400",
@@ -302,9 +302,16 @@ export function AgentLogsPage() {
     pageNumber: 1,
     pageSize: 10,
     search: "",
+    searchType: "applicationId" as SearchType,
     agentType: "",
     status: "",
+    sortBy: "createdAt",
+    sortDesc: true,
   });
+
+  // draft values: changing these does NOT fetch
+  const [searchTypeDraft, setSearchTypeDraft] = useState<SearchType>("applicationId");
+  const [searchValueDraft, setSearchValueDraft] = useState("");
 
   const [total, setTotal] = useState(0);
 
@@ -321,10 +328,40 @@ export function AgentLogsPage() {
     Record<number, ApplicantDocument[]>
   >({});
 
+  const applySearch = () => {
+    setQuery((prev) => ({
+      ...prev,
+      pageNumber: 1,
+      search: searchValueDraft.trim(),
+      searchType: searchTypeDraft,
+    }));
+  };
+
   const fetchLogs = async () => {
     setLoading(true);
     try {
-      const res = await getAgentLogs(query);
+      const params: any = {
+        pageNumber: query.pageNumber,
+        pageSize: query.pageSize,
+        agentType: query.agentType || undefined,
+        status: query.status || undefined,
+        sortBy: query.sortBy,
+        sortDesc: query.sortDesc,
+      };
+
+      const trimmed = query.search.trim();
+      if (trimmed) {
+        const numericValue = Number(trimmed);
+        if (!Number.isNaN(numericValue)) {
+          if (query.searchType === "applicationId") {
+            params.applicationId = numericValue;
+          } else if (query.searchType === "documentId") {
+            params.documentId = numericValue;
+          }
+        }
+      }
+
+      const res = await getAgentLogs(params);
       setLogs(res.items);
       setTotal(res.totalCount);
     } finally {
@@ -348,8 +385,8 @@ export function AgentLogsPage() {
       rejected: parsed.filter(
         (x) => x.parsed?.result?.toLowerCase() === "rejected"
       ).length,
-      accepted: parsed.filter(
-        (x) => x.parsed?.result?.toLowerCase() === "accepted"
+      passed: parsed.filter(
+        (x) => x.parsed?.result?.toLowerCase() === "passed"
       ).length,
       pending: parsed.filter((x) => {
         const r = (x.parsed?.result || "").toLowerCase();
@@ -403,7 +440,7 @@ export function AgentLogsPage() {
   return (
     <QALayout>
       <div className="min-h-screen bg-slate-50">
-        <div className="mx-auto px-6 py-6">
+        <div className="mx-auto max-w-7xl px-6 py-6">
           <div className="mb-6 rounded-3xl bg-gradient-to-r from-slate-950 via-indigo-950 to-violet-950 p-6 text-white shadow-xl shadow-slate-900/10">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div>
@@ -427,9 +464,9 @@ export function AgentLogsPage() {
                   </div>
                 </div>
                 <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 backdrop-blur">
-                  <div className="text-xs text-emerald-100">Accepted</div>
+                  <div className="text-xs text-emerald-100">Passed</div>
                   <div className="mt-1 text-2xl font-semibold text-emerald-50">
-                    {stats.accepted}
+                    {stats.passed}
                   </div>
                 </div>
                 <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 backdrop-blur">
@@ -454,24 +491,39 @@ export function AgentLogsPage() {
           >
             <div className="grid gap-3 lg:grid-cols-12 lg:items-center">
               <div className="lg:col-span-7">
-                <Search
-                  allowClear
-                  placeholder="Search by agent type, action, status, application ID..."
-                  enterButton={
-                    <span className="flex items-center gap-2 px-2">
-                      <SearchOutlined />
-                      Search
-                    </span>
-                  }
-                  size="large"
-                  onSearch={(value) =>
-                    setQuery((prev) => ({
-                      ...prev,
-                      search: value,
-                      pageNumber: 1,
-                    }))
-                  }
-                />
+                <div className="flex gap-3">
+                  <Select
+                    size="large"
+                    value={searchTypeDraft}
+                    onChange={(value) => setSearchTypeDraft(value)}
+                    options={[
+                      { value: "applicationId", label: "Application ID" },
+                      { value: "documentId", label: "Document ID" },
+                    ]}
+                    className="w-44"
+                  />
+
+                  <Input
+                    size="large"
+                    placeholder={
+                      searchTypeDraft === "documentId"
+                        ? "Enter Document ID..."
+                        : "Enter Application ID..."
+                    }
+                    value={searchValueDraft}
+                    onChange={(e) => setSearchValueDraft(e.target.value)}
+                    onPressEnter={applySearch}
+                  />
+
+                  <Button
+                    size="large"
+                    type="primary"
+                    icon={<SearchOutlined />}
+                    onClick={applySearch}
+                  >
+                    Search
+                  </Button>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3 lg:col-span-5 lg:grid-cols-3">
@@ -492,9 +544,7 @@ export function AgentLogsPage() {
                       value: "DocumentVerificationAgent",
                       label: "Document Verification",
                     },
-                    { value: "EligibilityAgent", label: "Eligibility" },
-                    { value: "RecommendationAgent", label: "Recommendation" },
-                    { value: "SupportAgent", label: "Support" },
+                    { value: "EligibilityEvaluationAgent", label: "Eligibility" },
                   ]}
                 />
 
@@ -522,15 +572,20 @@ export function AgentLogsPage() {
                   size="large"
                   icon={<FilterOutlined />}
                   className="lg:w-full"
-                  onClick={() =>
+                  onClick={() => {
+                    setSearchTypeDraft("applicationId");
+                    setSearchValueDraft("");
                     setQuery({
                       pageNumber: 1,
                       pageSize: 10,
                       search: "",
+                      searchType: "applicationId",
                       agentType: "",
                       status: "",
-                    })
-                  }
+                      sortBy: "createdAt",
+                      sortDesc: true,
+                    });
+                  }}
                 >
                   Reset
                 </Button>
@@ -602,7 +657,6 @@ export function AgentLogsPage() {
                           </div>
 
                           <div className="flex items-center gap-2">
-    
                             <Tag className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sky-700">
                               {log.action}
                             </Tag>
@@ -761,7 +815,8 @@ export function AgentLogsPage() {
                   </div>
 
                   <p className="mt-4 whitespace-pre-wrap text-[15px] leading-7 text-white/90">
-                    {compareData.parsed?.details || "No recommendation details available."}
+                    {compareData.parsed?.details ||
+                      "No recommendation details available."}
                   </p>
 
                   {compareData.parsed?.thinking ? (
@@ -827,9 +882,6 @@ export function AgentLogsPage() {
                         value={getValue(compareData.applicant?.graduationYear)}
                         tone="violet"
                       />
-                    </div>
-
-                    <div className="mt-4 grid gap-3 md:grid-cols-2">
                       <StatBox
                         label="High school district"
                         value={getValue(compareData.applicant?.highSchoolDistrict)}
@@ -918,74 +970,6 @@ export function AgentLogsPage() {
                     )}
                   </Card>
                 </div>
-
-                {/* <Card
-                  className="rounded-3xl border-0 shadow-sm"
-                  styles={{ body: { padding: 20 } }}
-                >
-                  <div className="mb-4 text-lg font-semibold text-slate-900">
-                    All documents for this applicant
-                  </div>
-
-                  {compareData.documents?.length ? (
-                    <div className="space-y-3">
-                      {compareData.documents.map((doc) => {
-                        const isMatched =
-                          Number(doc.documentId) ===
-                          Number(compareData.log.documentId);
-
-                        return (
-                          <div
-                            key={doc.documentId}
-                            className={[
-                              "rounded-2xl border p-4",
-                              isMatched
-                                ? "border-violet-200 bg-violet-50"
-                                : "border-slate-100 bg-white",
-                            ].join(" ")}
-                          >
-                            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                              <div>
-                                <div className="font-semibold text-slate-900">
-                                  {doc.fileName || "Unnamed document"}
-                                </div>
-                                <div className="text-sm text-slate-500">
-                                  #{doc.documentId} • {doc.documentType || "unknown"} •{" "}
-                                  {doc.fileFormat || "unknown"}
-                                </div>
-                              </div>
-                              <Tag
-                                className={[
-                                  "rounded-full px-3 py-1",
-                                  isMatched
-                                    ? "border-violet-200 bg-violet-100 text-violet-700"
-                                    : "border-slate-200 bg-slate-100 text-slate-600",
-                                ].join(" ")}
-                              >
-                                {isMatched ? "Matched log document" : "Other document"}
-                              </Tag>
-                            </div>
-
-                            <div className="mt-3 text-sm text-slate-600">
-                              Verification:{" "}
-                              <span className="font-semibold">
-                                {doc.verificationResult || "—"}
-                              </span>
-                            </div>
-
-                            {doc.verificationDetails ? (
-                              <div className="mt-2 rounded-xl bg-slate-50 p-3 text-sm leading-7 text-slate-600">
-                                {doc.verificationDetails}
-                              </div>
-                            ) : null}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <Empty description="No documents found for this applicant" />
-                  )}
-                </Card> */}
               </div>
             )}
           </Spin>
