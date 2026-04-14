@@ -32,17 +32,17 @@ export function AdminSettings() {
           },
           {
             key: "admission",
-            label: "Admission Types",
+            label: "Phương thức xét tuyển",
             children: <AdmissionTypeManagement />,
           },
           {
             key: "major",
-            label: "Majors",
+            label: "Ngành học",
             children: <MajorManagement />,
           },
           {
             key: "enrollment-years",
-            label: "Enrollment Years",
+            label: "Năm tuyển sinh",
             children: <EnrollmentYears />,
           },
         ]}

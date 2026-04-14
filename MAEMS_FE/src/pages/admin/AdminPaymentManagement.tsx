@@ -14,11 +14,11 @@ import {
   Row,
   Select,
   Space,
-  Statistic,
   Table,
   Tag,
   Typography,
   message,
+  Spin,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
@@ -30,15 +30,29 @@ import {
   SearchOutlined,
   WarningOutlined,
 } from "@ant-design/icons";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 import { AdminLayout } from "../../components/layouts/AdminLayout";
 import { getPayments } from "../../api/payments";
 import { getApplicantById } from "../../api/applicants";
+import { getEnrollmentYears } from "../../api/enrollment-years";
+import { getQuarterlyPaymentRevenue } from "../../api/reports";
 import type { GetPaymentsParams, Payment } from "../../types/payment";
+import type { EnrollmentYear } from "../../types/enrollment-years";
+import type { QuarterlyPaymentRevenue } from "../../types/report";
 
 const { Title, Text } = Typography;
 
 const PAGE_SIZE_OPTIONS = ["10", "20", "50"];
+const CURRENT_YEAR = new Date().getFullYear();
 
 type PaymentFilters = {
   status?: string;
@@ -59,11 +73,12 @@ function formatDate(value: string | null) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
 
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat("vi-VN", {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(date);
 }
+
 
 function normalizeStatus(status?: string | null) {
   return (status ?? "").trim().toLowerCase();
@@ -73,22 +88,59 @@ function getStatusMeta(status?: string | null) {
   const s = normalizeStatus(status);
 
   if (s === "paid") {
-    return { color: "green", label: "Paid", icon: <CheckCircleOutlined /> };
+    return { color: "green", label: "Đã thanh toán", icon: <CheckCircleOutlined /> };
   }
 
   if (s === "pending" || s === "processing" || s === "submitted") {
-    return { color: "gold", label: status ?? "Pending", icon: <ClockCircleOutlined /> };
+    return { color: "gold", label: "Đang xử lý", icon: <ClockCircleOutlined /> };
   }
 
   if (s === "overdue" || s === "failed" || s === "cancelled" || s === "canceled") {
-    return { color: "red", label: status ?? "Flagged", icon: <WarningOutlined /> };
+    return { color: "red", label: "Cần kiểm tra", icon: <WarningOutlined /> };
   }
 
-  return { color: "blue", label: status ?? "Unknown", icon: <ClockCircleOutlined /> };
+  return { color: "blue", label: status ?? "Không rõ", icon: <ClockCircleOutlined /> };
 }
 
-function getApplicantNameFallback(applicantId: number) {
-  return `Applicant #${applicantId}`;
+function getApplicantNameFromResponse(applicant: unknown, applicantId: number) {
+  const data = applicant as Record<string, unknown>;
+
+  const candidates = [
+    data.fullName,
+    data.name,
+    data.applicantName,
+    data.userFullName,
+    data.full_name,
+  ];
+
+  const found = candidates.find(
+    (value) => typeof value === "string" && value.trim().length > 0,
+  );
+
+  return found?.toString().trim() || `Thí sinh #${applicantId}`;
+}
+
+function quartersToChartData(quarters: QuarterlyPaymentRevenue["quarters"]) {
+  const map = new Map<number, number>();
+
+  for (const item of quarters) {
+    map.set(item.quarter, item.totalAmount);
+  }
+
+  return [1, 2, 3, 4].map((quarter) => ({
+    quarter: `Quý ${quarter}`,
+    totalAmount: map.get(quarter) ?? 0,
+  }));
+}
+
+function getHighestQuarter(quarters: QuarterlyPaymentRevenue["quarters"]) {
+  if (quarters.length === 0) {
+    return { quarter: 0, totalAmount: 0 };
+  }
+
+  return quarters.reduce((max, item) =>
+    item.totalAmount > max.totalAmount ? item : max,
+  );
 }
 
 export function AdminPaymentManagement() {
@@ -107,7 +159,6 @@ export function AdminPaymentManagement() {
     paidTo: undefined,
     sortBy: "paidAt",
   });
-
   const [appliedFilters, setAppliedFilters] = useState<PaymentFilters>({
     status: undefined,
     transactionId: "",
@@ -123,6 +174,31 @@ export function AdminPaymentManagement() {
     {},
   );
 
+  const [years, setYears] = useState<EnrollmentYear[]>([]);
+  const [yearsLoading, setYearsLoading] = useState(false);
+  const [selectedYear, setSelectedYear] = useState<number>(CURRENT_YEAR);
+
+  const [quarterlyRevenue, setQuarterlyRevenue] =
+    useState<QuarterlyPaymentRevenue | null>(null);
+  const [revenueLoading, setRevenueLoading] = useState(false);
+
+
+  const yearOptions = useMemo(() => {
+    const options = years.map((item) => ({
+      value: Number(item.year),
+      label: `Năm ${item.year}`,
+    }));
+
+    if (!options.some((option) => option.value === selectedYear)) {
+      options.unshift({
+        value: selectedYear,
+        label: `Năm ${selectedYear} (mặc định)`,
+      });
+    }
+
+    return options;
+  }, [years, selectedYear]);
+
   const loadApplicantNames = async (records: Payment[]) => {
     const uniqueApplicantIds = Array.from(
       new Set(records.map((record) => record.applicantId).filter(Boolean)),
@@ -137,21 +213,10 @@ export function AdminPaymentManagement() {
     const results = await Promise.allSettled(
       missingApplicantIds.map(async (applicantId) => {
         const applicant = await getApplicantById(applicantId);
-
-        const applicantData = applicant as Record<string, unknown>;
-        const rawName =
-          applicantData.fullName ??
-          applicantData.name ??
-          applicantData.applicantName ??
-          applicantData.userFullName ??
-          applicantData.full_name;
-
-        const name =
-          typeof rawName === "string" && rawName.trim().length > 0
-            ? rawName.trim()
-            : getApplicantNameFallback(applicantId);
-
-        return { applicantId, name };
+        return {
+          applicantId,
+          name: getApplicantNameFromResponse(applicant, applicantId),
+        };
       }),
     );
 
@@ -171,25 +236,22 @@ export function AdminPaymentManagement() {
     }
   };
 
-  const loadPayments = async (overrideFilters?: PaymentFilters) => {
+  const loadPayments = async () => {
     setLoading(true);
     try {
-      const activeFilters = overrideFilters ?? appliedFilters;
-
       const params: GetPaymentsParams = {
         sortDesc,
         pageNumber,
         pageSize,
-        status: activeFilters.status,
-        transactionId: activeFilters.transactionId.trim() || undefined,
-        paidFrom: activeFilters.paidFrom,
-        paidTo: activeFilters.paidTo,
-        sortBy: activeFilters.sortBy,
+        status: appliedFilters.status,
+        transactionId: appliedFilters.transactionId.trim() || undefined,
+        paidFrom: appliedFilters.paidFrom,
+        paidTo: appliedFilters.paidTo,
+        sortBy: appliedFilters.sortBy,
       };
 
       const res = await getPayments(params);
       const nextItems = res?.items ?? [];
-
       setItems(nextItems);
 
       const total =
@@ -206,44 +268,91 @@ export function AdminPaymentManagement() {
       await loadApplicantNames(nextItems);
     } catch (error) {
       console.error(error);
-      message.error("Failed to load payments.");
+      message.error("Không thể tải danh sách thanh toán.");
     } finally {
       setLoading(false);
     }
   };
+
+  const loadYears = async () => {
+    setYearsLoading(true);
+    try {
+      const res = await getEnrollmentYears();
+      const nextYears = Array.isArray(res) ? res : [];
+
+      const sortedYears = [...nextYears].sort(
+        (a, b) => Number(b.year) - Number(a.year),
+      );
+
+      setYears(sortedYears);
+
+      if (sortedYears.length > 0) {
+        const currentYearInList = sortedYears.find(
+          (item) => Number(item.year) === CURRENT_YEAR,
+        );
+
+        if (currentYearInList) {
+          setSelectedYear(CURRENT_YEAR);
+        } else {
+          setSelectedYear(Number(sortedYears[0].year));
+        }
+      }
+    } catch (error) {
+      console.error(error);
+      message.error("Không thể tải danh sách năm tuyển sinh.");
+    } finally {
+      setYearsLoading(false);
+    }
+  };
+
+  const loadQuarterlyRevenue = async (year: number) => {
+    setRevenueLoading(true);
+    try {
+      const res = await getQuarterlyPaymentRevenue(year);
+      setQuarterlyRevenue(res ?? null);
+    } catch (error) {
+      console.error(error);
+      message.error("Không thể tải báo cáo doanh thu theo quý.");
+    } finally {
+      setRevenueLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadYears();
+  }, []);
 
   useEffect(() => {
     void loadPayments();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pageNumber, pageSize, sortDesc, appliedFilters]);
 
-  const overview = useMemo(() => {
-    const paid = items.filter((p) => normalizeStatus(p.paymentStatus) === "paid");
-    const pending = items.filter((p) => {
-      const s = normalizeStatus(p.paymentStatus);
-      return s === "pending" || s === "processing" || s === "submitted";
-    });
-    const flagged = items.filter((p) => {
-      const s = normalizeStatus(p.paymentStatus);
-      return s === "overdue" || s === "failed" || s === "cancelled" || s === "canceled";
-    });
+  useEffect(() => {
+    if (!selectedYear) return;
+    void loadQuarterlyRevenue(selectedYear);
+  }, [selectedYear]);
 
-    return {
-      collectedAmount: paid.reduce((sum, p) => sum + (p.amount ?? 0), 0),
-      pendingAmount: pending.reduce((sum, p) => sum + (p.amount ?? 0), 0),
-      flaggedAmount: flagged.reduce((sum, p) => sum + (p.amount ?? 0), 0),
-      paidCount: paid.length,
-      pendingCount: pending.length,
-      flaggedCount: flagged.length,
-    };
-  }, [items]);
+  const combinedRevenue = useMemo(() => {
+    return (quarterlyRevenue?.quarters ?? []).reduce(
+      (sum, item) => sum + item.totalAmount,
+      0,
+    );
+  }, [quarterlyRevenue]);
+
+  const highestQuarter = useMemo(() => {
+    return getHighestQuarter(quarterlyRevenue?.quarters ?? []);
+  }, [quarterlyRevenue]);
+
+  const chartData = useMemo(() => {
+    return quartersToChartData(quarterlyRevenue?.quarters ?? []);
+  }, [quarterlyRevenue]);
 
   const getApplicantLabel = (applicantId: number) =>
-    applicantNameMap[applicantId] ?? getApplicantNameFallback(applicantId);
+    applicantNameMap[applicantId] ?? `Thí sinh #${applicantId}`;
 
   const columns: ColumnsType<Payment> = [
     {
-      title: "Payment",
+      title: "Mã thanh toán",
       key: "payment",
       render: (_, record) => (
         <div>
@@ -255,21 +364,19 @@ export function AdminPaymentManagement() {
       ),
     },
     {
-      title: "Applicant",
+      title: "Người nộp",
       key: "applicant",
       render: (_, record) => (
         <div>
           <div className="font-medium text-slate-900">
             {getApplicantLabel(record.applicantId)}
           </div>
-          <div className="text-xs text-slate-500">
-            Application #{record.applicationId}
-          </div>
+          <div className="text-xs text-slate-500">Hồ sơ #{record.applicationId}</div>
         </div>
       ),
     },
     {
-      title: "Method",
+      title: "Phương thức",
       dataIndex: "paymentMethod",
       key: "paymentMethod",
       render: (value: string) => (
@@ -279,7 +386,7 @@ export function AdminPaymentManagement() {
       ),
     },
     {
-      title: "Amount",
+      title: "Số tiền",
       dataIndex: "amount",
       key: "amount",
       align: "right",
@@ -288,7 +395,7 @@ export function AdminPaymentManagement() {
       ),
     },
     {
-      title: "Status",
+      title: "Trạng thái",
       dataIndex: "paymentStatus",
       key: "paymentStatus",
       render: (value: string) => {
@@ -301,7 +408,7 @@ export function AdminPaymentManagement() {
       },
     },
     {
-      title: "Paid at",
+      title: "Ngày thanh toán",
       dataIndex: "paidAt",
       key: "paidAt",
       render: (value: string | null) => (
@@ -331,79 +438,110 @@ export function AdminPaymentManagement() {
         <div className="mb-2 flex items-center gap-2">
           <Badge status="processing" />
           <Text className="uppercase tracking-[0.22em] text-xs text-slate-500">
-            Finance
+            Tài chính
           </Text>
         </div>
         <Title level={2} className="!mb-2 !text-slate-900">
-          Payment Management
+          Quản lý thanh toán
         </Title>
         <Text type="secondary">
-          Track payment status, filter transactions, and review payment details.
+          Theo dõi thanh toán, lọc giao dịch và xem doanh thu theo năm.
         </Text>
       </div>
+    <div className="mb-6">
+      <Card
+        className="rounded-3xl border border-slate-100 shadow-sm mb-6"
+        styles={{ body: { padding: 20 } }}
+      >
+        <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div>
+            <Title level={4} className="!mb-1">
+              Doanh thu theo quý
+            </Title>
+            <Text type="secondary">
+              Chọn năm tuyển sinh để xem tổng doanh thu từng quý.
+            </Text>
+          </div>
 
-      <Row gutter={[16, 16]} className="mb-6">
-        <Col xs={24} md={6}>
-          <Card
-            className="rounded-2xl border border-slate-100 shadow-sm"
-            styles={{ body: { padding: 20 } }}
-          >
-            <Statistic
-              title="Collected"
-              value={overview.collectedAmount}
-              prefix="₫"
-              formatter={(v) => formatMoney(Number(v))}
+          <div className="min-w-[240px]">
+            <Text className="mb-1 block text-xs uppercase tracking-[0.18em] text-slate-500">
+              Năm tuyển sinh
+            </Text>
+            <Select
+              className="w-full"
+              loading={yearsLoading}
+              value={selectedYear}
+              placeholder="Chọn năm"
+              onChange={(value) => setSelectedYear(value)}
+              options={yearOptions}
             />
-            <div className="mt-2 text-sm text-emerald-600">
-              {overview.paidCount} paid record(s)
-            </div>
-          </Card>
-        </Col>
+          </div>
+        </div>
 
-        <Col xs={24} md={6}>
-          <Card
-            className="rounded-2xl border border-slate-100 shadow-sm"
-            styles={{ body: { padding: 20 } }}
-          >
-            <Statistic
-              title="Pending"
-              value={overview.pendingAmount}
-              prefix="₫"
-              formatter={(v) => formatMoney(Number(v))}
-            />
-            <div className="mt-2 text-sm text-amber-600">
-              {overview.pendingCount} pending record(s)
-            </div>
-          </Card>
-        </Col>
+        <Row gutter={[16, 16]} className="mb-5">
+          <Col xs={24} md={8}>
+            <Card
+              className="rounded-2xl border border-slate-100 bg-slate-50"
+              styles={{ body: { padding: 18 } }}
+            >
+              <div className="text-sm text-slate-500">Tổng doanh thu trong năm</div>
+              <div className="mt-1 text-2xl font-semibold text-slate-900">
+                ₫{formatMoney(combinedRevenue)}
+              </div>
+            </Card>
+          </Col>
 
-        <Col xs={24} md={6}>
-          <Card
-            className="rounded-2xl border border-slate-100 shadow-sm"
-            styles={{ body: { padding: 20 } }}
-          >
-            <Statistic
-              title="Flagged"
-              value={overview.flaggedAmount}
-              prefix="₫"
-              formatter={(v) => formatMoney(Number(v))}
-            />
-            <div className="mt-2 text-sm text-rose-600">
-              {overview.flaggedCount} overdue / failed record(s)
-            </div>
-          </Card>
-        </Col>
+          <Col xs={24} md={8}>
+            <Card
+              className="rounded-2xl border border-slate-100 bg-slate-50"
+              styles={{ body: { padding: 18 } }}
+            >
+              <div className="text-sm text-slate-500">Số khoản cần kiểm tra</div>
+              <div className="mt-1 text-2xl font-semibold text-slate-900">
+                {quarterlyRevenue?.numPaymentNeedCheck ?? 0}
+              </div>
+            </Card>
+          </Col>
 
-        <Col xs={24} md={6}>
-          <Card
-            className="rounded-2xl border border-slate-100 shadow-sm"
-            styles={{ body: { padding: 20 } }}
-          >
-            <Statistic title="Records" value={totalItems} />
-            <div className="mt-2 text-sm text-slate-500">Current result set</div>
-          </Card>
-        </Col>
-      </Row>
+          <Col xs={24} md={8}>
+            <Card
+              className="rounded-2xl border border-slate-100 bg-slate-50"
+              styles={{ body: { padding: 18 } }}
+            >
+              <div className="text-sm text-slate-500">Quý cao nhất</div>
+              <div className="mt-1 text-lg font-semibold text-slate-900">
+                {highestQuarter.quarter ? `Quý ${highestQuarter.quarter}` : "—"}
+              </div>
+              <div className="mt-1 text-sm text-slate-500">
+                ₫{formatMoney(highestQuarter.totalAmount || 0)}
+              </div>
+            </Card>
+          </Col>
+        </Row>
+
+        <div style={{ width: "100%", height: 320 }}>
+          {revenueLoading ? (
+            <div className="flex h-full items-center justify-center">
+              <Spin />
+            </div>
+          ) : (
+            <ResponsiveContainer>
+              <BarChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="quarter" />
+                <YAxis tickFormatter={(value) => formatMoney(Number(value))} />
+                <Tooltip
+                  formatter={(value) => [`₫${formatMoney(Number(value))}`, "Doanh thu"]}
+                  labelFormatter={(label) => `${label}`}
+                />
+                <Bar dataKey="totalAmount" fill="#3b82f6" radius={[10, 10, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </Card>
+    </div>
+      
 
       <Card
         className="rounded-3xl border border-slate-100 shadow-sm"
@@ -412,9 +550,11 @@ export function AdminPaymentManagement() {
         <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <Title level={4} className="!mb-1">
-              Payments
+              Danh sách thanh toán
             </Title>
-            <Text type="secondary">Filter and inspect payment records.</Text>
+            <Text type="secondary">
+              Lọc theo mã giao dịch, trạng thái hoặc thời gian thanh toán.
+            </Text>
           </div>
 
           <Space wrap>
@@ -423,7 +563,7 @@ export function AdminPaymentManagement() {
               onClick={() => void loadPayments()}
               loading={loading}
             >
-              Refresh
+              Tải lại
             </Button>
             <Button
               icon={<FilterOutlined />}
@@ -443,7 +583,7 @@ export function AdminPaymentManagement() {
                 setSortDesc(true);
               }}
             >
-              Reset
+              Đặt lại
             </Button>
           </Space>
         </div>
@@ -453,7 +593,7 @@ export function AdminPaymentManagement() {
             <Input
               allowClear
               prefix={<SearchOutlined className="text-slate-400" />}
-              placeholder="Transaction ID"
+              placeholder="Mã giao dịch"
               value={filters.transactionId}
               onChange={(e) =>
                 setFilters((prev) => ({ ...prev, transactionId: e.target.value }))
@@ -464,16 +604,16 @@ export function AdminPaymentManagement() {
           <Col xs={24} md={4}>
             <Select
               className="w-full"
-              placeholder="Status"
+              placeholder="Trạng thái"
               allowClear
               value={filters.status}
               onChange={(value) => setFilters((prev) => ({ ...prev, status: value }))}
               options={[
-                { value: "Paid", label: "Paid" },
-                { value: "Pending", label: "Pending" },
-                { value: "Processing", label: "Processing" },
-                { value: "Overdue", label: "Overdue" },
-                { value: "Failed", label: "Failed" },
+                { value: "Paid", label: "Đã thanh toán" },
+                { value: "Pending", label: "Đang chờ" },
+                { value: "Processing", label: "Đang xử lý" },
+                { value: "Overdue", label: "Quá hạn" },
+                { value: "Failed", label: "Thất bại" },
               ]}
             />
           </Col>
@@ -484,9 +624,9 @@ export function AdminPaymentManagement() {
               value={filters.sortBy}
               onChange={(value) => setFilters((prev) => ({ ...prev, sortBy: value }))}
               options={[
-                { value: "paidAt", label: "Sort by date" },
-                { value: "amount", label: "Sort by amount" },
-                { value: "transactionId", label: "Sort by transaction" },
+                { value: "paidAt", label: "Sắp xếp theo ngày" },
+                { value: "amount", label: "Sắp xếp theo số tiền" },
+                { value: "transactionId", label: "Sắp xếp theo mã GD" },
               ]}
             />
           </Col>
@@ -494,7 +634,7 @@ export function AdminPaymentManagement() {
           <Col xs={24} md={4}>
             <DatePicker
               className="w-full"
-              placeholder="Paid from"
+              placeholder="Từ ngày"
               value={filters.paidFrom ? dayjs(filters.paidFrom) : null}
               onChange={(value) =>
                 setFilters((prev) => ({
@@ -508,7 +648,7 @@ export function AdminPaymentManagement() {
           <Col xs={24} md={4}>
             <DatePicker
               className="w-full"
-              placeholder="Paid to"
+              placeholder="Đến ngày"
               value={filters.paidTo ? dayjs(filters.paidTo) : null}
               onChange={(value) =>
                 setFilters((prev) => ({
@@ -525,8 +665,8 @@ export function AdminPaymentManagement() {
               value={sortDesc}
               onChange={(value) => setSortDesc(value)}
               options={[
-                { value: true, label: "Desc" },
-                { value: false, label: "Asc" },
+                { value: true, label: "Giảm dần" },
+                { value: false, label: "Tăng dần" },
               ]}
             />
           </Col>
@@ -539,7 +679,7 @@ export function AdminPaymentManagement() {
                 setAppliedFilters({ ...filters });
               }}
             >
-              Apply filters
+              Áp dụng bộ lọc
             </Button>
           </Col>
         </Row>
@@ -554,7 +694,7 @@ export function AdminPaymentManagement() {
             emptyText: (
               <Empty
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description="No payments found"
+                description="Không tìm thấy thanh toán nào"
               />
             ),
           }}
@@ -572,48 +712,49 @@ export function AdminPaymentManagement() {
               setPageNumber(nextPage);
               setPageSize(nextSize);
             }}
+            locale={{ items_per_page: "/ trang" }}
           />
         </div>
       </Card>
 
       <Drawer
-        title="Payment details"
+        title="Chi tiết thanh toán"
         width={520}
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
       >
         {selectedPayment ? (
           <Descriptions bordered column={1} size="small">
-            <Descriptions.Item label="Payment ID">
+            <Descriptions.Item label="Mã thanh toán">
               #{selectedPayment.paymentId}
             </Descriptions.Item>
-            <Descriptions.Item label="Application ID">
+            <Descriptions.Item label="Hồ sơ">
               #{selectedPayment.applicationId}
             </Descriptions.Item>
-            <Descriptions.Item label="Applicant">
+            <Descriptions.Item label="Người nộp">
               {getApplicantLabel(selectedPayment.applicantId)}
             </Descriptions.Item>
-            <Descriptions.Item label="Applicant ID">
+            <Descriptions.Item label="Mã thí sinh">
               #{selectedPayment.applicantId}
             </Descriptions.Item>
-            <Descriptions.Item label="Amount">
+            <Descriptions.Item label="Số tiền">
               ₫{formatMoney(selectedPayment.amount)}
             </Descriptions.Item>
-            <Descriptions.Item label="Method">
+            <Descriptions.Item label="Phương thức">
               {selectedPayment.paymentMethod}
             </Descriptions.Item>
-            <Descriptions.Item label="Transaction ID">
+            <Descriptions.Item label="Mã giao dịch">
               <span className="font-mono">{selectedPayment.transactionId}</span>
             </Descriptions.Item>
-            <Descriptions.Item label="Reference Code">
+            <Descriptions.Item label="Mã tham chiếu">
               {selectedPayment.referenceCode ?? "—"}
             </Descriptions.Item>
-            <Descriptions.Item label="Status">
+            <Descriptions.Item label="Trạng thái">
               <Tag color={getStatusMeta(selectedPayment.paymentStatus).color}>
                 {getStatusMeta(selectedPayment.paymentStatus).label}
               </Tag>
             </Descriptions.Item>
-            <Descriptions.Item label="Paid at">
+            <Descriptions.Item label="Ngày thanh toán">
               {formatDate(selectedPayment.paidAt)}
             </Descriptions.Item>
           </Descriptions>

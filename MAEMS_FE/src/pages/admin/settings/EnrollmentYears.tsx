@@ -32,7 +32,7 @@ export default function EnrollmentYears() {
       const res = await getEnrollmentYears();
       setData(res);
     } catch {
-      message.error("Failed to fetch enrollment years");
+      message.error("Lấy dữ liệu năm tuyển sinh thất bại");
     } finally {
       setLoading(false);
     }
@@ -57,10 +57,10 @@ export default function EnrollmentYears() {
           ...editing,
           ...payload,
         });
-        message.success("Updated successfully");
+        message.success("Cập nhật thành công");
       } else {
         await createEnrollmentYear(payload);
-        message.success("Created successfully");
+        message.success("Tạo thành công");
       }
 
       setOpen(false);
@@ -74,23 +74,23 @@ export default function EnrollmentYears() {
 
   const columns = [
     {
-      title: "Year",
+      title: "Năm",
       dataIndex: "year",
     },
     {
-      title: "Start Date",
+      title: "Ngày bắt đầu",
       dataIndex: "registrationStartDate",
     },
     {
-      title: "End Date",
+      title: "Ngày kết thúc",
       dataIndex: "registrationEndDate",
     },
     {
-      title: "Status",
+      title: "Trạng thái",
       dataIndex: "status",
     },
     {
-      title: "Action",
+      title: "Hành động",
       render: (_: any, record: EnrollmentYear) => (
         <Button
           onClick={() => {
@@ -103,7 +103,7 @@ export default function EnrollmentYears() {
             });
           }}
         >
-          Edit
+          Sửa
         </Button>
       ),
     },
@@ -120,7 +120,7 @@ export default function EnrollmentYears() {
         }}
         style={{ marginBottom: 16 }}
       >
-        Add Enrollment Year
+        + Thêm Năm Tuyển Sinh
       </Button>
 
       <Table
@@ -131,19 +131,19 @@ export default function EnrollmentYears() {
       />
 
       <Modal
-        title={editing ? "Edit Enrollment Year" : "Create Enrollment Year"}
+        title={editing ? "Sửa Năm Tuyển Sinh" : "Tạo Năm Tuyển Sinh"}
         open={open}
         onCancel={() => setOpen(false)}
         onOk={handleSubmit}
       >
         <Form layout="vertical" form={form}>
-          <Form.Item name="year" label="Year" rules={[{ required: true }]}>
+          <Form.Item name="year" label="Năm" rules={[{ required: true }]}>
             <Input />
           </Form.Item>
 
           <Form.Item
             name="registrationStartDate"
-            label="Start Date"
+            label="Ngày bắt đầu"
             rules={[{ required: true }]}
           >
             <DatePicker style={{ width: "100%" }} />
@@ -151,7 +151,7 @@ export default function EnrollmentYears() {
 
           <Form.Item
             name="registrationEndDate"
-            label="End Date"
+            label="Ngày kết thúc"
             rules={[{ required: true }]}
           >
             <DatePicker style={{ width: "100%" }} />
@@ -159,7 +159,7 @@ export default function EnrollmentYears() {
 
           <Form.Item
             name="status"
-            label="Status"
+            label="Trạng thái"
             rules={[{ required: true }]}
           >
             <Select
