@@ -31,7 +31,7 @@ export function CampusManagement() {
       const res = await getCampuses();
       setData(res);
     } catch {
-      message.error("Failed to load campuses");
+      message.error("Lấy dữ liệu campus thất bại");
     } finally {
       setLoading(false);
     }
@@ -77,24 +77,24 @@ export function CampusManagement() {
           campusId: editing.campusId,
           ...values,
         });
-        message.success("Updated successfully");
+        message.success("Cập nhật thành công");
       } else {
         await createCampus(values);
-        message.success("Created successfully");
+        message.success("Tạo thành công");
       }
 
       setOpen(false);
       fetchData();
     } catch {
-      message.error("Save failed");
+      message.error("Lưu dữ liệu thất bại");
     }
   };
 
   const columns = [
-    { title: "Name", dataIndex: "name" },
-    { title: "Address", dataIndex: "address" },
+    { title: "Tên", dataIndex: "name" },
+    { title: "Địa chỉ", dataIndex: "address" },
     { title: "Email", dataIndex: "email" },
-    { title: "Phone", dataIndex: "phoneNumber" },
+    { title: "SĐT", dataIndex: "phoneNumber" },
     {
       title: "Active",
       render: (_: any, record: Campus) => (
@@ -105,7 +105,7 @@ export function CampusManagement() {
       title: "Actions",
       render: (_: any, record: Campus) => (
         <Space>
-          <Button onClick={() => openEdit(record)}>Edit</Button>
+          <Button onClick={() => openEdit(record)}>Sửa</Button>
           {/* <Popconfirm
             title="Deactivate this campus?"
             onConfirm={() => handleDelete(record)}
@@ -121,9 +121,9 @@ export function CampusManagement() {
     <Card className="rounded-2xl">
       {/* HEADER */}
       <div className="flex justify-between mb-4">
-        <Input placeholder="Search campus..." style={{ width: 250 }} />
+        <Input placeholder="Tìm kiếm campus..." style={{ width: 250 }} />
         <Button type="primary" onClick={openCreate}>
-          + Add Campus
+          + Thêm Campus
         </Button>
       </div>
 
@@ -137,17 +137,17 @@ export function CampusManagement() {
 
       {/* MODAL */}
       <Modal
-        title={editing ? "Edit Campus" : "Create Campus"}
+        title={editing ? "Sửa Campus" : "Tạo Campus"}
         open={open}
         onCancel={() => setOpen(false)}
         onOk={() => form.submit()}
       >
         <Form layout="vertical" form={form} onFinish={handleSubmit}>
-          <Form.Item name="name" label="Campus Name" required>
+          <Form.Item name="name" label="Campus" required>
             <Input />
           </Form.Item>
 
-          <Form.Item name="address" label="Address">
+          <Form.Item name="address" label="Địa chỉ">
             <Input />
           </Form.Item>
 
@@ -155,11 +155,11 @@ export function CampusManagement() {
             <Input />
           </Form.Item>
 
-          <Form.Item name="phoneNumber" label="Phone Number">
+          <Form.Item name="phoneNumber" label="SĐT">
             <Input />
           </Form.Item>
 
-          <Form.Item name="description" label="Description">
+          <Form.Item name="description" label="Mô tả">
             <Input.TextArea rows={3} />
           </Form.Item>
 

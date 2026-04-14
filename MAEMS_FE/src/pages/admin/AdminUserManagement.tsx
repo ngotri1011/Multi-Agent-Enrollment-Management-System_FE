@@ -29,7 +29,7 @@ export function AdminUserManagement() {
 
   const columns: ColumnsType<User> = [
     {
-      title: "User",
+      title: "Nguời dùng",
       render: (_, record) => (
         <Space>
           <Avatar>
@@ -48,7 +48,7 @@ export function AdminUserManagement() {
     },
 
     {
-      title: "Role",
+      title: "Vai trò",
       dataIndex: "roleName",
       render: (role: string) => {
         const colorMap: Record<string, string> = {
@@ -64,18 +64,18 @@ export function AdminUserManagement() {
     },
 
     {
-      title: "Status",
+      title: "Trạng thái",
       dataIndex: "isActive",
       render: (active?: boolean) =>
         active ? (
           <Tag color="green">Active</Tag>
         ) : (
-          <Tag color="default">Inactive</Tag>
+          <Tag color="red">Inactive</Tag>
         ),
     },
 
     {
-      title: "Created",
+      title: "Ngày tạo",
       dataIndex: "createdAt",
       sorter: true,
       render: (date: string) =>
@@ -83,7 +83,7 @@ export function AdminUserManagement() {
     },
 
     {
-      title: "Actions",
+      title: "Hành động",
       render: (_, record) => (
         <Space>
           <Eye
@@ -133,13 +133,13 @@ export function AdminUserManagement() {
         roleId: selectedUser.roleId,
         isActive: selectedUser.isActive,
       });
-      message.success("User updated successfully");
+      message.success("Cập nhật thành công");
 
       setSelectedUser(null);
       fetchUsers();
 
     } catch (error) {
-      message.error("Update failed");
+      message.error("Cập nhật thất bại");
     } finally {
       setUpdating(false);
     }
@@ -189,7 +189,7 @@ export function AdminUserManagement() {
       setTotal(res.totalCount);
 
     } catch (error) {
-      console.error("Failed to fetch users", error);
+      message.error("Lấy dữ liệu thất bại");
     } finally {
       setLoading(false);
     }
@@ -225,7 +225,7 @@ export function AdminUserManagement() {
           <Col span={8}>
             <Input
               prefix={<Search size={16} />}
-              placeholder="Search users..."
+              placeholder="Tìm kiếm người dùng..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onPressEnter={() => {
@@ -241,7 +241,7 @@ export function AdminUserManagement() {
               onChange={(value) => setRoleFilter(value)}
               style={{ width: "100%" }}
             >
-              <Option value="all">All Roles</Option>
+              <Option value="all">Tất cả vai trò</Option>
               <Option value="admin">Admin</Option>
               <Option value="officer">Officer</Option>
               <Option value="qa">QA</Option>
@@ -255,7 +255,7 @@ export function AdminUserManagement() {
               onChange={setStatusFilter}
               style={{ width: "100%" }}
             >
-              <Option value="all">All Status</Option>
+              <Option value="all">Trạng thái</Option>
               <Option value="active">Active</Option>
               <Option value="inactive">Inactive</Option>
             </Select>

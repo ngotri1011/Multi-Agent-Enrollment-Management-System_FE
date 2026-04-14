@@ -37,7 +37,7 @@ export function AdmissionTypeManagement() {
       const res = await getAdmissionTypes();
       setData(res);
     } catch {
-      message.error("Failed to load admission types");
+      message.error("Lấy dữ liệu phương thức xét tuyển thất bại");
     } finally {
       setLoading(false);
     }
@@ -49,7 +49,7 @@ export function AdmissionTypeManagement() {
       const res = await getEnrollmentYears();
       setYears(res);
     } catch {
-      message.error("Failed to load enrollment years");
+      message.error("Lấy dữ liệu năm tuyển sinh thất bại");
     }
   };
 
@@ -117,23 +117,23 @@ export function AdmissionTypeManagement() {
           admissionTypeId: editing.admissionTypeId,
           ...payload,
         });
-        message.success("Updated successfully");
+        message.success("Cập nhật thành công");
       } else {
         await createAdmissionType(payload);
-        message.success("Created successfully");
+        message.success("Tạo thành công");
       }
 
       setOpen(false);
       fetchData();
     } catch {
-      message.error("Save failed");
+      message.error("Lưu dữ liệu thất bại");
     }
   };
 
   const columns = [
-    { title: "Name", dataIndex: "admissionTypeName" },
-    { title: "Type", dataIndex: "type" },
-    { title: "Year", dataIndex: "enrollmentYear" },
+    { title: "Tên", dataIndex: "admissionTypeName" },
+    { title: "Loại", dataIndex: "type" },
+    { title: "Năm", dataIndex: "enrollmentYear" },
     {
       title: "Active",
       render: (_: any, record: AdmissionType) => (
@@ -144,7 +144,7 @@ export function AdmissionTypeManagement() {
       title: "Actions",
       render: (_: any, record: AdmissionType) => (
         <Space>
-          <Button onClick={() => openEdit(record)}>Edit</Button>
+          <Button onClick={() => openEdit(record)}>Sửa</Button>
         </Space>
       ),
     },
@@ -153,9 +153,9 @@ export function AdmissionTypeManagement() {
   return (
     <Card className="rounded-2xl">
       <div className="flex justify-between mb-4">
-        <Input placeholder="Search..." style={{ width: 250 }} />
+        <Input placeholder="Tìm kiếm..." style={{ width: 250 }} />
         <Button type="primary" onClick={openCreate}>
-          + Add Type
+          + Thêm loại
         </Button>
       </div>
 
@@ -169,8 +169,8 @@ export function AdmissionTypeManagement() {
       <Modal
         title={
           editing
-            ? "Edit Admission Type"
-            : "Create Admission Type"
+            ? "Chinh sửa phương thức xét tuyển"
+            : "Tạo loại xét tuyển"
         }
         open={open}
         onCancel={() => setOpen(false)}
@@ -178,14 +178,14 @@ export function AdmissionTypeManagement() {
         width={600}
       >
         <Form layout="vertical" form={form} onFinish={handleSubmit}>
-          <Form.Item name="admissionTypeName" label="Name" required>
+          <Form.Item name="admissionTypeName" label="Tên" required>
             <Input />
           </Form.Item>
 
           {/* FIXED: SELECT INSTEAD OF INPUT */}
           <Form.Item
             name="enrollmentYearId"
-            label="Enrollment Year"
+            label="Năm tuyển sinh"
             rules={[{ required: true }]}
           >
             <Select
@@ -203,7 +203,7 @@ export function AdmissionTypeManagement() {
 
           <Form.Item
             name="requiredDocumentList"
-            label="Required Documents (one per line)"
+            label="Tài liệu yêu cầu (mỗi dòng một tài liệu)"
           >
             <Input.TextArea rows={5} />
           </Form.Item>
