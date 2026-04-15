@@ -43,6 +43,7 @@ import {
   type Document,
 } from "../../types/application";
 import type { DocumentStatus } from "../../types/enums";
+import { DOCUMENT_STATUS } from "../../constants/labels";
 
 const { Title, Text } = Typography;
 
@@ -262,9 +263,10 @@ const DOCUMENT_VERIFICATION: Record<
   DocumentStatus,
   { label: string; color: "default" | "success" | "error" | "warning" | "processing" }
 > = {
-  pending:   { label: "Chờ xác minh",  color: "warning" },
-  verified:  { label: "Đã xác minh",  color: "success" },
-  rejected:  { label: "Không hợp lệ", color: "error" },
+  // Dùng nhãn chung từ constants để đảm bảo cùng wording giữa profile và application detail.
+  pending: { label: DOCUMENT_STATUS.pending, color: "warning" },
+  verified: { label: DOCUMENT_STATUS.verified, color: "success" },
+  rejected: { label: DOCUMENT_STATUS.rejected, color: "error" },
 };
 
 function normalizeDocumentStatus(

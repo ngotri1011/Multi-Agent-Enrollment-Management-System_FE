@@ -38,6 +38,7 @@ import {
   FileImage,
   Trash2,
 } from "lucide-react";
+import { motion } from "motion/react";
 import dayjs from "dayjs";
 import { ApplicantLayout } from "../../components/layouts/ApplicantLayout";
 import { getProfile } from "../../api/users";
@@ -46,6 +47,8 @@ import { deleteDocument } from "../../api/documents";
 import type { UserProfile } from "../../types/auth";
 import type { CreateApplicantRequest, CreateApplicantResponse } from "../../types/applicant";
 import type { Document as ApplicantDocument } from "../../types/document";
+import type { DocumentStatus } from "../../types/enums";
+import { DOCUMENT_STATUS } from "../../constants/labels";
 import { ApplicantMenu } from "./ApplicantMenu";
 
 const { Title, Text } = Typography;
@@ -69,17 +72,18 @@ function isImageDocument(doc?: ApplicantDocument | null) {
   return IMAGE_FORMATS.some((ext) => path.includes(`.${ext}`));
 }
 
-const VERIFICATION_BADGE: Record<string, { color: string; label: string }> = {
-  PENDING:  { color: "orange",  label: "Chờ duyệt" },
-  APPROVED: { color: "success", label: "Đã duyệt" },
-  VERIFIED: { color: "success", label: "Đã duyệt" },
-  REJECTED: { color: "error",   label: "Từ chối" },
-  FAILED:   { color: "error",   label: "Từ chối" },
+const VERIFICATION_BADGE: Record<DocumentStatus, { color: string; label: string }> = {
+  // Dùng nhãn tập trung từ constants để đồng nhất wording giữa các màn hình.
+  pending: { color: "orange", label: DOCUMENT_STATUS.pending },
+  verified: { color: "success", label: DOCUMENT_STATUS.verified },
+  rejected: { color: "error", label: DOCUMENT_STATUS.rejected },
 };
 
 function getVerificationBadge(result?: string | null) {
   if (!result) return { color: "default", label: "—" };
-  return VERIFICATION_BADGE[result.toUpperCase()] ?? { color: "default", label: result };
+  // Chuẩn hóa trạng thái từ API về đúng union type đã khai báo để tránh lệ thuộc vào key tự sinh.
+  const normalizedResult = result.trim().toLowerCase() as DocumentStatus;
+  return VERIFICATION_BADGE[normalizedResult] ?? { color: "default", label: result };
 }
 
 const DOC_TYPE_OPTIONS = [
@@ -311,15 +315,23 @@ export function ApplicantProfilePage() {
   return (
     <ApplicantLayout menuItems={ApplicantMenu}>
       {contextHolder}
-      <Title level={4} className="!mb-6 !text-gray-700 !font-semibold">
-        Hồ sơ cá nhân
-      </Title>
+      {/* Căn giữa và chừa lề ngang trên mobile để nội dung không chạm sát mép màn hình. */}
+      {/* Dùng spacing dọc cố định cho toàn bộ section để các card tách nhau rõ ràng, tránh cảm giác dính khối. */}
+      <div className="mx-auto w-full max-w-3xl space-y-8 px-3 pb-6 sm:px-0">
+        <Title level={4} className="!mb-6 !text-gray-700 !font-semibold">
+          Hồ sơ cá nhân
+        </Title>
 
-      {/* Account summary card */}
-      <Card
-        className="rounded-2xl border border-gray-100 shadow-sm max-w-3xl mb-6"
-        styles={{ body: { padding: "32px" } }}
-      >
+        {/* Thông tin tài khoản */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.28, ease: "easeOut" }}
+          whileHover={{ y: -2 }}
+        >
+          <Card
+            className="w-full rounded-[36px] border border-gray-100/90 bg-white/90 shadow-sm backdrop-blur-[2px] transition-shadow duration-300 hover:shadow-md [&_.ant-card-body]:!p-4 sm:[&_.ant-card-body]:!p-6 lg:[&_.ant-card-body]:!p-8"
+          >
         {loading ? (
           <div className="flex items-center gap-6">
             <Skeleton.Avatar active size={80} />
@@ -378,19 +390,25 @@ export function ApplicantProfilePage() {
             </div>
           </div>
         )}
-      </Card>
+          </Card>
+        </motion.div>
 
-      {/* Applicant info — read-only if already submitted */}
-      {!loading && applicant && !isEditing ? (
-        <Card
-          className="rounded-2xl border border-green-100 shadow-sm max-w-3xl"
-          styles={{ body: { padding: "32px" } }}
-        >
+        {/* Thông tin thí sinh */}
+        {!loading && applicant && !isEditing ? (
+          <motion.div
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, ease: "easeOut", delay: 0.05 }}
+            whileHover={{ y: -2 }}
+          >
+            <Card
+              className="w-full rounded-[36px] border border-green-100/90 bg-white/90 shadow-sm backdrop-blur-[2px] transition-shadow duration-300 hover:shadow-md [&_.ant-card-body]:!p-4 sm:[&_.ant-card-body]:!p-6 lg:[&_.ant-card-body]:!p-8"
+            >
           <div className="flex items-center justify-between mb-1">
             <Title level={5} className="!mb-0 !text-gray-800">
               Thông tin thí sinh
             </Title>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               <Tag
                 icon={<CheckCircle2 size={13} />}
                 color="success"
@@ -461,16 +479,22 @@ export function ApplicantProfilePage() {
             <ReadOnlyField label="Email liên lạc" value={applicant.contactEmail} />
             <ReadOnlyField label="Địa chỉ liên lạc" value={applicant.contactAddress} />
           </div>
-        </Card>
-      ) : null}
+            </Card>
+          </motion.div>
+        ) : null}
 
-      {/* Document section — shown when applicant exists and not editing */}
-      {!loading && applicant && !isEditing && (
-        <Card
-          className="rounded-2xl border border-gray-100 shadow-sm max-w-3xl mt-6"
-          styles={{ body: { padding: "32px" } }}
-        >
-          <div className="flex items-center justify-between mb-1">
+        {/* Danh sách tài liệu đính kèm */}
+        {!loading && applicant && !isEditing && (
+          <motion.div
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.32, ease: "easeOut", delay: 0.1 }}
+            whileHover={{ y: -2 }}
+          >
+            <Card
+              className="w-full rounded-[36px] border border-gray-100/90 bg-white/90 shadow-sm backdrop-blur-[2px] transition-shadow duration-300 hover:shadow-md [&_.ant-card-body]:!p-4 sm:[&_.ant-card-body]:!p-6 lg:[&_.ant-card-body]:!p-8"
+            >
+          <div className="mb-1 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
             <div className="flex items-center gap-2">
               <Paperclip size={16} className="text-orange-500" />
               <Title level={5} className="!mb-0 !text-gray-800">
@@ -500,15 +524,21 @@ export function ApplicantProfilePage() {
               className="py-6"
             />
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
               {documents.map((doc, idx) => {
                 const typeLabel = DOC_TYPE_OPTIONS.find((o) => o.value === doc.documentType)?.label ?? doc.documentType ?? "Tài liệu";
                 const isImage = isImageDocument(doc);
                 const badge = getVerificationBadge(doc.verificationResult);
                 return (
                   <Tooltip key={doc.documentId ?? idx} title="Nhấn để xem chi tiết">
-                    <div
-                      className="group relative flex flex-col rounded-xl border border-gray-100 bg-white overflow-hidden cursor-pointer hover:border-orange-300 hover:shadow-md transition-all"
+                    {/* Dùng motion nhẹ để thẻ tài liệu phản hồi tự nhiên khi hover/tap mà vẫn ổn định trên thiết bị yếu. */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.24, delay: Math.min(idx * 0.03, 0.2) }}
+                      whileHover={{ y: -2, scale: 1.01 }}
+                      whileTap={{ scale: 0.99 }}
+                      className="group relative flex flex-col overflow-hidden rounded-3xl border border-gray-100 bg-white cursor-pointer transition-all hover:border-orange-300 hover:shadow-md"
                       onClick={() => setPreviewDoc(doc)}
                     >
                       {/* Thumbnail area */}
@@ -566,16 +596,17 @@ export function ApplicantProfilePage() {
                           </p>
                         )}
                       </div>
-                    </div>
+                    </motion.div>
                   </Tooltip>
                 );
               })}
             </div>
           )}
-        </Card>
-      )}
+            </Card>
+          </motion.div>
+        )}
 
-      {/* Document preview modal */}
+      {/* Xem chi tiết tài liệu */}
       <Modal
         open={!!previewDoc}
         onCancel={() => setPreviewDoc(null)}
@@ -719,12 +750,16 @@ export function ApplicantProfilePage() {
         </Form>
       </Modal>
 
-      {!loading && (!applicant || isEditing) ? (
-        /* Creation / Edit form */
-        <Card
-          className="rounded-2xl border border-gray-100 shadow-sm max-w-3xl mt-6"
-          styles={{ body: { padding: "32px" } }}
-        >
+        {!loading && (!applicant || isEditing) ? (
+          /* Form tạo/chỉnh sửa hồ sơ */
+          <motion.div
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+          >
+            <Card
+              className="w-full rounded-[36px] border border-gray-100/90 bg-white/90 shadow-sm backdrop-blur-[2px] [&_.ant-card-body]:!p-4 sm:[&_.ant-card-body]:!p-6 lg:[&_.ant-card-body]:!p-8"
+            >
           <Title level={5} className="!mb-1 !text-gray-800">
             {isEditing ? "Chỉnh sửa thông tin thí sinh" : "Thông tin thí sinh"}
           </Title>
@@ -951,12 +986,14 @@ export function ApplicantProfilePage() {
               </Button>
             </div>
           </Form>
-        </Card>
-      ) : loading ? (
-        <Card className="rounded-2xl border border-gray-100 shadow-sm max-w-3xl mt-6" styles={{ body: { padding: "32px" } }}>
-          <Skeleton active paragraph={{ rows: 8 }} />
-        </Card>
-      ) : null}
+            </Card>
+          </motion.div>
+        ) : loading ? (
+          <Card className="w-full rounded-[36px] border border-gray-100/90 shadow-sm [&_.ant-card-body]:!p-4 sm:[&_.ant-card-body]:!p-6 lg:[&_.ant-card-body]:!p-8">
+            <Skeleton active paragraph={{ rows: 8 }} />
+          </Card>
+        ) : null}
+      </div>
     </ApplicantLayout>
   );
 }

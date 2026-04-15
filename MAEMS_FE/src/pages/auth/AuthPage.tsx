@@ -40,7 +40,13 @@ export function AuthPage() {
     setLoading(true);
     try {
       const res = await authApi.login(values);
-      setAuth(res.user, res.token, res.refreshToken);
+      setAuth(
+        res.user,
+        res.token,
+        res.refreshToken,
+        res.accessTokenExpiresAt,
+        res.refreshTokenExpiresAt,
+      );
       message.success("Đăng nhập thành công");
       navigate(roleDashboard[res.user.role] ?? "/", { replace: true });
     } catch (err: unknown) {

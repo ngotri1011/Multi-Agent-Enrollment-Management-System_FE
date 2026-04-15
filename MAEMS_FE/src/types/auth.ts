@@ -22,6 +22,8 @@ export type RegisterRequest = {
 export type LoginResponse = {
   token: string;
   refreshToken: string;
+  accessTokenExpiresAt: string;
+  refreshTokenExpiresAt: string;
   user: AuthUser;
 };
 
@@ -43,6 +45,8 @@ export type ApiLoginData = {
   accessToken: string;
   refreshToken: string;
   user: { username: string; email: string; role: string };
+  accessTokenExpiresAt: string;
+  refreshTokenExpiresAt: string;
 };
 
 export type ApiRegisterData = {

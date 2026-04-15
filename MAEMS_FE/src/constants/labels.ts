@@ -1,4 +1,4 @@
-import type { ApplicationStatus } from "../types/enums";
+import type { ApplicationStatus, DocumentStatus } from "../types/enums";
 
 /** Nhãn tiếng Việt theo mã trạng thái API. */
 export const APPLICATION_STATUS = {
@@ -9,6 +9,13 @@ export const APPLICATION_STATUS = {
   rejected: "Không được duyệt",
   document_required: "Yêu cầu bổ sung hồ sơ",
 } as const satisfies Record<ApplicationStatus, string>;
+
+/** Nhãn tiếng Việt cho trạng thái xác minh tài liệu, dùng chung toàn hệ thống. */
+export const DOCUMENT_STATUS = {
+  pending: "Chờ duyệt",
+  verified: "Đã duyệt",
+  rejected: "Không hợp lệ",
+} as const satisfies Record<DocumentStatus, string>;
 
 export type ApplicationStatusLabel =
   (typeof APPLICATION_STATUS)[ApplicationStatus];
