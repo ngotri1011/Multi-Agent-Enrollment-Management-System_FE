@@ -45,3 +45,15 @@ export type ApplicationsByOfficer = {
   assignedOfficerName: string | null;
   count: number;
 };
+
+// QUARTERLY PAYMENT REVENUE
+export type QuarterlyPaymentRevenueQuarter = {
+  quarter: number;
+  totalAmount: number;
+};
+
+export type QuarterlyPaymentRevenue = {
+  year: number;
+  numPaymentNeedCheck: number;
+  quarters: QuarterlyPaymentRevenueQuarter[];
+};

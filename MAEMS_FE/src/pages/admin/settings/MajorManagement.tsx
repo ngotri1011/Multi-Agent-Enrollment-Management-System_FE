@@ -85,31 +85,31 @@ export function MajorManagement() {
           ...editing,
           ...values,
         });
-        message.success("Updated successfully");
+        message.success("Cập nhật thành công");
       } else {
         await createMajor(values);
-        message.success("Created successfully");
+        message.success("Tạo thành công");
       }
 
       setOpen(false);
       fetchData();
     } catch {
-      message.error("Operation failed");
+      message.error("Lưu dữ liệu thất bại");
     }
   };
 
 
   const columns = [
     {
-      title: "Code",
+      title: "Mã chuyên ngành",
       dataIndex: "majorCode",
     },
     {
-      title: "Name",
+      title: "Tên chuyên ngành",
       dataIndex: "majorName",
     },
     {
-      title: "Description",
+      title: "Mô tả",
       dataIndex: "description",
       ellipsis: true,
     },
@@ -120,10 +120,10 @@ export function MajorManagement() {
       ),
     },
     {
-      title: "Actions",
+      title: "Hành động",
       render: (_: any, record: Major) => (
         <Space>
-          <Button onClick={() => openEdit(record)}>Edit</Button>
+          <Button onClick={() => openEdit(record)}>Sửa</Button>
         </Space>
       ),
     },
@@ -140,7 +140,7 @@ export function MajorManagement() {
         />
 
         <Button type="primary" onClick={openCreate}>
-          + Add Major
+          + Thêm Chuyên Ngành
         </Button>
       </div>
 
@@ -164,7 +164,7 @@ export function MajorManagement() {
       />
 
       <Modal
-        title={editing ? "Edit Major" : "Create Major"}
+        title={editing ? "Sửa Chuyên Ngành" : "Tạo Chuyên Ngành"}
         open={open}
         onCancel={() => setOpen(false)}
         onOk={() => form.submit()}

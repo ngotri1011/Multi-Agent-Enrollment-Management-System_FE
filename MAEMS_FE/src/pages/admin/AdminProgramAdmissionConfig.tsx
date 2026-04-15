@@ -132,7 +132,7 @@ export function AdminProgramAdmissionConfig() {
 
   const columns: ColumnsType<ProgramAdmissionConfig> = [
     {
-      title: "Program",
+      title: "Chương trình đào tạo",
       dataIndex: "programName",
       sorter: true,
     },
@@ -141,7 +141,7 @@ export function AdminProgramAdmissionConfig() {
       dataIndex: "campusName",
     },
     {
-      title: "Admission Type",
+      title: "Phương thức",
       dataIndex: "admissionTypeName",
     },
     {
@@ -150,7 +150,7 @@ export function AdminProgramAdmissionConfig() {
       sorter: true,
     },
     {
-      title: "Status",
+      title: "Trạng thái",
       dataIndex: "isActive",
       render: (active: boolean) => (
         <Tag color={active ? "green" : "red"}>
@@ -159,12 +159,12 @@ export function AdminProgramAdmissionConfig() {
       ),
     },
     {
-      title: "Created At",
+      title: "Ngày tạo",
       dataIndex: "createdAt",
       sorter: true,
     },
     {
-      title: "Action",
+      title: "Hành động",
       render: (_, record) => (
         <Space>
           <Button
@@ -180,11 +180,11 @@ export function AdminProgramAdmissionConfig() {
 
   return (
     <AdminLayout>
-      <Card title="Program Admission Config Management">
+      <Card title="Quản lý kế hoach tuyển sinh">
         <Space style={{ marginBottom: 16 }} wrap>
           {/* SEARCH */}
           <Search
-            placeholder="Search program..."
+            placeholder="Tìm kiếm..."
             allowClear
             onSearch={(value) =>
               setFilters((prev) => ({ ...prev, search: value }))
@@ -194,7 +194,7 @@ export function AdminProgramAdmissionConfig() {
 
           {/* FILTERS */}
           <Select
-            placeholder="Program"
+            placeholder="Chương trình đào tạo"
             allowClear
             style={{ width: 180 }}
             options={programs.map(p => ({
@@ -219,7 +219,7 @@ export function AdminProgramAdmissionConfig() {
           />
 
           <Select
-            placeholder="Admission Type"
+            placeholder="Phương thức"
             allowClear
             style={{ width: 220 }}
             options={admissionTypes.map((a) => ({
@@ -260,7 +260,7 @@ export function AdminProgramAdmissionConfig() {
         onOk={handleSubmit}
       >
         <Form form={form} layout="vertical">
-          <Form.Item name="programId" label="Program" rules={[{ required: true }]}>
+          <Form.Item name="programId" label="Chương trình đào tạo" rules={[{ required: true }]}>
             <Select
               options={programs.map(p => ({
                 label: p.programName,
@@ -278,7 +278,7 @@ export function AdminProgramAdmissionConfig() {
             />
           </Form.Item>
 
-          <Form.Item name="admissionTypeId" label="Admission Type" rules={[{ required: true }]}>
+          <Form.Item name="admissionTypeId" label="Phương thức" rules={[{ required: true }]}>
             <Select
               options={admissionTypes.map(a => ({
                 label: a.admissionTypeName,
@@ -291,7 +291,7 @@ export function AdminProgramAdmissionConfig() {
             <Input type="number" />
           </Form.Item>
 
-          <Form.Item name="isActive" label="Status" initialValue={true}>
+          <Form.Item name="isActive" label="Trạng thái" initialValue={true}>
             <Select
               options={[
                 { label: "Active", value: true },

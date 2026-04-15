@@ -1,7 +1,7 @@
 import type { ApiWrapper, ReportWrapper } from "../types/api.wrapper";
 import { apiClient } from "../services/axios";
 import type { Application } from "../types/application";
-import type { ApplicationsByCampus, ApplicationsByOfficer, ApplicationsByProgram, ApplicationStatusCounts, ReportSummary, WeeklyApplications } from "src/types/report";
+import type { ApplicationsByCampus, ApplicationsByOfficer, ApplicationsByProgram, ApplicationStatusCounts, QuarterlyPaymentRevenue, ReportSummary, WeeklyApplications } from "src/types/report";
 
 export async function getOfficerReports() {
   const res = await apiClient.get<ApiWrapper<ReportWrapper<Application>>>(
@@ -58,6 +58,17 @@ export async function getApplicationStatusCounts() {
 export async function getApplicationsByOfficer() {
   const res = await apiClient.get<ApiWrapper<ApplicationsByOfficer[]>>(
     "/api/Report/applications/by-assigned-officer"
+  );
+  return res.data.data;
+}
+
+// QUARTERLY PAYMENT REVENUE
+export async function getQuarterlyPaymentRevenue(year: number) {
+  const res = await apiClient.get<ApiWrapper<QuarterlyPaymentRevenue>>(
+    "/api/Report/payments/revenue/quarterly",
+    {
+      params: { year },
+    },
   );
   return res.data.data;
 }

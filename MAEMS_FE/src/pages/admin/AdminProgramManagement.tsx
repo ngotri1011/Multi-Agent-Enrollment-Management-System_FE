@@ -51,7 +51,7 @@ export function AdminProgramManagement() {
         programId: selectedProgram.programId,
       });
 
-      message.success("Program updated");
+      message.success("Cập nhật chương trình thành công");
 
       setDetailOpen(false);
       setEditing(false);
@@ -62,7 +62,7 @@ export function AdminProgramManagement() {
 
     } catch (err) {
       console.error(err);
-      message.error("Update failed");
+      message.error("Cập nhật chương trình thất bại");
     }
   };
   // Handle program creation
@@ -76,7 +76,7 @@ export function AdminProgramManagement() {
         enrollmentYearId: Number(values.enrollmentYearId),
       });
 
-      message.success("Program created successfully");
+      message.success("Tạo chương trình thành công");
 
       setOpen(false);
       form.resetFields();
@@ -87,7 +87,7 @@ export function AdminProgramManagement() {
 
     } catch (err) {
       console.error(err);
-      message.error("Failed to create program");
+      message.error("Tạo chương trình thất bại");
     } finally {
       setSubmitting(false);
     }
@@ -149,7 +149,7 @@ export function AdminProgramManagement() {
 
         {/*  Search */}
         <Input.Search
-          placeholder="Search program..."
+          placeholder="Tìm kiếm chương trình..."
           allowClear
           onSearch={(value) => {
             setQuery((prev) => ({
@@ -163,7 +163,7 @@ export function AdminProgramManagement() {
 
         {/* Enrollment Year Filter */}
         <Select
-          placeholder="Filter by Year"
+          placeholder="Lọc theo năm"
           allowClear
           options={enrollmentYearOptions}
           className="w-40"
@@ -178,13 +178,13 @@ export function AdminProgramManagement() {
 
         {/* Sort By */}
         <Select
-          placeholder="Sort By"
+          placeholder="Sắp xếp theo"
           className="w-48"
           allowClear
           options={[
-            { label: "Program Name", value: "programName" },
-            { label: "Enrollment Year", value: "enrollmentYear" },
-            { label: "Duration", value: "duration" },
+            { label: "Tên chương trình", value: "programName" },
+            { label: "Năm tuyển sinh", value: "enrollmentYear" },
+            { label: "Thời lượng", value: "duration" },
           ]}
           onChange={(value) => {
             setQuery((prev) => ({
@@ -235,17 +235,17 @@ export function AdminProgramManagement() {
                 {/* Stats */}
                 <div className="space-y-3 mb-6">
                   <div className="flex justify-between">
-                    <Text type="secondary">Major:</Text>
+                    <Text type="secondary">Ngành:</Text>
                     <Text strong>{program.majorName}</Text>
                   </div>
 
                   <div className="flex justify-between">
-                    <Text type="secondary">Year:</Text>
+                    <Text type="secondary">Năm:</Text>
                     <Text strong>{program.enrollmentYear}</Text>
                   </div>
 
                   <div className="flex justify-between">
-                    <Text type="secondary">Duration:</Text>
+                    <Text type="secondary">Thời lượng:</Text>
                     <Text strong>{program.duration}</Text>
                   </div>
                 </div>
@@ -261,7 +261,7 @@ export function AdminProgramManagement() {
                       detailForm.setFieldsValue(program);
                     }}
                   >
-                    View Details
+                    Chi tiết
                   </Button>
                 </Space>
               </Card>
@@ -299,23 +299,23 @@ export function AdminProgramManagement() {
           {/* HEADER */}
           <div className="mb-6 p-4 rounded-xl bg-purple-50 border border-purple-100">
             <div className="text-purple-600 font-semibold text-sm mb-1">
-              Program Creation
+              Tạo chương trình
             </div>
             <div className="text-xl font-bold">
-              Create New Academic Program
+              Tạo chương trình học mới
             </div>
             <div className="text-gray-500 text-sm">
-              Fill in program details to add it to the system
+              Điền thông tin chương trình để thêm vào hệ thống
             </div>
           </div>
 
           {/* BASIC INFO */}
           <div className="mb-6 p-4 rounded-xl bg-gray-50 border">
-            <div className="font-semibold mb-4">Basic Information</div>
+            <div className="font-semibold mb-4">Thông tin cơ bản</div>
 
             <Form.Item
               name="programName"
-              label="Program Name"
+              label="Tên chương trình"
               rules={[{ required: true }]}
             >
               <Input placeholder="e.g. Computer Science" />
@@ -324,7 +324,7 @@ export function AdminProgramManagement() {
             <div className="grid grid-cols-2 gap-4">
               <Form.Item
                 name="majorId"
-                label="Major ID"
+                label="Ngành"
                 rules={[{ required: true }]}
               >
                 <Input type="number" />
@@ -332,27 +332,27 @@ export function AdminProgramManagement() {
 
               <Form.Item
                 name="enrollmentYearId"
-                label="Enrollment Year ID"
+                label="Năm Tuyển Sinh"
                 rules={[{ required: true }]}
               >
                 <Input type="number" />
               </Form.Item>
             </div>
 
-            <Form.Item name="duration" label="Duration">
+            <Form.Item name="duration" label="Thời lượng">
               <Input placeholder="e.g. 3 years (9 semesters)" />
             </Form.Item>
           </div>
 
           {/* DESCRIPTION */}
           <div className="mb-6 p-4 rounded-xl bg-gray-50 border">
-            <div className="font-semibold mb-4">Program Details</div>
+            <div className="font-semibold mb-4">Chi tiết chương trình</div>
 
-            <Form.Item name="description" label="Description">
+            <Form.Item name="description" label="Mô tả">
               <Input.TextArea rows={3} />
             </Form.Item>
 
-            <Form.Item name="careerProspects" label="Career Prospects">
+            <Form.Item name="careerProspects" label="Cơ hội nghề nghiệp">
               <Input.TextArea rows={3} />
             </Form.Item>
           </div>
@@ -360,9 +360,8 @@ export function AdminProgramManagement() {
           {/* STATUS */}
           <div className="mb-6 p-4 rounded-xl bg-gray-50 border flex justify-between items-center">
             <div>
-              <div className="font-semibold">Program Status</div>
+              <div className="font-semibold">Trạng thái</div>
               <div className="text-gray-500 text-sm">
-                Toggle whether this program is active
               </div>
             </div>
 
@@ -393,7 +392,7 @@ export function AdminProgramManagement() {
               loading={submitting}
               className="px-6"
             >
-              Create Program
+              Tạo chương trình
             </Button>
           </div>
         </Form>
@@ -416,7 +415,7 @@ export function AdminProgramManagement() {
             <div>
               <div className="text-blue-600 text-sm font-semibold flex items-center gap-2">
                 <Eye size={16} />
-                Program Details
+                Chi tiết
               </div>
 
               <div className="text-xl font-bold">
@@ -432,7 +431,7 @@ export function AdminProgramManagement() {
                 ghost
                 onClick={() => setEditing(true)}
               >
-                Edit
+                Sửa
               </Button>
             ) : (
               <Button
@@ -444,7 +443,7 @@ export function AdminProgramManagement() {
                   detailForm.setFieldsValue(selectedProgram);
                 }}
               >
-                Cancel
+                Hủy
               </Button>
             )}
           </div>
@@ -454,18 +453,18 @@ export function AdminProgramManagement() {
 
             {/* LEFT */}
             <div className="p-4 rounded-xl bg-gray-50 border space-y-4">
-              <div className="font-semibold">Basic Info</div>
+              <div className="font-semibold">Thông tin cơ bản</div>
 
-              <Form.Item name="programName" label="Program Name">
+              <Form.Item name="programName" label="Tên chương trình">
                 <Input disabled={!editing} />
               </Form.Item>
 
-              <Form.Item name="duration" label="Duration">
+              <Form.Item name="duration" label="Thời lượng">
                 <Input disabled={!editing} />
               </Form.Item>
 
               <div className="flex items-center justify-between">
-                <span className="text-gray-600">Status</span>
+                <span className="text-gray-600">Trạng thái</span>
 
                 {!editing ? (
                   selectedProgram?.isActive ? (
@@ -489,17 +488,17 @@ export function AdminProgramManagement() {
 
             {/* RIGHT */}
             <div className="p-4 rounded-xl bg-gray-50 border space-y-4">
-              <div className="font-semibold">Meta Info</div>
+              <div className="font-semibold">Thông tin meta</div>
 
-              <Form.Item label="Major">
+              <Form.Item label="Chuyên ngành">
                 <Input value={selectedProgram?.majorName} disabled />
               </Form.Item>
 
-              <Form.Item label="Enrollment Year">
+              <Form.Item label="Năm tuyển sinh">
                 <Input value={selectedProgram?.enrollmentYear} disabled />
               </Form.Item>
 
-              <Form.Item label="Program ID">
+              <Form.Item label="Chương trình">
                 <Input value={selectedProgram?.programId} disabled />
               </Form.Item>
             </div>
@@ -507,13 +506,13 @@ export function AdminProgramManagement() {
 
           {/* FULL WIDTH */}
           <div className="p-4 rounded-xl bg-gray-50 border mb-6 space-y-4">
-            <div className="font-semibold">Program Details</div>
+            <div className="font-semibold">Chi tiết chương trình</div>
 
-            <Form.Item name="description" label="Description">
+            <Form.Item name="description" label="Mô tả">
               <Input.TextArea rows={3} disabled={!editing} />
             </Form.Item>
 
-            <Form.Item name="careerProspects" label="Career Prospects">
+            <Form.Item name="careerProspects" label="Cơ hội nghề nghiệp">
               <Input.TextArea rows={3} disabled={!editing} />
             </Form.Item>
           </div>
@@ -524,7 +523,7 @@ export function AdminProgramManagement() {
               icon={<X size={16} />}
               onClick={() => setDetailOpen(false)}
             >
-              Close
+              Đóng
             </Button>
 
             {editing && (
@@ -534,7 +533,7 @@ export function AdminProgramManagement() {
                 icon={<Save size={16} />}
                 className="flex items-center gap-2"
               >
-                Save Changes
+                Lưu
               </Button>
             )}
           </div>
