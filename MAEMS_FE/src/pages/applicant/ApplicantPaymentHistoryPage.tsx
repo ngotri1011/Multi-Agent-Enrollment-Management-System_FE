@@ -19,6 +19,7 @@ import { getMyPayments } from "../../api/payments";
 import { ApplicantLayout } from "../../components/layouts/ApplicantLayout";
 import { ApplicantMenu } from "./ApplicantMenu";
 import type { Payment, PaymentStatus } from "../../types/payment";
+import { formatDateTimeVi } from "../../utils/date";
 import { formatCurrency, toIsoBoundary } from "../../utils/payment";
 
 const { RangePicker } = DatePicker;
@@ -61,11 +62,6 @@ const statusColorMap: Record<string, string> = {
   outdated: "warning",
   need_checking: "warning",
 };
-
-function formatDateTime(value: string | null): string {
-  if (!value) return "--";
-  return new Date(value).toLocaleString("vi-VN");
-}
 
 export function ApplicantPaymentHistoryPage() {
   const [messageApi, contextHolder] = message.useMessage();
@@ -200,7 +196,9 @@ export function ApplicantPaymentHistoryPage() {
       dataIndex: "paidAt",
       key: "paidAt",
       width: 190,
-      render: (value: string | null) => formatDateTime(value),
+      render: (value: string | null) =>
+        // Backend đang trả sai thông tin múi giờ, nên tạm cộng +7 giờ để hiển thị đúng giờ Việt Nam cho người dùng.
+        formatDateTimeVi(value, { timeFirst: true, utcOffsetHours: 7 }),
     },
   ];
 

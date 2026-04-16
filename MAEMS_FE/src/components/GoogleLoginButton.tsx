@@ -30,7 +30,13 @@ export function GoogleLoginButton() {
         ...res.user,
         photoURL: result.user.photoURL,
       };
-      setAuth(userWithPhoto, res.token, res.refreshToken);
+      setAuth(
+        userWithPhoto,
+        res.token,
+        res.refreshToken,
+        res.accessTokenExpiresAt,
+        res.refreshTokenExpiresAt,
+      );
       message.success("Đăng nhập Google thành công");
       navigate(roleDashboard[res.user.role] ?? "/", { replace: true });
     } catch (err: unknown) {

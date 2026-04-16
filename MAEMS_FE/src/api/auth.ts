@@ -12,16 +12,25 @@ import type {
 } from "../types/auth";
 import { getProfile } from "./users";
 
+// API đăng nhập
 export async function login(data: LoginRequest): Promise<LoginResponse> {
   // Gửi thông tin đăng nhập và nhận về token + thông tin người dùng.
   const res = await apiClient.post<ApiWrapper<ApiLoginData>>(
     "/api/Users/login",
     data,
   );
-  const { accessToken, refreshToken, user } = res.data.data;
+  const {
+    accessToken,
+    refreshToken,
+    accessTokenExpiresAt,
+    refreshTokenExpiresAt,
+    user,
+  } = res.data.data;
   return {
     token: accessToken,
     refreshToken,
+    accessTokenExpiresAt,
+    refreshTokenExpiresAt,
     user: {
       username: user.username,
       email: user.email,
@@ -31,6 +40,7 @@ export async function login(data: LoginRequest): Promise<LoginResponse> {
   };
 }
 
+// API đăng ký
 export async function register(
   data: RegisterRequest,
 ): Promise<RegisterResponse> {
@@ -46,16 +56,25 @@ export async function register(
   };
 }
 
+// API đăng nhập bằng Google
 export async function googleLogin(idToken: string): Promise<LoginResponse> {
   // Đăng nhập bằng Google idToken và lấy thông tin xác thực tương tự login thường.
   const res = await apiClient.post<ApiWrapper<ApiLoginData>>(
     "/api/Users/google-login",
     { idToken },
   );
-  const { accessToken, refreshToken, user } = res.data.data;
+  const {
+    accessToken,
+    refreshToken,
+    accessTokenExpiresAt,
+    refreshTokenExpiresAt,
+    user,
+  } = res.data.data;
   return {
     token: accessToken,
     refreshToken,
+    accessTokenExpiresAt,
+    refreshTokenExpiresAt,
     user: {
       username: user.username,
       email: user.email,
@@ -65,6 +84,7 @@ export async function googleLogin(idToken: string): Promise<LoginResponse> {
   };
 }
 
+// API lấy thông tin người dùng hiện tại
 export async function getCurrentUser(): Promise<AuthUser | null> {
   // Lấy hồ sơ người dùng hiện tại từ API profile.
   const profile = await getProfile();
@@ -75,6 +95,7 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
   };
 }
 
+// API làm mới token
 export async function refreshTokenApi(
   accessToken: string,
   refreshTokenValue: string,
@@ -87,11 +108,15 @@ export async function refreshTokenApi(
   const {
     accessToken: newAccessToken,
     refreshToken: newRefreshToken,
+    accessTokenExpiresAt,
+    refreshTokenExpiresAt,
     user,
   } = res.data.data;
   return {
     token: newAccessToken,
     refreshToken: newRefreshToken,
+    accessTokenExpiresAt,
+    refreshTokenExpiresAt,
     user: {
       username: user.username,
       email: user.email,
