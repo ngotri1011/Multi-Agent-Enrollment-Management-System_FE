@@ -13,7 +13,7 @@ import {
 } from "antd";
 import { ArrowLeft, ClipboardList, GraduationCap, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { ApplicantLayout } from "../../components/layouts/ApplicantLayout";
+import { ApplicantLayout } from "../../layouts/ApplicantLayout";
 import { ApplicantMenu } from "../applicant/ApplicantMenu";
 import { getMyApplicant } from "../../api/applicants";
 import { getActiveProgramsBasic } from "../../api/programs";

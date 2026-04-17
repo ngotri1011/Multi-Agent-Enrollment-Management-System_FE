@@ -16,7 +16,7 @@ import {
   UserRound,
   XCircle,
 } from "lucide-react";
-import { ApplicantLayout } from "../../components/layouts/ApplicantLayout";
+import { ApplicantLayout } from "../../layouts/ApplicantLayout";
 import { ApplicantMenu } from "./ApplicantMenu";
 import { useAuthStore } from "../../stores/authStore";
 import { getMyApplicant } from "../../api/applicants";

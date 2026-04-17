@@ -3,7 +3,7 @@ import { Tabs, Typography } from "antd";
 import { CampusManagement } from "./CampusManagement";
 import { AdmissionTypeManagement } from "./AdmissionTypeManagement";
 import { MajorManagement } from "./MajorManagement";
-import { AdminLayout } from "../../../components/layouts/AdminLayout";
+import { AdminLayout } from "../../../layouts/AdminLayout";
 import EnrollmentYears from "./EnrollmentYears";
 
 const { Title, Text } = Typography;

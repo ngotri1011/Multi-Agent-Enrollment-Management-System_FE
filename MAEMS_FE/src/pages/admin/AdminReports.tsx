@@ -7,7 +7,7 @@ import {
   TrendingUp,
   CheckCircle,
 } from "lucide-react";
-import { AdminLayout } from "../../components/layouts/AdminLayout";
+import { AdminLayout } from "../../layouts/AdminLayout";
 
 const { Title, Text } = Typography;
 

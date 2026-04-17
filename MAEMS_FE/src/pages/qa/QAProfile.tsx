@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { getProfile } from "../../api/users";
 import type { UserProfile } from "../../types/auth";
-import { QALayout } from "../../components/layouts/QALayout";
+import { QALayout } from "../../layouts/QALayout";
 
 const { Title, Text } = Typography;
 

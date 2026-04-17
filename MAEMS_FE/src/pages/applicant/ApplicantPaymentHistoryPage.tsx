@@ -16,7 +16,7 @@ import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import type { Dayjs } from "dayjs";
 import { ArrowDownWideNarrow, ArrowUpNarrowWide, Filter, RotateCcw } from "lucide-react";
 import { getMyPayments } from "../../api/payments";
-import { ApplicantLayout } from "../../components/layouts/ApplicantLayout";
+import { ApplicantLayout } from "../../layouts/ApplicantLayout";
 import { ApplicantMenu } from "./ApplicantMenu";
 import type { Payment, PaymentStatus } from "../../types/payment";
 import { formatDateTimeVi } from "../../utils/date";

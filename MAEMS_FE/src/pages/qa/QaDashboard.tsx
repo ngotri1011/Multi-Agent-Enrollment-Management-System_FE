@@ -1,5 +1,5 @@
 import { Card, Col, Row, Typography } from "antd";
-import { QALayout } from "../../components/layouts/QALayout";
+import { QALayout } from "../../layouts/QALayout";
 
 const { Title, Text } = Typography;
 

@@ -1,6 +1,6 @@
 import { ChevronRight, Home, Mail, MapPin, Phone } from "lucide-react";
 import { Link } from "react-router-dom";
-import { GuestLayout } from "../../components/layouts/GuestLayout";
+import { GuestLayout } from "../../layouts/GuestLayout";
 
 type Campus = {
   name: string;

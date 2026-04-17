@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
 import { Layout } from "antd";
-import { DashboardHeader } from "../DashboardHeader";
-import { DashboardSidebar } from "../DashboardSidebar";
-import type { SidebarMenuItem } from "../DashboardSidebar";
+import { DashboardHeader } from "../components/DashboardHeader";
+import { DashboardSidebar } from "../components/DashboardSidebar";
+import type { SidebarMenuItem } from "../components/DashboardSidebar";
 
 const { Content } = Layout;
 

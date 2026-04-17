@@ -40,7 +40,7 @@ import {
 } from "lucide-react";
 import { motion } from "motion/react";
 import dayjs from "dayjs";
-import { ApplicantLayout } from "../../components/layouts/ApplicantLayout";
+import { ApplicantLayout } from "../../layouts/ApplicantLayout";
 import { getProfile } from "../../api/users";
 import { createApplicant, getMyApplicant, patchApplicant, uploadApplicantDocuments, getApplicantDocuments } from "../../api/applicants";
 import { deleteDocument } from "../../api/documents";

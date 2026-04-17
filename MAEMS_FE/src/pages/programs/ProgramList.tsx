@@ -23,7 +23,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { GuestLayout } from "../../components/layouts/GuestLayout";
+import { GuestLayout } from "../../layouts/GuestLayout";
 import { getActiveProgramsBasic, getFilteredProgramsBasic } from "../../api/programs";
 import { getActiveMajorsBasic } from "../../api/majors";
 import type { Program, ProgramBasic } from "../../types/program";

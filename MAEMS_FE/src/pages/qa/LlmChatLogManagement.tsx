@@ -32,7 +32,7 @@ import {
   SearchOutlined,
   UserOutlined,
 } from "@ant-design/icons";
-import { QALayout } from "../../components/layouts/QALayout";
+import { QALayout } from "../../layouts/QALayout";
 import {
   getLlmChatLogById,
   getLlmChatLogs,

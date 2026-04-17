@@ -16,7 +16,7 @@ import {
 import { SimpleEditor } from "@/components/tiptap-templates/simple/simple-editor";
 import { Newspaper, RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { OfficerLayout } from "../../components/layouts/OfficerLayout";
+import { OfficerLayout } from "../../layouts/OfficerLayout";
 import type { ArticleBasic, CreateArticleRequest, GetArticlesBasicQuery, UrlImageArticle } from "../../types/article";
 import type { ArticleStatus } from "../../types/enums";
 import {

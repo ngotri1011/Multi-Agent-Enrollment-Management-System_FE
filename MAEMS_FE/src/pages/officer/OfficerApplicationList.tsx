@@ -41,7 +41,7 @@ import {
 } from "../../api/applications";
 import { getActiveBasicCampuses } from "../../api/campuses";
 import { getActiveProgramsBasic } from "../../api/programs";
-import { OfficerLayout } from "../../components/layouts/OfficerLayout";
+import { OfficerLayout } from "../../layouts/OfficerLayout";
 import type { AdmissionTypeBasic } from "../../types/admission.type";
 import {
   APPLICATION_NEED_ACTION_PRESET_COMBO_LABEL,

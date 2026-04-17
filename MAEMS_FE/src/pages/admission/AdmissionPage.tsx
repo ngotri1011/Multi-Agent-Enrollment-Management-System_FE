@@ -9,7 +9,7 @@ import {
 } from "antd";
 import { ExternalLink, SquareArrowOutUpRight } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { GuestLayout } from "../../components/layouts/GuestLayout";
+import { GuestLayout } from "../../layouts/GuestLayout";
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -296,7 +296,7 @@ export function AdmissionPage() {
                     và sẵn sàng tham gia môi trường học tập, làm việc mang tính
                     toàn cầu, tạo ra giá trị tích cực cho xã hội.
                   </p>
-                  <div className="pt-2">
+                  {/* <div className="pt-2">
                     <Button
                       type="primary"
                       className="!bg-orange-500 !border-orange-500 hover:!bg-orange-600 hover:!border-orange-600 !rounded-lg !font-semibold"
@@ -304,7 +304,7 @@ export function AdmissionPage() {
                       Xem thêm
                       <SquareArrowOutUpRight size={15} className="ml-1" />
                     </Button>
-                  </div>
+                  </div> */}
                 </div>
               </Col>
               <Col xs={24} md={10}>
