@@ -19,6 +19,7 @@ import {
 } from "../api/notifications";
 import { getStoredToken } from "../services/axios";
 import type { Notification as UserNotification } from "../types/notification";
+import { createNotificationConnection, normalizeRealtimeNotification } from "../services/notificationSignalR";
 
 const { Text } = Typography;
 
@@ -116,6 +117,97 @@ export function HeaderNotifications() {
     );
     setNotifications((prev) => prev.map((item) => ({ ...item, isRead: true })));
   };
+
+ // Hàm này dùng để đẩy thông báo mới từ SignalR vào UI
+  const pushNotificationToUI = useCallback(
+    (item: UserNotification) => {
+      setNotifications((prev) => {
+        const exists = prev.some((n) => n.notificationId === item.notificationId);
+
+        const next = exists
+          ? prev.map((n) =>
+            n.notificationId === item.notificationId ? { ...n, ...item } : n,
+          )
+          : [item, ...prev];
+
+        return [...next].sort(
+          (a, b) => new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime(),
+        );
+      });
+
+      if (location.pathname === "/applicant/dashboard" && !item.isRead) {
+        const key = `realtime-notification-${item.notificationId}`;
+
+        notificationsApi.open({
+          key,
+          message: "Thông báo mới",
+          description: (
+            <div className="pr-2">
+              <Text className="text-sm text-gray-700">{item.message}</Text>
+              <div className="mt-2">
+                <Button
+                  size="small"
+                  type="link"
+                  className="!px-0 !text-orange-600"
+                  onClick={async () => {
+                    notificationsApi.destroy(key);
+                    setSelected(item);
+                    setDetailOpen(true);
+                    try {
+                      await handleMarkAsRead(item);
+                    } catch {
+                      // giữ modal mở
+                    }
+                  }}
+                >
+                  Xem chi tiết
+                </Button>
+              </div>
+            </div>
+          ),
+          placement: "topRight",
+          duration: 6,
+        });
+      }
+    },
+    [handleMarkAsRead, location.pathname, notificationsApi],
+  );
+
+  useEffect(() => {
+    const connection = createNotificationConnection();
+    if (!connection) return;
+
+    let isMounted = true;
+
+    connection.on("ReceiveNotification", (payload: unknown) => {
+      if (!isMounted) return;
+
+      const incoming = normalizeRealtimeNotification(payload);
+      if (!incoming) return;
+
+      pushNotificationToUI(incoming as UserNotification);
+    });
+
+    connection
+      .start()
+      .catch((err) => {
+        console.error("Lỗi kết nối đến SignalR:", err);
+      });
+
+    connection.onreconnected(() => {
+      console.log("Đang kết nối lại SignalR...");
+    });
+
+    connection.onclose(() => {
+      console.log("Kết nối SignalR đã đóng");
+    });
+
+    return () => {
+      isMounted = false;
+      connection.stop().catch(() => undefined);
+    };
+  }, [pushNotificationToUI]);
+
 
   useEffect(() => {
     // Tải dữ liệu ngay khi component được mount.

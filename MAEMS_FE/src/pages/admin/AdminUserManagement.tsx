@@ -361,7 +361,6 @@ export function AdminUserManagement() {
                 <Option value={2}>Officer</Option>
                 <Option value={3}>QA</Option>
                 <Option value={4}>Applicant</Option>
-                <Option value={5}>Guest</Option>
               </Select>
             </Form.Item>
           </Form>
