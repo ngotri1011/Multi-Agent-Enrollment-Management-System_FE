@@ -40,7 +40,7 @@ import {
   YAxis,
 } from "recharts";
 
-import { AdminLayout } from "../../components/layouts/AdminLayout";
+import { AdminLayout } from "../../layouts/AdminLayout";
 import { getPayments } from "../../api/payments";
 import { getApplicantById } from "../../api/applicants";
 import { getEnrollmentYears } from "../../api/enrollment-years";

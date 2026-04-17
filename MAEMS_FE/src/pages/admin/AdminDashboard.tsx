@@ -5,7 +5,7 @@ import {
   LayoutDashboard,
   User,
 } from "lucide-react";
-import { AdminLayout } from "../../components/layouts/AdminLayout";
+import { AdminLayout } from "../../layouts/AdminLayout";
 import { useEffect, useState } from "react";
 import type { ApplicationsByCampus, ApplicationStatusCounts, ReportSummary, WeeklyApplications } from "../../types/report";
 import { getApplicationsByCampus, getApplicationStatusCounts, getReportSummary, getWeeklyApplications } from "../../api/reports";

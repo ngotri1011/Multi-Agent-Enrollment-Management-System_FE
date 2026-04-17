@@ -11,7 +11,7 @@ import {
 import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { getActiveAdmissionTypes } from "../../api/admission-types";
-import { ApplicantLayout } from "../../components/layouts/ApplicantLayout";
+import { ApplicantLayout } from "../../layouts/ApplicantLayout";
 import type { AdmissionType } from "../../types/admission.type";
 import { ApplicantMenu } from "../applicant/ApplicantMenu";
 

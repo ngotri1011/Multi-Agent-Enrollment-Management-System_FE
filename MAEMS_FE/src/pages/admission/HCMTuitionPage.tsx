@@ -2,7 +2,7 @@ import { Table } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { Home, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
-import { GuestLayout } from "../../components/layouts/GuestLayout";
+import { GuestLayout } from "../../layouts/GuestLayout";
 
 type TuitionRow = {
   key: string;

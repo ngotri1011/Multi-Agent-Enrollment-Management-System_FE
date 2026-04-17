@@ -15,7 +15,7 @@ import {
   fetchAllApplications,
   type FetchAllApplicationsParams,
 } from "../../api/applications";
-import { OfficerLayout } from "../../components/layouts/OfficerLayout";
+import { OfficerLayout } from "../../layouts/OfficerLayout";
 import { useAuth } from "../../hooks/useAuth";
 import { useAuthStore } from "../../stores/authStore";
 import type { Application } from "../../types/application";

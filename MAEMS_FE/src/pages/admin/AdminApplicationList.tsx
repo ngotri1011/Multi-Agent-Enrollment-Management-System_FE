@@ -12,7 +12,7 @@ import {
 } from "antd";
 import { Search, Eye } from "lucide-react";
 import type { ColumnsType } from "antd/es/table";
-import { AdminLayout } from "../../components/layouts/AdminLayout";
+import { AdminLayout } from "../../layouts/AdminLayout";
 
 const { Title, Text } = Typography;
 const { Option } = Select;

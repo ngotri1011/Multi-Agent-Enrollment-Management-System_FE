@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Card, Table, Typography, message } from "antd";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import { getChatboxHistory } from "../../api/chatbox";
-import { ApplicantLayout } from "../../components/layouts/ApplicantLayout";
+import { ApplicantLayout } from "../../layouts/ApplicantLayout";
 import { ApplicantMenu } from "./ApplicantMenu";
 import type { ChatboxResponse } from "../../types/chatbox";
 import { formatChatText } from "../../utils/chatTextFormatter";

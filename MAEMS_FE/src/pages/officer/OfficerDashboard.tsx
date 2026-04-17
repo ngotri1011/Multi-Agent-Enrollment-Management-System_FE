@@ -33,7 +33,7 @@ import {
   YAxis,
 } from "recharts";
 import { fetchAllApplications } from "../../api/applications";
-import { OfficerLayout } from "../../components/layouts/OfficerLayout";
+import { OfficerLayout } from "../../layouts/OfficerLayout";
 import type { Application } from "../../types/application";
 import {
   APPLICATION_NEED_ACTION_PRESET_COMBO_LABEL,

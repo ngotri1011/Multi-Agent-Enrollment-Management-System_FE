@@ -16,7 +16,7 @@ import {
   Switch,
 } from "antd";
 import { Search, Eye, UserPlus, X, Save } from "lucide-react";
-import { AdminLayout } from "../../components/layouts/AdminLayout";
+import { AdminLayout } from "../../layouts/AdminLayout";
 import type { ColumnsType } from "antd/es/table";
 import { useEffect, useState } from "react";
 import { createUser, getUsers, updateUser } from "../../api/users";

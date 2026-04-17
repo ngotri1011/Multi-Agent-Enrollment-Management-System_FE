@@ -1,6 +1,6 @@
 import { Home, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
-import { GuestLayout } from "../../components/layouts/GuestLayout";
+import { GuestLayout } from "../../layouts/GuestLayout";
 
 export function AdmissionTypesPage() {
   return (

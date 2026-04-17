@@ -29,7 +29,7 @@ import {
   getApplicantDocumentsById,
 } from "../../api/applicants";
 import type { AgentLog } from "../../types/agent-log";
-import { QALayout } from "../../components/layouts/QALayout";
+import { QALayout } from "../../layouts/QALayout";
 
 type SearchType = "applicationId" | "documentId";
 

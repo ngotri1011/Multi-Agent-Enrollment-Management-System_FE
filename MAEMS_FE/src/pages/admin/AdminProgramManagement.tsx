@@ -1,5 +1,5 @@
 import { Card, Row, Col, Typography, Button, Tag, Space, Form, Switch, Input, Modal, message, Pagination, Spin, Select } from "antd";
-import { AdminLayout } from "../../components/layouts/AdminLayout";
+import { AdminLayout } from "../../layouts/AdminLayout";
 import { useEffect, useState } from "react";
 import type { Program } from "../../types/program";
 import { createProgram, getallPrograms, getPrograms, updateProgram } from "../../api/programs";

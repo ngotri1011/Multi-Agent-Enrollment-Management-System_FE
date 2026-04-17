@@ -2,7 +2,7 @@ import { Breadcrumb, Card, Spin, Typography } from "antd";
 import { CalendarDays } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { GuestLayout } from "../../components/layouts/GuestLayout";
+import { GuestLayout } from "../../layouts/GuestLayout";
 import { getPublishedArticlesBasic } from "../../api/articles";
 import type { ArticleBasic } from "../../types/article";
 

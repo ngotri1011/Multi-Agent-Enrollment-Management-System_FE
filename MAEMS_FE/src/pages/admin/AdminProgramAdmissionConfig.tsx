@@ -8,7 +8,7 @@ import {
   getProgramAdmissionConfigs,
   updateProgramAdmissionConfig,
 } from "../../api/program-admission-configs";
-import { AdminLayout } from "../../components/layouts/AdminLayout";
+import { AdminLayout } from "../../layouts/AdminLayout";
 import type { CampusBasic } from "src/types/campus";
 import type { AdmissionTypeBasic } from "src/types/admission.type";
 import {

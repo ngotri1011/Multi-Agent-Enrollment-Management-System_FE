@@ -42,7 +42,7 @@ import {
   requestAdditionalDocuments,
 } from "../../api/applications";
 import type { CreateApplicantResponse } from "../../types/applicant";
-import { OfficerLayout } from "../../components/layouts/OfficerLayout";
+import { OfficerLayout } from "../../layouts/OfficerLayout";
 import {
   APPLICATION_REQUIRES_REVIEW_LABEL,
   APPLICATION_STATUS,

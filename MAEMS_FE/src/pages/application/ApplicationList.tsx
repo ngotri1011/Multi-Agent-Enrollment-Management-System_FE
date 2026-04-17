@@ -25,7 +25,7 @@ import {
   SendHorizonal,
   XCircle,
 } from "lucide-react";
-import { ApplicantLayout } from "../../components/layouts/ApplicantLayout";
+import { ApplicantLayout } from "../../layouts/ApplicantLayout";
 import { ApplicantMenu } from "../applicant/ApplicantMenu";
 import { fetchMyApplications, submitApplicationFinal } from "../../api/applications";
 import {

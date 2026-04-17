@@ -9,7 +9,7 @@ import {
 } from "antd";
 import { ExternalLink, SquareArrowOutUpRight } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { GuestLayout } from "../../components/layouts/GuestLayout";
+import { GuestLayout } from "../../layouts/GuestLayout";
 
 const { Title, Paragraph, Text } = Typography;
 

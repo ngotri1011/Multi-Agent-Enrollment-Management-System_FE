@@ -14,7 +14,7 @@ import {
   ShieldCheck,
   User,
 } from "lucide-react";
-import { OfficerLayout } from "../../components/layouts/OfficerLayout";
+import { OfficerLayout } from "../../layouts/OfficerLayout";
 import { getProfile } from "../../api/users";
 import type { UserProfile } from "../../types/auth";
 
