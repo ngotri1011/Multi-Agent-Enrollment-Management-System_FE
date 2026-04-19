@@ -125,3 +125,31 @@ export async function refreshTokenApi(
     },
   };
 }
+
+// API yêu cầu reset mật khẩu và trả mã OTP về email của người dùng
+export async function requestResetPassword(email: string): Promise<ApiWrapper<string>> {
+  const res = await apiClient.post<ApiWrapper<string>>(
+    "/api/Users/request-password-reset",
+    { email },
+  );
+  return res.data;
+}
+
+//API xác thực reset password
+export async function verifyResetPassword({
+  email,
+  otpCode,
+  newPassword,
+  confirmPassword,
+}: {
+  email: string;
+  otpCode: string;
+  newPassword: string;
+  confirmPassword: string;
+}): Promise<ApiWrapper<string>> {
+  const res = await apiClient.post<ApiWrapper<string>>(
+    "/api/Users/reset-password",
+    { email, otpCode, newPassword, confirmPassword },
+  );
+  return res.data;
+}
