@@ -89,3 +89,27 @@
     transform: rotate(360deg);
   }
 }
+
+// Chuyển view từng bước tiến (trái → phải): dùng cho auth flow đi tới
+@keyframes authViewForward {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+// Chuyển view ngược bước (phải → trái): dùng khi người dùng bấm quay lại
+@keyframes authViewBack {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
