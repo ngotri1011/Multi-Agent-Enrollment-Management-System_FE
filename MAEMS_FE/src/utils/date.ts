@@ -1,3 +1,23 @@
+/**
+ * Chuẩn hóa chuỗi ISO datetime từ backend:
+ * - Cắt phần thập phân giây xuống còn 3 chữ số (ms) để tránh parse lỗi trên một số engine
+ *   vì backend có lúc trả 4 chữ số (ví dụ .1234) hoặc 6 chữ số microseconds (ví dụ .123456).
+ * - Nếu chuỗi chưa có chỉ định múi giờ (không có 'Z' và không có '+'/'-' offset),
+ *   tự động thêm 'Z' để trình duyệt hiểu đây là UTC và chuyển đổi sang giờ địa phương đúng.
+ */
+export function ensureUtc(iso: string): string {
+  if (!iso) return iso;
+
+  // Cắt phần thập phân giây về đúng 3 chữ số milliseconds.
+  // Regex khớp với phần ".NNNN..." (4 chữ số trở lên) rồi giữ lại 3 chữ số đầu.
+  const normalized = iso.replace(/(\.\d{3})\d+/, "$1");
+
+  // Kiểm tra xem chuỗi đã có thông tin múi giờ chưa (kết thúc bằng Z, hoặc có +HH:MM / -HH:MM).
+  const hasTimezone = /Z$/i.test(normalized) || /[+-]\d{2}:\d{2}$/.test(normalized);
+
+  return hasTimezone ? normalized : normalized + "Z";
+}
+
 export function formatDate(value: string | number | Date) {
   const date = value instanceof Date ? value : new Date(value)
   return date.toISOString()
@@ -8,7 +28,10 @@ export function formatDateTimeVi(
   options?: { withSeconds?: boolean; utcOffsetHours?: number; timeFirst?: boolean }
 ): string {
   if (value === null || value === undefined || value === "") return "--"
-  const rawDate = value instanceof Date ? value : new Date(value)
+  // Nếu value là chuỗi ISO từ backend, chuẩn hóa trước (thêm 'Z', cắt microseconds)
+  // để new Date() parse đúng UTC thay vì hiểu nhầm thành giờ địa phương.
+  const normalized = typeof value === "string" ? ensureUtc(value) : value
+  const rawDate = normalized instanceof Date ? normalized : new Date(normalized)
   if (Number.isNaN(rawDate.getTime())) return "--"
 
   // Hỗ trợ nghiệp vụ backend trả mốc thời gian UTC (GMT+0), cần cộng offset trước khi hiển thị.

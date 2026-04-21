@@ -30,6 +30,7 @@ import type { UploadFile } from "antd";
 import { CheckOutlined, DeleteOutlined, EditOutlined, UploadOutlined } from "@ant-design/icons";
 import { ExclamationCircleFilled } from "@ant-design/icons";
 import { Typography } from "antd";
+import { ensureUtc } from "../../utils/date";
 
 const { Title, Text } = Typography;
 
@@ -351,7 +352,7 @@ export function OfficerArticles() {
                         {statusTag(String(a.status))}
                       </div>
                       <Text type="secondary" className="text-xs">
-                        Cập nhật: {new Date(a.updatedAt).toLocaleString("vi-VN")}
+                        Cập nhật: {new Date(ensureUtc(a.updatedAt)).toLocaleString("vi-VN")}
                       </Text>
                     </div>
 

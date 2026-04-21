@@ -21,6 +21,7 @@ import { submitApplication } from "../../api/applications";
 import { getProgramAdmissionConfigsFilter } from "../../api/program-admission-configs";
 import type { CreateApplicantResponse } from "../../types/applicant";
 import type { ProgramBasic } from "../../types/program";
+import { ensureUtc } from "../../utils/date";
 
 const { Title, Text } = Typography;
 
@@ -36,8 +37,9 @@ type CampusOption = { campusId: number; campusName: string };
 type AdmTypeOption = { admissionTypeId: number; admissionTypeName: string };
 
 function ApplicantInfoCard({ applicant }: { applicant: CreateApplicantResponse }) {
+  // ensureUtc chuẩn hóa ISO từ backend trước khi parse để hiển thị đúng múi giờ địa phương.
   const formatDate = (iso: string) =>
-    new Date(iso).toLocaleDateString("vi-VN", {
+    new Date(ensureUtc(iso)).toLocaleDateString("vi-VN", {
       year: "numeric",
       month: "long",
       day: "numeric",

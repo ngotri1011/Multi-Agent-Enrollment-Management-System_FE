@@ -44,6 +44,7 @@ import {
 } from "../../types/application";
 import type { DocumentStatus } from "../../types/enums";
 import { DOCUMENT_STATUS } from "../../constants/labels";
+import { ensureUtc } from "../../utils/date";
 
 const { Title, Text } = Typography;
 
@@ -77,7 +78,9 @@ const statusConfig: Record<ApplicationStatus, { label: string; color: string }> 
 
 function formatDate(iso: string) {
   if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("vi-VN", {
+  // ensureUtc chuẩn hóa chuỗi ISO từ backend (thiếu 'Z', microseconds 4-6 chữ số)
+  // trước khi parse để hiển thị đúng múi giờ địa phương.
+  return new Date(ensureUtc(iso)).toLocaleDateString("vi-VN", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -88,7 +91,8 @@ function formatDate(iso: string) {
 
 function formatDateShort(iso: string) {
   if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("vi-VN", {
+  // Dùng ensureUtc để đảm bảo parse đúng múi giờ.
+  return new Date(ensureUtc(iso)).toLocaleDateString("vi-VN", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -619,7 +623,7 @@ export function ApplicationDetail() {
                 <Text className="!text-xs !text-gray-400 block">Ngày tải lên</Text>
                 <Text className="!text-sm !text-gray-700 !font-medium">
                   {previewDoc.uploadedAt
-                    ? new Date(previewDoc.uploadedAt).toLocaleDateString("vi-VN", {
+                    ? new Date(ensureUtc(previewDoc.uploadedAt)).toLocaleDateString("vi-VN", {
                       year: "numeric",
                       month: "long",
                       day: "numeric",

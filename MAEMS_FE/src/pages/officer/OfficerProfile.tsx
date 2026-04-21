@@ -17,6 +17,7 @@ import {
 import { OfficerLayout } from "../../layouts/OfficerLayout";
 import { getProfile } from "../../api/users";
 import type { UserProfile } from "../../types/auth";
+import { ensureUtc } from "../../utils/date";
 
 const roleLabel: Record<string, string> = {
   applicant: "Thí sinh",
@@ -26,7 +27,8 @@ const roleLabel: Record<string, string> = {
 };
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("vi-VN", {
+  // ensureUtc chuẩn hóa ISO từ backend trước khi parse để hiển thị đúng múi giờ địa phương.
+  return new Date(ensureUtc(iso)).toLocaleDateString("vi-VN", {
     year: "numeric",
     month: "long",
     day: "numeric",

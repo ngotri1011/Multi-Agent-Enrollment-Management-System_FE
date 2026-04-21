@@ -51,6 +51,7 @@ import {
 } from "../../types/application";
 import type { Document } from "../../types/document";
 import type { DocumentStatus } from "../../types/enums";
+import { ensureUtc } from "../../utils/date";
 
 const { Title, Text } = Typography;
 
@@ -455,12 +456,12 @@ export function OfficerApplicationDetail() {
                   </Descriptions.Item>
                   <Descriptions.Item label="Ngày nộp">
                     {app.submittedAt
-                      ? new Date(app.submittedAt).toLocaleString("vi-VN")
+                      ? new Date(ensureUtc(app.submittedAt)).toLocaleString("vi-VN")
                       : "—"}
                   </Descriptions.Item>
                   <Descriptions.Item label="Cập nhật lần cuối">
                     {app.lastUpdated
-                      ? new Date(app.lastUpdated).toLocaleString("vi-VN")
+                      ? new Date(ensureUtc(app.lastUpdated)).toLocaleString("vi-VN")
                       : "—"}
                   </Descriptions.Item>
                   <Descriptions.Item label="Cán bộ phụ trách">
@@ -591,7 +592,7 @@ export function OfficerApplicationDetail() {
                               </Text>
                               <Text className="text-xs text-gray-300">
                                 {doc.uploadedAt
-                                  ? new Date(doc.uploadedAt).toLocaleDateString("vi-VN")
+                                  ? new Date(ensureUtc(doc.uploadedAt)).toLocaleDateString("vi-VN")
                                   : ""}
                               </Text>
                             </div>
@@ -754,7 +755,7 @@ export function OfficerApplicationDetail() {
               <Descriptions column={{ xs: 1, sm: 2 }} size="small" bordered className="!mb-4">
                 <Descriptions.Item label="Ngày sinh" span={1}>
                   {applicantDetail.dateOfBirth
-                    ? new Date(applicantDetail.dateOfBirth).toLocaleDateString("vi-VN")
+                    ? new Date(ensureUtc(applicantDetail.dateOfBirth)).toLocaleDateString("vi-VN")
                     : "—"}
                 </Descriptions.Item>
                 <Descriptions.Item label="Giới tính" span={1}>
@@ -793,7 +794,7 @@ export function OfficerApplicationDetail() {
                 </Descriptions.Item>
                 <Descriptions.Item label="Ngày cấp">
                   {applicantDetail.idIssueDate
-                    ? new Date(applicantDetail.idIssueDate).toLocaleDateString("vi-VN")
+                    ? new Date(ensureUtc(applicantDetail.idIssueDate)).toLocaleDateString("vi-VN")
                     : "—"}
                 </Descriptions.Item>
                 <Descriptions.Item label="Nơi cấp" span={2}>
@@ -833,7 +834,7 @@ export function OfficerApplicationDetail() {
                 </Descriptions.Item>
                 <Descriptions.Item label="Tạo hồ sơ lúc">
                   {applicantDetail.createdAt
-                    ? new Date(applicantDetail.createdAt).toLocaleString("vi-VN")
+                    ? new Date(ensureUtc(applicantDetail.createdAt)).toLocaleString("vi-VN")
                     : "—"}
                 </Descriptions.Item>
               </Descriptions>
@@ -898,7 +899,7 @@ export function OfficerApplicationDetail() {
                 <Text className="!text-xs !text-gray-400 block">Ngày tải lên</Text>
                 <Text className="!text-sm !text-gray-700 !font-medium">
                   {previewDoc.uploadedAt
-                    ? new Date(previewDoc.uploadedAt).toLocaleDateString("vi-VN", {
+                    ? new Date(ensureUtc(previewDoc.uploadedAt)).toLocaleDateString("vi-VN", {
                       year: "numeric",
                       month: "long",
                       day: "numeric",

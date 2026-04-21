@@ -197,8 +197,8 @@ export function ApplicantPaymentHistoryPage() {
       key: "paidAt",
       width: 190,
       render: (value: string | null) =>
-        // Backend đang trả sai thông tin múi giờ, nên tạm cộng +7 giờ để hiển thị đúng giờ Việt Nam cho người dùng.
-        formatDateTimeVi(value, { timeFirst: true, utcOffsetHours: 7 }),
+        // ensureUtc trong formatDateTimeVi tự xử lý múi giờ; không cần cộng thủ công nữa.
+        formatDateTimeVi(value, { timeFirst: true }),
     },
   ];
 
