@@ -53,6 +53,7 @@ import {
 } from "../../types/application";
 import type { CampusBasic } from "../../types/campus";
 import type { ProgramBasic } from "../../types/program";
+import { ensureUtc } from "../../utils/date";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -126,8 +127,9 @@ function dashboardPresetHint(preset: DashboardListPreset | null): string | null 
 }
 
 function sortByLastUpdatedDesc(a: Application, b: Application) {
+  // ensureUtc đảm bảo parse đúng UTC từ backend khi so sánh thời gian cập nhật.
   return (
-    new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime()
+    new Date(ensureUtc(b.lastUpdated)).getTime() - new Date(ensureUtc(a.lastUpdated)).getTime()
   );
 }
 
@@ -811,7 +813,7 @@ export function OfficerApplicationList() {
       render: (date: string) =>
         date ? (
           <Text className="text-gray-500 text-sm">
-            {new Date(date).toLocaleDateString("vi-VN")}
+            {new Date(ensureUtc(date)).toLocaleDateString("vi-VN")}
           </Text>
         ) : (
           <Text className="text-gray-300 text-sm">—</Text>

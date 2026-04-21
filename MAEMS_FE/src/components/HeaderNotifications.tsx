@@ -20,12 +20,14 @@ import {
 import { getStoredToken } from "../services/axios";
 import type { Notification as UserNotification } from "../types/notification";
 import { createNotificationConnection, normalizeRealtimeNotification } from "../services/notificationSignalR";
+import { ensureUtc } from "../utils/date";
 
 const { Text } = Typography;
 
 function formatTime(iso: string) {
-  // Giữ ngày + giờ phút để đủ ngữ cảnh, chỉ ẩn phần giây cho giao diện gọn hơn.
-  return new Date(iso).toLocaleString("vi-VN", {
+  // ensureUtc chuẩn hóa chuỗi ISO từ backend (thiếu 'Z', micro giây 4-6 chữ số)
+  // để parse đúng UTC rồi hiển thị theo múi giờ địa phương người dùng.
+  return new Date(ensureUtc(iso)).toLocaleString("vi-VN", {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -68,8 +70,9 @@ export function HeaderNotifications() {
     setLoading(true);
     try {
       const data = await getMyNotifications();
+      // Sắp xếp giảm dần theo thời gian; dùng ensureUtc để parse đúng UTC từ BE.
       const sorted = [...(data ?? [])].sort(
-        (a, b) => new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime(),
+        (a, b) => new Date(ensureUtc(b.sentAt)).getTime() - new Date(ensureUtc(a.sentAt)).getTime(),
       );
       setNotifications(sorted);
     } finally {
@@ -130,8 +133,9 @@ export function HeaderNotifications() {
           )
           : [item, ...prev];
 
+        // Sắp xếp lại sau khi thêm/cập nhật thông báo realtime.
         return [...next].sort(
-          (a, b) => new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime(),
+          (a, b) => new Date(ensureUtc(b.sentAt)).getTime() - new Date(ensureUtc(a.sentAt)).getTime(),
         );
       });
 

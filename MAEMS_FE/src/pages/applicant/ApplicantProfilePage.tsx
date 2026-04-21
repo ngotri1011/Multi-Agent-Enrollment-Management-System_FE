@@ -50,6 +50,7 @@ import type { Document as ApplicantDocument } from "../../types/document";
 import type { DocumentStatus } from "../../types/enums";
 import { DOCUMENT_STATUS } from "../../constants/labels";
 import { ApplicantMenu } from "./ApplicantMenu";
+import { ensureUtc } from "../../utils/date";
 
 const { Title, Text } = Typography;
 
@@ -107,7 +108,8 @@ const roleLabel: Record<string, string> = {
 };
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("vi-VN", {
+  // ensureUtc chuẩn hóa ISO từ backend (thiếu 'Z', micro giây 4-6 chữ số) để parse đúng múi giờ địa phương.
+  return new Date(ensureUtc(iso)).toLocaleDateString("vi-VN", {
     year: "numeric",
     month: "long",
     day: "numeric",
@@ -592,7 +594,7 @@ export function ApplicantProfilePage() {
                         </p>
                         {doc.uploadedAt && (
                           <p className="text-[10px] text-gray-300 mt-0.5 leading-tight">
-                            {new Date(doc.uploadedAt).toLocaleDateString("vi-VN")}
+                            {new Date(ensureUtc(doc.uploadedAt)).toLocaleDateString("vi-VN")}
                           </p>
                         )}
                       </div>
@@ -664,7 +666,7 @@ export function ApplicantProfilePage() {
               <div>
                 <Text className="!text-xs !text-gray-400 block">Ngày tải lên</Text>
                 <Text className="!text-sm !text-gray-700 !font-medium">
-                  {previewDoc.uploadedAt ? new Date(previewDoc.uploadedAt).toLocaleDateString("vi-VN", { year: "numeric", month: "long", day: "numeric" }) : "—"}
+                  {previewDoc.uploadedAt ? new Date(ensureUtc(previewDoc.uploadedAt)).toLocaleDateString("vi-VN", { year: "numeric", month: "long", day: "numeric" }) : "—"}
                 </Text>
               </div>
               {previewDoc.verificationDetails && (

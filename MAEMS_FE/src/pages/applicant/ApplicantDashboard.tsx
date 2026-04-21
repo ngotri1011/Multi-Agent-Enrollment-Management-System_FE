@@ -29,6 +29,7 @@ import {
   type ApplicationMe,
   type ApplicationStatus,
 } from "../../types/application";
+import { ensureUtc } from "../../utils/date";
 
 const { Title, Text } = Typography;
 
@@ -107,7 +108,8 @@ function getGreeting() {
 }
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("vi-VN", {
+  // ensureUtc chuẩn hóa ISO từ backend để parse đúng múi giờ địa phương.
+  return new Date(ensureUtc(iso)).toLocaleDateString("vi-VN", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -185,10 +187,11 @@ export function ApplicantDashboard() {
   ];
 
   // recent apps (last 3)
+  // ensureUtc đảm bảo so sánh thời gian đúng khi backend trả ISO không có 'Z'.
   const recentApps = [...apps]
     .sort(
       (a, b) =>
-        new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime(),
+        new Date(ensureUtc(b.lastUpdated)).getTime() - new Date(ensureUtc(a.lastUpdated)).getTime(),
     )
     .slice(0, 3);
 

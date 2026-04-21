@@ -28,6 +28,7 @@ import {
 import { ApplicantLayout } from "../../layouts/ApplicantLayout";
 import { ApplicantMenu } from "../applicant/ApplicantMenu";
 import { fetchMyApplications, submitApplicationFinal } from "../../api/applications";
+import { ensureUtc } from "../../utils/date";
 import {
   APPLICATION_STATUS,
   type ApplicationMe,
@@ -80,7 +81,8 @@ const statusConfig: Record<ApplicationStatus, { label: string; color: string }> 
 
 function formatDate(iso: string) {
   if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("vi-VN", {
+  // Dùng ensureUtc để đảm bảo backend trả ISO không có 'Z' vẫn được parse đúng múi giờ địa phương.
+  return new Date(ensureUtc(iso)).toLocaleDateString("vi-VN", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -89,7 +91,8 @@ function formatDate(iso: string) {
 
 function relativeTime(iso: string) {
   if (!iso) return "—";
-  const diff = Date.now() - new Date(iso).getTime();
+  // ensureUtc cần thiết để tính khoảng cách thời gian chính xác.
+  const diff = Date.now() - new Date(ensureUtc(iso)).getTime();
   const h = Math.floor(diff / 3_600_000);
   const d = Math.floor(diff / 86_400_000);
   if (h < 1)  return "vừa xong";
