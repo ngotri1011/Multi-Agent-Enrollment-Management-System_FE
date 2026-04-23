@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Button,
@@ -6,6 +6,7 @@ import {
   Empty,
   Input,
   Modal,
+  Progress,
   Select,
   Space,
   Spin,
@@ -13,7 +14,7 @@ import {
   Tag,
   Tooltip,
   Typography,
-  message,
+  notification,
   Popconfirm,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
@@ -27,7 +28,10 @@ import {
 } from "lucide-react";
 import { ApplicantLayout } from "../../layouts/ApplicantLayout";
 import { ApplicantMenu } from "../applicant/ApplicantMenu";
-import { fetchMyApplications, submitApplicationFinal } from "../../api/applications";
+import {
+  fetchMyApplications,
+  submitApplicationFinal,
+} from "../../api/applications";
 import { ensureUtc } from "../../utils/date";
 import {
   APPLICATION_STATUS,
@@ -62,15 +66,27 @@ const STATUS_TAG_COLOR: Record<ApplicationStatus, string> = {
   document_required: "warning",
 };
 
-const statusConfig: Record<ApplicationStatus, { label: string; color: string }> = {
+const statusConfig: Record<
+  ApplicationStatus,
+  { label: string; color: string }
+> = {
   draft: { label: APPLICATION_STATUS.draft, color: STATUS_TAG_COLOR.draft },
-  submitted: { label: APPLICATION_STATUS.submitted, color: STATUS_TAG_COLOR.submitted },
+  submitted: {
+    label: APPLICATION_STATUS.submitted,
+    color: STATUS_TAG_COLOR.submitted,
+  },
   under_review: {
     label: APPLICATION_STATUS.under_review,
     color: STATUS_TAG_COLOR.under_review,
   },
-  approved: { label: APPLICATION_STATUS.approved, color: STATUS_TAG_COLOR.approved },
-  rejected: { label: APPLICATION_STATUS.rejected, color: STATUS_TAG_COLOR.rejected },
+  approved: {
+    label: APPLICATION_STATUS.approved,
+    color: STATUS_TAG_COLOR.approved,
+  },
+  rejected: {
+    label: APPLICATION_STATUS.rejected,
+    color: STATUS_TAG_COLOR.rejected,
+  },
   document_required: {
     label: APPLICATION_STATUS.document_required,
     color: STATUS_TAG_COLOR.document_required,
@@ -95,7 +111,7 @@ function relativeTime(iso: string) {
   const diff = Date.now() - new Date(ensureUtc(iso)).getTime();
   const h = Math.floor(diff / 3_600_000);
   const d = Math.floor(diff / 86_400_000);
-  if (h < 1)  return "vừa xong";
+  if (h < 1) return "vừa xong";
   if (h < 24) return `${h} giờ trước`;
   if (d < 30) return `${d} ngày trước`;
   return formatDate(iso);
@@ -157,18 +173,186 @@ function meAdmissionOptionLabel(a: ApplicationMe): string {
   return t || `Loại xét tuyển — đơn #${a.applicationId}`;
 }
 
+// ─── QR Payment Modal ─────────────────────────────────────────────────────────
+
+/** Thời gian hiệu lực mã QR thanh toán (giây). */
+const QR_TIMEOUT_SEC = 5 * 60;
+
+/**
+ * Modal thanh toán QR tách riêng thành component để dùng được hooks.
+ * Bao gồm countdown 5 phút, đổi màu theo thời gian còn lại và tự đóng khi hết hạn.
+ */
+function QrPaymentModal({
+  open,
+  url,
+  transactionId,
+  amount,
+  onPaid,
+  onClose,
+  onExpire,
+}: {
+  open: boolean;
+  url: string;
+  transactionId: string;
+  amount: number | null;
+  onPaid: () => void;
+  onClose: () => void;
+  onExpire: () => void;
+}) {
+  const [remaining, setRemaining] = useState(QR_TIMEOUT_SEC);
+  // Ref lưu callback onExpire mới nhất để tránh stale closure trong setInterval.
+  const onExpireRef = useRef(onExpire);
+  useEffect(() => {
+    onExpireRef.current = onExpire;
+  }, [onExpire]);
+
+  // Khởi động đếm ngược khi modal mở; tính remaining từ startMs trong callback interval
+  // thay vì gọi setRemaining trực tiếp trong effect body để tránh cascading renders.
+  useEffect(() => {
+    if (!open) return;
+    const startMs = Date.now();
+    const id = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - startMs) / 1000);
+      const r = Math.max(0, QR_TIMEOUT_SEC - elapsed);
+      setRemaining(r);
+      if (r === 0) {
+        clearInterval(id);
+        // Gọi callback hết hạn ở tick tiếp theo để tránh update state trong render.
+        setTimeout(() => onExpireRef.current(), 0);
+      }
+    }, 1000);
+    return () => clearInterval(id);
+  }, [open]);
+
+  const expired = remaining === 0;
+  const mm = String(Math.floor(remaining / 60)).padStart(2, "0");
+  const ss = String(remaining % 60).padStart(2, "0");
+  const percent = Math.round((remaining / QR_TIMEOUT_SEC) * 100);
+
+  // Đổi màu: xanh lá (>2 phút) → cam (1-2 phút) → đỏ (<1 phút / hết hạn).
+  const timerColor =
+    remaining > 120 ? "#22c55e" : remaining > 60 ? "#f97316" : "#ef4444";
+
+  return (
+    <Modal
+      open={open}
+      title="Thanh toán bằng QR"
+      width={440}
+      getContainer={() => document.body}
+      zIndex={2000}
+      centered
+      onCancel={onClose}
+      footer={[
+        <Button key="cancel" onClick={onClose}>
+          Đóng
+        </Button>,
+        <Button
+          key="paid"
+          type="primary"
+          disabled={expired}
+          className="!bg-green-600 !border-green-600 disabled:!opacity-50"
+          onClick={onPaid}
+        >
+          Đã thanh toán
+        </Button>,
+      ]}
+    >
+      <div className="flex flex-col items-center gap-4 pt-1">
+        {/* ── Countdown timer ── */}
+        <div className="flex flex-col items-center gap-1">
+          <Progress
+            type="circle"
+            percent={percent}
+            size={76}
+            strokeColor={timerColor}
+            trailColor="#f3f4f6"
+            strokeWidth={8}
+            format={() => (
+              <span
+                className="text-[15px] font-bold tabular-nums leading-none"
+                style={{ color: timerColor }}
+              >
+                {mm}:{ss}
+              </span>
+            )}
+          />
+          <Text className="!text-[11px] !text-gray-400">
+            {expired ? "Mã QR đã hết hạn" : "Thời gian còn lại"}
+          </Text>
+        </div>
+
+        {/* ── QR image hoặc thông báo hết hạn ── */}
+        {expired ? (
+          <div className="w-[220px] h-[220px] flex flex-col items-center justify-center gap-3 rounded-2xl bg-red-50 border border-red-100">
+            <XCircle size={44} className="text-red-400" />
+            <Text className="!text-sm !text-red-500 text-center leading-snug">
+              Phiên thanh toán đã hết hạn.
+              <br />
+              Vui lòng nộp đơn lại để nhận mã mới.
+            </Text>
+          </div>
+        ) : (
+          <img
+            src={url}
+            alt="QR thanh toán"
+            className="rounded-xl border border-gray-100 shadow-sm"
+            style={{ width: 220, height: 220, objectFit: "contain" }}
+          />
+        )}
+
+        {/* ── Thông tin giao dịch ── */}
+        <div className="w-full rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 flex flex-col gap-2">
+          <div>
+            <div className="text-[11px] text-gray-500 mb-0.5">
+              Số tiền cần thanh toán
+            </div>
+            <div className="text-base font-semibold text-orange-600">
+              {amount !== null ? formatVnd(amount) : "Không xác định"}
+            </div>
+          </div>
+          <div>
+            <div className="text-[11px] text-gray-500 mb-0.5">Mã giao dịch</div>
+            <div className="font-mono text-sm text-gray-700 break-all">
+              {transactionId}
+            </div>
+          </div>
+        </div>
+
+        {!expired && (
+          <Text className="!text-xs !text-gray-400 text-center">
+            Sau khi quét QR và thanh toán thành công, nhấn{" "}
+            <strong className="text-green-700">Đã thanh toán</strong>.<br />
+            Hệ thống sẽ cập nhật trạng thái đơn đăng ký của bạn.
+          </Text>
+        )}
+      </div>
+    </Modal>
+  );
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export function ApplicationList() {
   const navigate = useNavigate();
-  const [messageApi, contextHolder] = message.useMessage();
+  // Dùng notification thay vì message để toast hiển thị nổi bật hơn, đặc biệt sau luồng thanh toán.
+  const [notifApi, notifContextHolder] = notification.useNotification();
   const [apps, setApps] = useState<ApplicationMe[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [submittingId, setSubmittingId] = useState<number | null>(null);
 
+  // State điều khiển modal QR thanh toán (null = đóng).
+  const [qrModal, setQrModal] = useState<{
+    url: string;
+    transactionId: string;
+    amount: number | null;
+    programName: string;
+  } | null>(null);
+
   const [searchText, setSearchText] = useState("");
-  const [statusFilter, setStatusFilter] = useState<ApplicationStatus | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<ApplicationStatus | "all">(
+    "all",
+  );
   const [programFilter, setProgramFilter] = useState<string>("all");
   const [campusFilter, setCampusFilter] = useState<string>("all");
   const [admissionFilter, setAdmissionFilter] = useState<string>("all");
@@ -252,7 +436,14 @@ export function ApplicationList() {
         .toLowerCase();
       return blob.includes(q);
     });
-  }, [apps, searchText, statusFilter, programFilter, campusFilter, admissionFilter]);
+  }, [
+    apps,
+    searchText,
+    statusFilter,
+    programFilter,
+    campusFilter,
+    admissionFilter,
+  ]);
 
   const hasActiveFilters =
     searchText.trim() !== "" ||
@@ -290,57 +481,23 @@ export function ApplicationList() {
         const payment = await submitApplicationFinal(Number(app.applicationId));
 
         if (hasPaymentQr(payment)) {
-          const paymentAmount = getAmountFromPaymentUrl(payment.url);
-          messageApi.info(
-            "Mã thanh toán QR đã sẵn sàng. Vui lòng quét QR để thanh toán.",
-          );
-          // Hiển thị modal QR ngay sau khi nộp để ép luồng thanh toán diễn ra liền mạch, tránh người dùng bỏ sót bước này.
-          Modal.info({
-            title: "Thanh toán bằng QR",
-            width: 420,
-            getContainer: () => document.body,
-            zIndex: 2000,
-            centered: true,
-            content: (
-              <div className="flex flex-col items-center gap-3">
-                <img
-                  src={payment.url}
-                  alt="QR thanh toán"
-                  style={{ width: 220, height: 220, objectFit: "contain" }}
-                />
-                <div className="w-full">
-                  <div className="text-xs text-gray-500 mb-1">
-                    Số tiền cần thanh toán
-                  </div>
-                  <div className="text-base font-semibold text-orange-600">
-                    {paymentAmount !== null
-                      ? formatVnd(paymentAmount)
-                      : "Không xác định"}
-                  </div>
-                </div>
-                <div className="w-full">
-                  <div className="text-xs text-gray-500 mb-1">Mã giao dịch</div>
-                  <div className="font-mono text-sm text-gray-700 break-all">
-                    {payment.transactionId}
-                  </div>
-                </div>
-                <div className="text-xs text-gray-500 text-center">
-                  Sau khi thanh toán, hệ thống sẽ cập nhật trạng thái đơn đăng ký của
-                  bạn.
-                </div>
-              </div>
-            ),
-            okText: "Đã hiểu",
-            // Sau khi người dùng đóng modal, tải lại danh sách để đồng bộ trạng thái đơn mới nhất từ hệ thống.
-            onOk: () => loadApps(),
+          // Mở modal QR (component riêng để dùng được hooks đếm ngược).
+          setQrModal({
+            url: payment.url,
+            transactionId: payment.transactionId,
+            amount: getAmountFromPaymentUrl(payment.url),
+            programName: app.programName,
           });
           return;
         }
 
         // Trường hợp không có QR: backend xác nhận đơn đã thanh toán trước đó, chỉ cần thông báo và reload trạng thái.
-        messageApi.success(
-          `Bạn đã thanh toán trước đó. Đơn "${app.programName}" đang được gửi xét duyệt!`,
-        );
+        notifApi.success({
+          message: "Thanh toán đã xác nhận",
+          description: `Bạn đã thanh toán trước đó. Đơn "${app.programName}" đang được gửi xét duyệt!`,
+          placement: "topRight",
+          duration: 6,
+        });
         loadApps();
       } catch (err: unknown) {
         const errData = (
@@ -352,12 +509,17 @@ export function ApplicationList() {
           errData?.message ||
           (errData?.errors?.length ? errData.errors.join("; ") : null) ||
           "Nộp đơn thất bại. Vui lòng thử lại.";
-        messageApi.error(msg);
+        notifApi.error({
+          message: "Nộp đơn thất bại",
+          description: msg,
+          placement: "topRight",
+          duration: 6,
+        });
       } finally {
         setSubmittingId(null);
       }
     },
-    [loadApps, messageApi],
+    [loadApps, notifApi],
   );
 
   const applicationColumns: ColumnsType<ApplicationMe> = useMemo(
@@ -534,9 +696,49 @@ export function ApplicationList() {
     [handleSubmitFinal, navigate, submittingId],
   );
 
+  // Handlers cho QrPaymentModal — tách riêng để memo tránh re-render không cần thiết.
+  const handleQrPaid = useCallback(() => {
+    setQrModal(null);
+    notifApi.info({
+      message: "Đang chờ xác nhận thanh toán",
+      description:
+        "Giao dịch đang được xử lý. Trạng thái đơn sẽ cập nhật ngay khi hệ thống xác nhận thành công.",
+      placement: "topRight",
+      duration: 8,
+    });
+    loadApps();
+  }, [loadApps, notifApi]);
+
+  const handleQrClose = useCallback(() => setQrModal(null), []);
+
+  const handleQrExpire = useCallback(() => {
+    setQrModal(null);
+    notifApi.warning({
+      message: "Phiên thanh toán hết hạn",
+      description:
+        "Mã QR đã hết hiệu lực sau 5 phút. Vui lòng nộp đơn lại để nhận mã QR mới.",
+      placement: "topRight",
+      duration: 8,
+    });
+  }, [notifApi]);
+
   return (
     <ApplicantLayout menuItems={ApplicantMenu}>
-      {contextHolder}
+      {/* Context holder cho notification toast thanh toán */}
+      {notifContextHolder}
+
+      {/* Modal QR thanh toán với countdown 5 phút */}
+      {qrModal && (
+        <QrPaymentModal
+          open
+          url={qrModal.url}
+          transactionId={qrModal.transactionId}
+          amount={qrModal.amount}
+          onPaid={handleQrPaid}
+          onClose={handleQrClose}
+          onExpire={handleQrExpire}
+        />
+      )}
       {/* ── Page header ── */}
       <div className="flex items-start justify-between mb-6 flex-wrap gap-3">
         <div>

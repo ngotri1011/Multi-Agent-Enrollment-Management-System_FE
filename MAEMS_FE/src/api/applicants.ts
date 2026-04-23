@@ -71,13 +71,12 @@ export async function getApplicantById(
   return res.data.data;
 }
 
-
 // Lấy tài liệu của Applicant theo id
 export async function getApplicantDocumentsById(
-  applicantId: number
+  applicantId: number,
 ): Promise<Document[]> {
   const res = await apiClient.get<ApiWrapper<Document[]>>(
-    `/api/Applicants/${applicantId}/documents`
+    `/api/Applicants/${applicantId}/documents`,
   );
   return res.data.data;
 }

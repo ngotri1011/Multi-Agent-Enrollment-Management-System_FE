@@ -19,10 +19,17 @@ import {
 } from "../api/notifications";
 import { getStoredToken } from "../services/axios";
 import type { Notification as UserNotification } from "../types/notification";
-import { createNotificationConnection, normalizeRealtimeNotification } from "../services/notificationSignalR";
+import {
+  createNotificationConnection,
+  normalizeRealtimeNotification,
+} from "../services/notificationSignalR";
 import { ensureUtc } from "../utils/date";
 
 const { Text } = Typography;
+
+// Hiển thị toast realtime (SignalR) trên toàn bộ các trang của applicant
+// để thông báo hệ thống (thanh toán, duyệt hồ sơ, v.v.) luôn xuất hiện ngay lập tức dù user đang ở trang nào.
+const REALTIME_TOAST_PREFIX = "/applicant";
 
 function formatTime(iso: string) {
   // ensureUtc chuẩn hóa chuỗi ISO từ backend (thiếu 'Z', micro giây 4-6 chữ số)
@@ -72,7 +79,9 @@ export function HeaderNotifications() {
       const data = await getMyNotifications();
       // Sắp xếp giảm dần theo thời gian; dùng ensureUtc để parse đúng UTC từ BE.
       const sorted = [...(data ?? [])].sort(
-        (a, b) => new Date(ensureUtc(b.sentAt)).getTime() - new Date(ensureUtc(a.sentAt)).getTime(),
+        (a, b) =>
+          new Date(ensureUtc(b.sentAt)).getTime() -
+          new Date(ensureUtc(a.sentAt)).getTime(),
       );
       setNotifications(sorted);
     } finally {
@@ -121,25 +130,29 @@ export function HeaderNotifications() {
     setNotifications((prev) => prev.map((item) => ({ ...item, isRead: true })));
   };
 
- // Hàm này dùng để đẩy thông báo mới từ SignalR vào UI
+  // Hàm này dùng để đẩy thông báo mới từ SignalR vào UI
   const pushNotificationToUI = useCallback(
     (item: UserNotification) => {
       setNotifications((prev) => {
-        const exists = prev.some((n) => n.notificationId === item.notificationId);
+        const exists = prev.some(
+          (n) => n.notificationId === item.notificationId,
+        );
 
         const next = exists
           ? prev.map((n) =>
-            n.notificationId === item.notificationId ? { ...n, ...item } : n,
-          )
+              n.notificationId === item.notificationId ? { ...n, ...item } : n,
+            )
           : [item, ...prev];
 
         // Sắp xếp lại sau khi thêm/cập nhật thông báo realtime.
         return [...next].sort(
-          (a, b) => new Date(ensureUtc(b.sentAt)).getTime() - new Date(ensureUtc(a.sentAt)).getTime(),
+          (a, b) =>
+            new Date(ensureUtc(b.sentAt)).getTime() -
+            new Date(ensureUtc(a.sentAt)).getTime(),
         );
       });
 
-      if (location.pathname === "/applicant/dashboard" && !item.isRead) {
+      if (location.pathname.startsWith(REALTIME_TOAST_PREFIX) && !item.isRead) {
         const key = `realtime-notification-${item.notificationId}`;
 
         notificationsApi.open({
@@ -192,11 +205,9 @@ export function HeaderNotifications() {
       pushNotificationToUI(incoming as UserNotification);
     });
 
-    connection
-      .start()
-      .catch((err) => {
-        console.error("Lỗi kết nối đến SignalR:", err);
-      });
+    connection.start().catch((err) => {
+      console.error("Lỗi kết nối đến SignalR:", err);
+    });
 
     connection.onreconnected(() => {
       console.log("Đang kết nối lại SignalR...");
@@ -211,7 +222,6 @@ export function HeaderNotifications() {
       connection.stop().catch(() => undefined);
     };
   }, [pushNotificationToUI]);
-
 
   useEffect(() => {
     // Tải dữ liệu ngay khi component được mount.
