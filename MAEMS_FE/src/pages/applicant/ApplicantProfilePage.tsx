@@ -286,7 +286,10 @@ export function ApplicantProfilePage() {
           );
         } catch (err) {
           // Lấy lý do từ chối từ API (font mờ, ảnh không rõ, sai loại, v.v.) để hiển thị inline cho user
-          const msg = extractApiError(err, "Tải lên thất bại. Vui lòng thử lại.");
+          const msg = extractApiError(
+            err,
+            "Tải lên thất bại. Vui lòng thử lại.",
+          );
           setDocItems((prev) =>
             prev.map((i) =>
               i.uid === item.uid
@@ -978,10 +981,16 @@ export function ApplicantProfilePage() {
                         <Spin size="small" className="shrink-0" />
                       )}
                       {item.status === "success" && (
-                        <CheckCircle2 size={16} className="text-green-500 shrink-0" />
+                        <CheckCircle2
+                          size={16}
+                          className="text-green-500 shrink-0"
+                        />
                       )}
                       {item.status === "error" && (
-                        <AlertCircle size={16} className="text-red-500 shrink-0" />
+                        <AlertCircle
+                          size={16}
+                          className="text-red-500 shrink-0"
+                        />
                       )}
 
                       {/* Xóa file — chỉ cho phép khi chưa upload */}
