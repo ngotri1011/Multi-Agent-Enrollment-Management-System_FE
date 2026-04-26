@@ -46,6 +46,7 @@ import { AdminUserManagement } from "../pages/admin/AdminUserManagement";
 import { NotFound } from "../pages/notfound/NotFound";
 import { AdminProgramAdmissionConfig } from "../pages/admin/AdminProgramAdmissionConfig";
 import { LlmChatLogManagement } from "../pages/qa/LlmChatLogManagement";
+import { Feedback } from "../pages/qa/Feedback";
 
 export function AppRouter() {
   return (
@@ -212,6 +213,14 @@ export function AppRouter() {
         element={
           <RoleGuard allowedRoles={["qa"]}>
             <LlmChatLogManagement />
+          </RoleGuard>
+        }
+      />
+      <Route
+        path="/qa/feedback"
+        element={
+          <RoleGuard allowedRoles={["qa"]}>
+            <Feedback />
           </RoleGuard>
         }
       />

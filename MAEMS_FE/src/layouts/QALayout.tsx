@@ -27,11 +27,18 @@ const qaMenuItems: SidebarMenuItem[] = [
     path: "/qa/llm-chat-logs",
   },
   {
+    key: "feedback",
+    label: "Phản hồi",
+    icon: <User size={16} />,
+    path: "/qa/feedback",
+  },
+  {
     key: "profile",
     label: "Hồ sơ cá nhân",
     icon: <User size={16} />,
     path: "/qa/profile",
   },
+  
 ];
 
 export function QALayout({ children }: QALayoutProps) {
