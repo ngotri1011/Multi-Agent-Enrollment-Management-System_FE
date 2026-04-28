@@ -145,14 +145,6 @@ function buildPriorityJson(values: RuleFormValues) {
   return JSON.stringify(payload);
 }
 
-function prettifyJson(json?: string) {
-  if (!json) return "-";
-  try {
-    return JSON.stringify(JSON.parse(json), null, 2);
-  } catch {
-    return json;
-  }
-}
 
 function SectionCard({
   title,
@@ -280,7 +272,7 @@ export function AdmissionTypeManagement() {
   const [createForm] = Form.useForm<RuleFormValues>();
   const [detailForm] = Form.useForm<RuleFormValues>();
 
-  const { Paragraph, Text } = Typography;
+  const { Text } = Typography;
 
   const fetchData = async () => {
     try {
@@ -433,20 +425,20 @@ export function AdmissionTypeManagement() {
     [years]
   );
 
-  const detailTags = selectedDetail
-    ? [
-        { label: "Năm", value: selectedDetail.enrollmentYear },
-        { label: "Loại", value: selectedDetail.type || "-" },
-        {
-          label: "Trạng thái",
-          value: selectedDetail.isActive ? (
-            <Tag color="green">Active</Tag>
-          ) : (
-            <Tag color="red">Inactive</Tag>
-          ),
-        },
-      ]
-    : [];
+  // const detailTags = selectedDetail
+  //   ? [
+  //       { label: "Năm", value: selectedDetail.enrollmentYear },
+  //       { label: "Loại", value: selectedDetail.type || "-" },
+  //       {
+  //         label: "Trạng thái",
+  //         value: selectedDetail.isActive ? (
+  //           <Tag color="green">Active</Tag>
+  //         ) : (
+  //           <Tag color="red">Inactive</Tag>
+  //         ),
+  //       },
+  //     ]
+  //   : [];
 
   return (
     <Card className="rounded-2xl" styles={{ body: { padding: 20 } }}>
