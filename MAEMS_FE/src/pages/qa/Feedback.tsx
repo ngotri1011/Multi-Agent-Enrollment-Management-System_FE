@@ -82,7 +82,7 @@ export function Feedback() {
     const content = form.content.trim();
 
     if (!title || !content) {
-      setError("Please fill in both the title and the content.");
+      setError("Vui lòng điền vào cả tiêu đề và nội dung.");
       setSuccess(null);
       return;
     }
@@ -95,10 +95,10 @@ export function Feedback() {
       await createFeedback({ title, content });
 
       setForm({ title: "", content: "" });
-      setSuccess("Your feedback has been submitted successfully.");
+      setSuccess("Phản hồi của bạn đã được gửi thành công.");
       await loadFeedback(1);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to submit feedback.");
+      setError(err instanceof Error ? err.message : "Gửi phản hồi thất bại. Vui lòng thử lại.");
     } finally {
       setSubmitting(false);
     }
@@ -193,29 +193,29 @@ export function Feedback() {
                   <Send className="h-5 w-5" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-semibold text-slate-900">Submit feedback</h2>
-                  <p className="text-sm text-slate-500">Write a clear title and explain your issue or suggestion.</p>
+                  <h2 className="text-xl font-semibold text-slate-900">Gửi phản hồi</h2>
+                  <p className="text-sm text-slate-500">Chia sẻ ý kiến của bạn để giúp chúng tôi cải thiện hệ thống.</p>
                 </div>
               </div>
 
               <form className="space-y-4" onSubmit={handleSubmit}>
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-slate-700">Title</label>
+                  <label className="mb-2 block text-sm font-medium text-slate-700">Tiêu đề</label>
                   <input
                     value={form.title}
                     onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
-                    placeholder="Example: Improve dashboard loading speed"
+                    placeholder="Exp: Hệ thống hoạt động chậm khi xử lý nhiều phản hồi cùng lúc"
                     className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-violet-400 focus:bg-white focus:ring-4 focus:ring-violet-100"
                     maxLength={150}
                   />
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-slate-700">Content</label>
+                  <label className="mb-2 block text-sm font-medium text-slate-700">Nội dung</label>
                   <textarea
                     value={form.content}
                     onChange={(e) => setForm((prev) => ({ ...prev, content: e.target.value }))}
-                    placeholder="Describe the feedback in detail..."
+                    placeholder="Mô tả chi tiết phản hồi..."
                     rows={7}
                     className="w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-violet-400 focus:bg-white focus:ring-4 focus:ring-violet-100"
                     maxLength={2000}
@@ -242,7 +242,7 @@ export function Feedback() {
                   className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                  {submitting ? "Submitting..." : "Submit feedback"}
+                  {submitting ? "Đang gửi..." : "Gửi phản hồi"}
                 </button>
               </form>
             </section>
@@ -250,8 +250,8 @@ export function Feedback() {
             <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
               <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                  <h2 className="text-xl font-semibold text-slate-900">Recent feedback</h2>
-                  <p className="text-sm text-slate-500">Browse the latest submitted feedback from users and QA members.</p>
+                  <h2 className="text-xl font-semibold text-slate-900">Phản hồi gần đây</h2>
+                  <p className="text-sm text-slate-500">Duyệt các phản hồi mới nhất từ người dùng và thành viên QA.</p>
                 </div>
 
                 <button
@@ -260,7 +260,7 @@ export function Feedback() {
                   className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
                 >
                   <RefreshCw className="h-4 w-4" />
-                  Refresh
+                  Tải lại
                 </button>
               </div>
 
@@ -268,7 +268,7 @@ export function Feedback() {
                 <div className="flex min-h-[360px] items-center justify-center rounded-3xl border border-dashed border-slate-200 bg-slate-50/60">
                   <div className="flex items-center gap-3 text-sm text-slate-600">
                     <Loader2 className="h-5 w-5 animate-spin" />
-                    Loading feedback...
+                    Đang tải phản hồi...
                   </div>
                 </div>
               ) : visibleItems.length === 0 ? (
@@ -277,8 +277,8 @@ export function Feedback() {
                     <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-white text-slate-400 shadow-sm">
                       <MessageSquarePlus className="h-6 w-6" />
                     </div>
-                    <h3 className="text-base font-semibold text-slate-900">No feedback yet</h3>
-                    <p className="mt-1 text-sm text-slate-500">Submitted feedback will appear here once available.</p>
+                    <h3 className="text-base font-semibold text-slate-900">Chưa có phản hồi nào</h3>
+                    <p className="mt-1 text-sm text-slate-500">Phản hồi đã gửi sẽ xuất hiện ở đây khi có sẵn.</p>
                   </div>
                 </div>
               ) : (
@@ -320,7 +320,7 @@ export function Feedback() {
 
                   <div className="mt-6 flex flex-col gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:items-center sm:justify-between">
                     <p className="text-sm text-slate-500">
-                      Showing {items.length} of {totalCount} feedback item{totalCount === 1 ? "" : "s"}
+                      Hiển thị {items.length} trên {totalCount} phản hồi{totalCount === 1 ? "" : "s"}
                     </p>
 
                     <div className="flex items-center gap-2">
@@ -330,7 +330,7 @@ export function Feedback() {
                         disabled={pageNumber <= 1 || loading}
                         className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
                       >
-                        Previous
+                        Trước
                       </button>
                       <span className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
                         {pageNumber} / {totalPages}
@@ -341,7 +341,7 @@ export function Feedback() {
                         disabled={pageNumber >= totalPages || loading}
                         className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
                       >
-                        Next
+                        Sau
                       </button>
                     </div>
                   </div>

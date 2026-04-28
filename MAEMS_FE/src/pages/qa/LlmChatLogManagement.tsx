@@ -47,9 +47,9 @@ const { Title, Text, Paragraph } = Typography;
 const defaultPageSize = 10;
 
 const sortOptions = [
-  { label: "Created time", value: "createdAt" },
-  { label: "User ID", value: "userId" },
-  { label: "Chat ID", value: "chatId" },
+  { label: "Thời gian tạo", value: "createdAt" },
+  { label: "ID Người dùng", value: "userId" },
+  { label: "ID Cuộc trò chuyện", value: "chatId" },
 ];
 
 function formatDateTime(value?: string) {
@@ -170,7 +170,7 @@ export function LlmChatLogManagement() {
       setTotal(res.totalCount || 0);
     } catch (error) {
       console.error(error);
-      antMessage.error("Failed to load chat logs.");
+      antMessage.error("Lỗi khi tải nhật ký trò chuyện. Vui lòng thử lại.");
     } finally {
       setLoading(false);
     }
@@ -206,7 +206,7 @@ export function LlmChatLogManagement() {
       setSelected(full);
     } catch (error) {
       console.error(error);
-      antMessage.error("Failed to load chat log details.");
+      antMessage.error("Lỗi khi tải chi tiết nhật ký trò chuyện. Vui lòng thử lại.");
     } finally {
       setDetailLoading(false);
     }
@@ -253,7 +253,7 @@ export function LlmChatLogManagement() {
         ),
       },
       {
-        title: "User",
+        title: "Người dùng",
         dataIndex: "userId",
         width: 180,
         render: (_: unknown, record) => (
@@ -276,7 +276,7 @@ export function LlmChatLogManagement() {
         ),
       },
       {
-        title: "User Query",
+        title: "Câu hỏi",
         dataIndex: "userQuery",
         ellipsis: true,
         render: (value: string) => (
@@ -289,22 +289,22 @@ export function LlmChatLogManagement() {
           </Paragraph>
         ),
       },
+      // {
+      //   title: "Message",
+      //   dataIndex: "message",
+      //   ellipsis: true,
+      //   render: (value: string) => (
+      //     <Paragraph
+      //       ellipsis={{ rows: 2, tooltip: value }}
+      //       style={{ marginBottom: 0 }}
+      //       className="!text-slate-700"
+      //     >
+      //       {value}
+      //     </Paragraph>
+      //   ),
+      // },
       {
-        title: "Message",
-        dataIndex: "message",
-        ellipsis: true,
-        render: (value: string) => (
-          <Paragraph
-            ellipsis={{ rows: 2, tooltip: value }}
-            style={{ marginBottom: 0 }}
-            className="!text-slate-700"
-          >
-            {value}
-          </Paragraph>
-        ),
-      },
-      {
-        title: "LLM Response",
+        title: "LLM Phản hồi",
         dataIndex: "llmResponse",
         ellipsis: true,
         render: (value: string) => (
@@ -318,7 +318,7 @@ export function LlmChatLogManagement() {
         ),
       },
       {
-        title: "Created At",
+        title: "Thời gian tạo",
         dataIndex: "createdAt",
         width: 190,
         sorter: true,
@@ -330,7 +330,7 @@ export function LlmChatLogManagement() {
         ),
       },
       {
-        title: "Actions",
+        title: "Hành động",
         key: "actions",
         width: 120,
         fixed: "right",
@@ -372,8 +372,7 @@ export function LlmChatLogManagement() {
                   LLM Chat Logs
                 </Title>
                 <Text className="max-w-2xl !text-slate-200">
-                  Review applicant questions, assistant responses, and conversation
-                  history with a clean admin dashboard.
+                  Xem và quản lý lịch sử trò chuyện giữa người dùng và mô hình ngôn ngữ. Sử dụng các bộ lọc để tìm kiếm chính xác và nhấp vào "View" để xem chi tiết cuộc trò chuyện.
                 </Text>
               </div>
 
@@ -415,7 +414,7 @@ export function LlmChatLogManagement() {
                   styles={{ body: { padding: 20 } }}
                 >
                   <Statistic
-                    title={<span className="text-slate-500">Visible Items</span>}
+                    title={<span className="text-slate-500">Logs đang hiện</span>}
                     value={currentPageCount}
                     prefix={<BookOutlined />}
                     valueStyle={{ color: "#0f172a" }}
@@ -428,7 +427,7 @@ export function LlmChatLogManagement() {
                   styles={{ body: { padding: 20 } }}
                 >
                   <Statistic
-                    title={<span className="text-slate-500">Unique Users on Page</span>}
+                    title={<span className="text-slate-500">Người dùng duy nhất trên trang</span>}
                     value={uniqueUsers}
                     prefix={<UserOutlined />}
                     valueStyle={{ color: "#0f172a" }}
@@ -447,12 +446,12 @@ export function LlmChatLogManagement() {
                     Filters
                   </Title>
                   <Text type="secondary">
-                    Search and organize chat logs with precision.
+                   Tìm kiếm và sắp xếp nhật ký trò chuyện một cách chính xác.
                   </Text>
                 </div>
                 {latestActivity ? (
                   <Tag color="purple" className="!rounded-full !px-3 !py-1">
-                    Latest: {formatDateTime(latestActivity.createdAt)}
+                    Gần nhất: {formatDateTime(latestActivity.createdAt)}
                   </Tag>
                 ) : null}
               </div>
@@ -471,7 +470,7 @@ export function LlmChatLogManagement() {
                     <Form.Item name="userId" label="User ID">
                       <InputNumber
                         style={{ width: "100%" }}
-                        placeholder="Filter by user ID"
+                        placeholder="Lọc theo ID người dùng"
                         min={1}
                         className="!rounded-xl"
                       />
@@ -481,7 +480,7 @@ export function LlmChatLogManagement() {
                   <Col xs={24} md={6}>
                     <Form.Item name="userQuery" label="User Query">
                       <Input
-                        placeholder="Search query text"
+                        placeholder="Tìm kiếm nội dung truy vấn"
                         allowClear
                         className="!rounded-xl"
                       />
@@ -491,7 +490,7 @@ export function LlmChatLogManagement() {
                   <Col xs={24} md={6}>
                     <Form.Item name="search" label="Search">
                       <Input
-                        placeholder="Search in logs"
+                        placeholder="Tìm kiếm trong nhật ký"
                         allowClear
                         className="!rounded-xl"
                       />
@@ -509,11 +508,11 @@ export function LlmChatLogManagement() {
                   </Col>
 
                   <Col xs={24} md={6}>
-                    <Form.Item name="sortDesc" label="Sort Order">
+                    <Form.Item name="sortDesc" label="Xếp theo">
                       <Select
                         options={[
-                          { label: "Newest first", value: true },
-                          { label: "Oldest first", value: false },
+                          { label: "Mới nhất", value: true },
+                          { label: "Cũ nhất", value: false },
                         ]}
                         className="!rounded-xl"
                         dropdownStyle={{ borderRadius: 16 }}
@@ -522,7 +521,7 @@ export function LlmChatLogManagement() {
                   </Col>
 
                   <Col xs={24} md={6}>
-                    <Form.Item name="pageSize" label="Page Size">
+                    <Form.Item name="pageSize" label="Kích thước trang">
                       <Select
                         options={[10, 20, 50, 100].map((v) => ({
                           label: `${v}`,
@@ -547,7 +546,7 @@ export function LlmChatLogManagement() {
                     onClick={onSearch}
                     className="!h-11 !rounded-full !px-5 !shadow-md"
                   >
-                    Search
+                    Tìm kiếm
                   </Button>
                   <Button
                     icon={<ReloadOutlined />}
@@ -568,10 +567,10 @@ export function LlmChatLogManagement() {
                 <div className="flex items-center justify-between gap-3 flex-wrap">
                   <div>
                     <Title level={4} className="!mb-1 !text-slate-900">
-                      Chat Log Records
+                      Bản ghi nhật ký trò chuyện
                     </Title>
                     <Text type="secondary">
-                      Click View to inspect the full conversation and model reply.
+                      Nhấn để xem chi tiết cuộc trò chuyện.
                     </Text>
                   </div>
                   <Badge count={total} showZero color="#6366f1" />
@@ -598,10 +597,10 @@ export function LlmChatLogManagement() {
                         <div className="py-14 text-center">
                           <MessageOutlined className="mb-3 text-4xl text-slate-300" />
                           <div className="text-lg font-semibold text-slate-700">
-                            No chat logs found
+                            Không tìm thấy nhật ký trò chuyện
                           </div>
                           <div className="mt-1 text-slate-500">
-                            Try adjusting the filters to find more results.
+                            Thử điều chỉnh bộ lọc để tìm thấy nhiều kết quả hơn.
                           </div>
                         </div>
                       ),
@@ -636,10 +635,10 @@ export function LlmChatLogManagement() {
               </div>
               <div>
                 <div className="text-base font-semibold text-slate-900">
-                  Chat Log Detail
+                  Chi tiết Nhật ký Trò chuyện
                 </div>
                 <div className="text-xs text-slate-500">
-                  Full message history and assistant response
+                  Lịch sử tin nhắn đầy đủ và phản hồi của trợ lý
                 </div>
               </div>
             </div>
@@ -659,11 +658,11 @@ export function LlmChatLogManagement() {
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <div className="mb-1 text-xs uppercase tracking-[0.2em] text-white/60">
-                        Conversation Overview
+                        Tổng quan cuộc trò chuyện
                       </div>
                       <div className="text-2xl font-semibold">#{selected.chatId}</div>
                       <div className="mt-2 text-sm text-white/75">
-                        Created at {formatDateTime(selected.createdAt)}
+                        Tạo vào {formatDateTime(selected.createdAt)}
                       </div>
                     </div>
 
@@ -671,30 +670,30 @@ export function LlmChatLogManagement() {
                       color="geekblue"
                       className="!rounded-full !px-3 !py-1.5 !text-sm !font-medium"
                     >
-                      User #{selected.userId}
+                      Người dùng #{selected.userId}
                     </Tag>
                   </div>
                 </div>
 
                 <div className="grid gap-4 p-5 md:grid-cols-3">
                   <div className="rounded-2xl bg-white p-4 shadow-sm">
-                    <div className="mb-1 text-xs text-slate-500">User ID</div>
+                    <div className="mb-1 text-xs text-slate-500">ID Người dùng</div>
                     <div className="text-lg font-semibold text-slate-900">
                       {selected.userId}
                     </div>
                   </div>
 
                   <div className="rounded-2xl bg-white p-4 shadow-sm">
-                    <div className="mb-1 text-xs text-slate-500">Created</div>
+                    <div className="mb-1 text-xs text-slate-500">Tạo vào</div>
                     <div className="text-lg font-semibold text-slate-900">
                       {formatDateTime(selected.createdAt)}
                     </div>
                   </div>
 
                   <div className="rounded-2xl bg-white p-4 shadow-sm">
-                    <div className="mb-1 text-xs text-slate-500">Status</div>
+                    <div className="mb-1 text-xs text-slate-500">Trạng thái</div>
                     <div className="text-lg font-semibold text-slate-900">
-                      Reviewed
+                      Đã xem xét
                     </div>
                   </div>
                 </div>
@@ -704,7 +703,7 @@ export function LlmChatLogManagement() {
                 title={
                   <Space>
                     <UserOutlined />
-                    <span>User Query</span>
+                    <span>Câu hỏi của người dùng</span>
                   </Space>
                 }
                 className="rounded-3xl border border-slate-200 shadow-sm"
@@ -721,13 +720,13 @@ export function LlmChatLogManagement() {
               </Card>
 
               <MessageBlock
-                label="Raw Message"
+                label="Tin nhắn gốc"
                 content={selected.message}
                 accent="blue"
               />
 
               <MessageBlock
-                label="LLM Response"
+                label="Phản hồi của LLM"
                 content={selected.llmResponse}
                 accent="green"
               />
@@ -745,13 +744,13 @@ export function LlmChatLogManagement() {
                 <Divider className="!my-3" />
                 <div className="grid gap-3 md:grid-cols-2">
                   <div className="rounded-2xl bg-slate-50 p-4">
-                    <div className="text-xs text-slate-500">Chat ID</div>
+                    <div className="text-xs text-slate-500">ID Cuộc trò chuyện</div>
                     <div className="mt-1 font-semibold text-slate-900">
                       #{selected.chatId}
                     </div>
                   </div>
                   <div className="rounded-2xl bg-slate-50 p-4">
-                    <div className="text-xs text-slate-500">Created At</div>
+                    <div className="text-xs text-slate-500">Tạo vào</div>
                     <div className="mt-1 font-semibold text-slate-900">
                       {formatDateTime(selected.createdAt)}
                     </div>
