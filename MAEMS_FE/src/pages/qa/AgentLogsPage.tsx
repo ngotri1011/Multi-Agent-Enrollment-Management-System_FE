@@ -475,7 +475,7 @@ export function AgentLogsPage() {
                   Agent Logs
                 </h1>
                 <p className="mt-2 max-w-2xl text-sm text-white/70 md:text-base">
-                  Review LLM agent outputs, inspect applicant documents, and compare decisions with clear QA insight.
+                  Xem và phân tích các log hoạt động của agent trong quá trình đánh giá hồ sơ thí sinh. Sử dụng các bộ lọc và công cụ so sánh để kiểm tra chi tiết từng log và đưa ra quyết định chính xác hơn.
                 </p>
               </div>
 
@@ -583,9 +583,9 @@ export function AgentLogsPage() {
                   }
                   options={[
                     { value: "llm_response", label: "LLM Response" },
-                    { value: "success", label: "Success" },
+                    { value: "passed", label: "Passed" },
                     { value: "error", label: "Error" },
-                    { value: "done", label: "Done" },
+                    { value: "rejected", label: "Rejected" },
                   ]}
                 />
 
@@ -720,7 +720,7 @@ export function AgentLogsPage() {
 
                               <div className="rounded-2xl border border-slate-100 bg-white p-4">
                                 <div className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                                  Output type
+                                  Loại phản hồi
                                 </div>
                                 <div className="mt-2 font-semibold text-slate-800">
                                   {log.status}
@@ -875,72 +875,72 @@ export function AgentLogsPage() {
                   >
                     <div className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900">
                       <FileTextOutlined />
-                      Applicant profile
+                      Thông tin thí sinh
                     </div>
 
                     <div className="grid gap-3 md:grid-cols-2">
                       <StatBox
-                        label="Full name"
+                        label="Họ và tên"
                         value={getValue(compareData.applicant?.fullName)}
                         tone="violet"
                       />
                       <StatBox
-                        label="Date of birth"
+                        label="Ngày sinh"
                         value={getValue(compareData.applicant?.dateOfBirth)}
                         tone="sky"
                       />
                       <StatBox
-                        label="Gender"
+                        label="Giới tính"
                         value={getValue(compareData.applicant?.gender)}
                         tone="emerald"
                       />
                       <StatBox
-                        label="ID issue number"
+                        label="Số CCCD"
                         value={getValue(compareData.applicant?.idIssueNumber)}
                         tone="amber"
                       />
                       <StatBox
-                        label="Contact phone"
+                        label="Số điện thoại liên hệ"
                         value={getValue(compareData.applicant?.contactPhone)}
                         tone="rose"
                       />
                       <StatBox
-                        label="Contact email"
+                        label="Email liên hệ"
                         value={getValue(compareData.applicant?.contactEmail)}
                         tone="sky"
                       />
                       <StatBox
-                        label="High school"
+                        label="Trường THPT"
                         value={getValue(compareData.applicant?.highSchoolName)}
                         tone="slate"
                       />
                       <StatBox
-                        label="Graduation year"
+                        label="Năm tốt nghiệp"
                         value={getValue(compareData.applicant?.graduationYear)}
                         tone="violet"
                       />
                       <StatBox
-                        label="High school district"
+                        label="Khu vực trường THPT"
                         value={getValue(compareData.applicant?.highSchoolDistrict)}
                       />
                       <StatBox
-                        label="High school province"
+                        label="Tỉnh/Thành phố trường THPT"
                         value={getValue(compareData.applicant?.highSchoolProvince)}
                       />
                       <StatBox
-                        label="ID issue date"
+                        label="Ngày cấp CCCD"
                         value={getValue(compareData.applicant?.idIssueDate)}
                       />
                       <StatBox
-                        label="ID issue place"
+                        label="Nơi cấp CCCD"
                         value={getValue(compareData.applicant?.idIssuePlace)}
                       />
                       <StatBox
-                        label="Contact name"
+                        label="Tên người thân liên hệ"
                         value={getValue(compareData.applicant?.contactName)}
                       />
                       <StatBox
-                        label="Allow share"
+                        label="Cho phép chia sẻ"
                         value={getValue(compareData.applicant?.allowShare)}
                       />
                     </div>
