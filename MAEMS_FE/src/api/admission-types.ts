@@ -41,7 +41,7 @@ export async function getActiveAdmissionTypesBasic(enrollmentYearId?: number) {
 export async function createAdmissionType(
   data: CreateAdmissionTypeRequest
 ): Promise<void> {
-  await apiClient.post("/AdmissionTypes", data);
+  await apiClient.post("/api/AdmissionTypes", data);
 }
 
 // UPDATE
@@ -50,5 +50,5 @@ export async function updateAdmissionType(
   id: number,
   data: UpdateAdmissionTypeRequest
 ): Promise<void> {
-  await apiClient.patch(`/AdmissionTypes/${id}`, data);
+  await apiClient.patch(`/api/AdmissionTypes/${id}`, data);
 }
