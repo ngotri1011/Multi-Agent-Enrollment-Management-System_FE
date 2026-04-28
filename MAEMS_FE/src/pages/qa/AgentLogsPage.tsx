@@ -475,7 +475,7 @@ export function AgentLogsPage() {
                   Agent Logs
                 </h1>
                 <p className="mt-2 max-w-2xl text-sm text-white/70 md:text-base">
-                  Review LLM agent outputs, inspect applicant documents, and compare decisions with clear QA insight.
+                  Xem và phân tích các log hoạt động của agent trong quá trình đánh giá hồ sơ thí sinh. Sử dụng các bộ lọc và công cụ so sánh để kiểm tra chi tiết từng log và đưa ra quyết định chính xác hơn.
                 </p>
               </div>
 
@@ -518,8 +518,8 @@ export function AgentLogsPage() {
                     value={searchTypeDraft}
                     onChange={(value) => setSearchTypeDraft(value)}
                     options={[
-                      { value: "applicationId", label: "Application ID" },
-                      { value: "documentId", label: "Document ID" },
+                      { value: "applicationId", label: "ID Thí sinh" },
+                      { value: "documentId", label: "ID Tài liệu" },
                     ]}
                     className="w-44"
                   />
@@ -528,8 +528,8 @@ export function AgentLogsPage() {
                     size="large"
                     placeholder={
                       searchTypeDraft === "documentId"
-                        ? "Enter Document ID..."
-                        : "Enter Application ID..."
+                        ? "Nhập ID tài liệu..."
+                        : "Nhập ID thí sinh..."
                     }
                     value={searchValueDraft}
                     onChange={(e) => setSearchValueDraft(e.target.value)}
@@ -551,7 +551,7 @@ export function AgentLogsPage() {
                 <Select
                   size="large"
                   value={query.agentType || undefined}
-                  placeholder="Agent type"
+                  placeholder="Loại agent"
                   allowClear
                   onChange={(value) =>
                     setQuery((prev) => ({
@@ -583,9 +583,9 @@ export function AgentLogsPage() {
                   }
                   options={[
                     { value: "llm_response", label: "LLM Response" },
-                    { value: "success", label: "Success" },
+                    { value: "passed", label: "Passed" },
                     { value: "error", label: "Error" },
-                    { value: "done", label: "Done" },
+                    { value: "rejected", label: "Rejected" },
                   ]}
                 />
 
@@ -620,7 +620,7 @@ export function AgentLogsPage() {
                 <Card className="rounded-3xl border-0 shadow-sm">
                   <Empty
                     image={Empty.PRESENTED_IMAGE_SIMPLE}
-                    description="No agent logs found"
+                    description="Không tìm thấy log nào. Thử điều chỉnh bộ lọc hoặc tìm kiếm khác."
                   />
                 </Card>
               ) : (
@@ -666,12 +666,12 @@ export function AgentLogsPage() {
                             <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-slate-500">
                               <span className="inline-flex items-center gap-1.5">
                                 <FileTextOutlined />
-                                App #{log.applicationId}
+                                Đơn #{log.applicationId}
                               </span>
                               <span>•</span>
-                              <span>Doc #{log.documentId}</span>
+                              <span>Tài liệu #{log.documentId}</span>
                               <span>•</span>
-                              <span>Applicant #{log.applicantId}</span>
+                              <span>Thí sinh #{log.applicantId}</span>
                               <span>•</span>
                               <span>{new Date(log.createdAt).toLocaleString()}</span>
                             </div>
@@ -688,7 +688,7 @@ export function AgentLogsPage() {
                           <div className="lg:col-span-9">
                             <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
                               <div className="mb-2 text-sm font-semibold text-slate-700">
-                                AI recommendation
+                                Đề xuất của AI
                               </div>
                               <p className="text-[15px] leading-7 text-slate-600">
                                 {parsed?.details ||
@@ -699,7 +699,7 @@ export function AgentLogsPage() {
                             <div className="mt-4 grid gap-3 md:grid-cols-3">
                               <div className="rounded-2xl border border-slate-100 bg-white p-4">
                                 <div className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                                  Status
+                                  Trạng thái
                                 </div>
                                 <div className="mt-2 flex items-center gap-2">
                                   {resultMeta.icon}
@@ -720,7 +720,7 @@ export function AgentLogsPage() {
 
                               <div className="rounded-2xl border border-slate-100 bg-white p-4">
                                 <div className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                                  Output type
+                                  Loại phản hồi
                                 </div>
                                 <div className="mt-2 font-semibold text-slate-800">
                                   {log.status}
@@ -735,7 +735,7 @@ export function AgentLogsPage() {
                             >
                               <div className="flex items-center justify-between">
                                 <span className="text-sm font-medium text-white/90">
-                                  Decision
+                                  Quyết định
                                 </span>
                                 <Badge status="processing" />
                               </div>
@@ -745,7 +745,7 @@ export function AgentLogsPage() {
                               </div>
 
                               <div className="mt-2 text-sm text-white/85">
-                                Open the comparison modal to inspect the applicant and document details.
+                                Mở so sánh để kiểm tra chi tiết thí sinh và tài liệu.
                               </div>
                             </div>
 
@@ -755,7 +755,7 @@ export function AgentLogsPage() {
                                 className="h-11 rounded-xl"
                                 onClick={() => openCompareModal(log)}
                               >
-                                Compare Result
+                                So sánh Kết quả
                               </Button>
 
                               <Button
@@ -768,7 +768,7 @@ export function AgentLogsPage() {
                                   )
                                 }
                               >
-                                View Thinking
+                                Xem LLM Reasoning
                               </Button>
                             </div>
                           </div>
@@ -831,7 +831,7 @@ export function AgentLogsPage() {
                   </div>
 
                   <div className="mt-3 text-sm text-white/75">
-                    Application #{compareData.log.applicationId} • Applicant #{compareData.log.applicantId} • Document #{compareData.log.documentId}
+                    Đơn #{compareData.log.applicationId} • Thí sinh #{compareData.log.applicantId} • Tài liệu #{compareData.log.documentId}
                   </div>
 
                   <p className="mt-4 whitespace-pre-wrap text-[15px] leading-7 text-white/90">
@@ -875,72 +875,72 @@ export function AgentLogsPage() {
                   >
                     <div className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900">
                       <FileTextOutlined />
-                      Applicant profile
+                      Thông tin thí sinh
                     </div>
 
                     <div className="grid gap-3 md:grid-cols-2">
                       <StatBox
-                        label="Full name"
+                        label="Họ và tên"
                         value={getValue(compareData.applicant?.fullName)}
                         tone="violet"
                       />
                       <StatBox
-                        label="Date of birth"
+                        label="Ngày sinh"
                         value={getValue(compareData.applicant?.dateOfBirth)}
                         tone="sky"
                       />
                       <StatBox
-                        label="Gender"
+                        label="Giới tính"
                         value={getValue(compareData.applicant?.gender)}
                         tone="emerald"
                       />
                       <StatBox
-                        label="ID issue number"
+                        label="Số CCCD"
                         value={getValue(compareData.applicant?.idIssueNumber)}
                         tone="amber"
                       />
                       <StatBox
-                        label="Contact phone"
+                        label="Số điện thoại liên hệ"
                         value={getValue(compareData.applicant?.contactPhone)}
                         tone="rose"
                       />
                       <StatBox
-                        label="Contact email"
+                        label="Email liên hệ"
                         value={getValue(compareData.applicant?.contactEmail)}
                         tone="sky"
                       />
                       <StatBox
-                        label="High school"
+                        label="Trường THPT"
                         value={getValue(compareData.applicant?.highSchoolName)}
                         tone="slate"
                       />
                       <StatBox
-                        label="Graduation year"
+                        label="Năm tốt nghiệp"
                         value={getValue(compareData.applicant?.graduationYear)}
                         tone="violet"
                       />
                       <StatBox
-                        label="High school district"
+                        label="Khu vực trường THPT"
                         value={getValue(compareData.applicant?.highSchoolDistrict)}
                       />
                       <StatBox
-                        label="High school province"
+                        label="Tỉnh/Thành phố trường THPT"
                         value={getValue(compareData.applicant?.highSchoolProvince)}
                       />
                       <StatBox
-                        label="ID issue date"
+                        label="Ngày cấp CCCD"
                         value={getValue(compareData.applicant?.idIssueDate)}
                       />
                       <StatBox
-                        label="ID issue place"
+                        label="Nơi cấp CCCD"
                         value={getValue(compareData.applicant?.idIssuePlace)}
                       />
                       <StatBox
-                        label="Contact name"
+                        label="Tên người thân liên hệ"
                         value={getValue(compareData.applicant?.contactName)}
                       />
                       <StatBox
-                        label="Allow share"
+                        label="Cho phép chia sẻ"
                         value={getValue(compareData.applicant?.allowShare)}
                       />
                     </div>
@@ -993,8 +993,8 @@ export function AgentLogsPage() {
                                   ].join(" ")}
                                 >
                                   {isMatched
-                                    ? "Matched log document"
-                                    : "Other document"}
+                                    ? "Tài liệu được đánh giá"
+                                    : "Tài liệu khác của thí sinh"}
                                 </Tag>
                               </div>
 
@@ -1007,12 +1007,12 @@ export function AgentLogsPage() {
 
                               <div className="mt-4 grid gap-3 md:grid-cols-2">
                                 <StatBox
-                                  label="Verification result"
+                                  label="Kết quả xác minh"
                                   value={getValue(doc.verificationResult)}
                                   tone="amber"
                                 />
                                 <StatBox
-                                  label="Uploaded at"
+                                  label="Đã tải lên lúc"
                                   value={getValue(doc.uploadedAt)}
                                   tone="sky"
                                 />
@@ -1021,7 +1021,7 @@ export function AgentLogsPage() {
                               {doc.verificationDetails ? (
                                 <div className="mt-3 rounded-2xl border border-amber-100 bg-amber-50 p-4">
                                   <div className="text-xs font-medium uppercase tracking-wide text-amber-500">
-                                    Verification details
+                                    Chi tiết xác minh
                                   </div>
                                   <p className="mt-2 whitespace-pre-wrap text-sm leading-7 text-amber-900">
                                     {doc.verificationDetails}
@@ -1034,7 +1034,7 @@ export function AgentLogsPage() {
                       </div>
                     ) : (
                       <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-sm text-slate-500">
-                        No documents found for this applicant.
+                        Không tìm thấy tài liệu nào cho thí sinh này. Có thể do tài liệu chưa được tải lên hoặc có lỗi trong quá trình lấy dữ liệu. Vui lòng kiểm tra lại thông tin thí sinh hoặc liên hệ với bộ phận hỗ trợ để được trợ giúp.
                       </div>
                     )}
                   </Card>
