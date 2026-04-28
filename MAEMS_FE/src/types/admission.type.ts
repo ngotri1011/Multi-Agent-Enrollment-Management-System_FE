@@ -4,6 +4,8 @@ export interface AdmissionType {
   enrollmentYear: string;
   type: string;
   requiredDocumentList: string;
+  eligibilityRules: string;
+  priorityRules: string;
   isActive: boolean;
   createdAt: string;
 }
@@ -18,6 +20,8 @@ export interface CreateAdmissionTypeRequest {
   admissionTypeName: string;
   enrollmentYearId: number;
   type: string;
+  eligibilityRules: string;
+  priorityRules: string;
   requiredDocumentList: string;
   isActive: boolean;
 }
@@ -26,6 +30,8 @@ export interface UpdateAdmissionTypeRequest {
   admissionTypeName: string;
   enrollmentYearId: number;
   type: string;
+  eligibilityRules: string;
+  priorityRules: string;
   requiredDocumentList: string;
   isActive: boolean;
 }
