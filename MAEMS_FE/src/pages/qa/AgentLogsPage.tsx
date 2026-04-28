@@ -31,6 +31,7 @@ import {
 import type { AgentLog } from "../../types/agent-log";
 import { QALayout } from "../../layouts/QALayout";
 
+
 type SearchType = "applicationId" | "documentId";
 
 type ParsedOutput = {
@@ -108,11 +109,20 @@ function safeParseOutput(outputData: string): ParsedOutput {
 }
 
 function getResultMeta(result?: string) {
-  const value = (result || "").toLowerCase();
+  const value = (result || "").trim().toLowerCase();
 
-  if (value === "accepted" || value === "passed" || value === "approved") {
+  if (
+    value === "accepted" ||
+    value === "accept" ||
+    value === "approved" ||
+    value === "approve" ||
+    value === "passed" ||
+    value === "pass" ||
+    value === "allow" ||
+    value === "allowed"
+  ) {
     return {
-      label: result || "Passed",
+      label: result || "accepted",
       className:
         "bg-emerald-50 text-emerald-700 border-emerald-200 ring-emerald-100",
       accent: "from-emerald-500 to-emerald-400",
@@ -121,7 +131,14 @@ function getResultMeta(result?: string) {
     };
   }
 
-  if (value === "rejected" || value === "reject") {
+  if (
+    value === "rejected" ||
+    value === "reject" ||
+    value === "denied" ||
+    value === "deny" ||
+    value === "failed" ||
+    value === "fail"
+  ) {
     return {
       label: result || "rejected",
       className: "bg-rose-50 text-rose-700 border-rose-200 ring-rose-100",
@@ -131,7 +148,12 @@ function getResultMeta(result?: string) {
     };
   }
 
-  if (value === "waitlisted" || value === "pending") {
+  if (
+    value === "waitlisted" ||
+    value === "pending" ||
+    value === "review" ||
+    value === "in_review"
+  ) {
     return {
       label: result || "pending",
       className:
@@ -257,8 +279,7 @@ function renderDocumentPreview(doc: ApplicantDocument) {
     format.includes("webp") ||
     filePath.match(/\.(png|jpg|jpeg|webp)(\?|$)/i);
 
-  const isPdf =
-    format.includes("pdf") || filePath.match(/\.pdf(\?|$)/i);
+  const isPdf = format.includes("pdf") || filePath.match(/\.pdf(\?|$)/i);
 
   if (isImage) {
     return (
@@ -297,6 +318,7 @@ function renderDocumentPreview(doc: ApplicantDocument) {
 export function AgentLogsPage() {
   const [logs, setLogs] = useState<AgentLog[]>([]);
   const [loading, setLoading] = useState(false);
+  const [isReasoningExpanded, setIsReasoningExpanded] = useState(false);
 
   const [query, setQuery] = useState({
     pageNumber: 1,
@@ -309,8 +331,8 @@ export function AgentLogsPage() {
     sortDesc: true,
   });
 
-  // draft values: changing these does NOT fetch
-  const [searchTypeDraft, setSearchTypeDraft] = useState<SearchType>("applicationId");
+  const [searchTypeDraft, setSearchTypeDraft] =
+    useState<SearchType>("applicationId");
   const [searchValueDraft, setSearchValueDraft] = useState("");
 
   const [total, setTotal] = useState(0);
@@ -385,8 +407,8 @@ export function AgentLogsPage() {
       rejected: parsed.filter(
         (x) => x.parsed?.result?.toLowerCase() === "rejected"
       ).length,
-      passed: parsed.filter(
-        (x) => x.parsed?.result?.toLowerCase() === "passed"
+      accepted: parsed.filter(
+        (x) => x.parsed?.result?.toLowerCase() === "accepted"
       ).length,
       pending: parsed.filter((x) => {
         const r = (x.parsed?.result || "").toLowerCase();
@@ -398,6 +420,7 @@ export function AgentLogsPage() {
   const openCompareModal = async (log: AgentLog) => {
     setCompareOpen(true);
     setCompareLoading(true);
+    setIsReasoningExpanded(false);
 
     try {
       const parsed = safeParseOutput(log.outputData);
@@ -452,21 +475,19 @@ export function AgentLogsPage() {
                   Agent Logs
                 </h1>
                 <p className="mt-2 max-w-2xl text-sm text-white/70 md:text-base">
-                  Xem và phân tích các agent log được tạo ra trong quá trình xử lý hồ sơ tuyển sinh. Sử dụng các bộ lọc và công cụ so sánh để đánh giá hiệu quả của các agent và cải thiện hệ thống.
+                  Review LLM agent outputs, inspect applicant documents, and compare decisions with clear QA insight.
                 </p>
               </div>
 
               <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                 <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur">
                   <div className="text-xs text-white/65">On page</div>
-                  <div className="mt-1 text-2xl font-semibold">
-                    {stats.total}
-                  </div>
+                  <div className="mt-1 text-2xl font-semibold">{stats.total}</div>
                 </div>
                 <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 backdrop-blur">
-                  <div className="text-xs text-emerald-100">Passed</div>
+                  <div className="text-xs text-emerald-100">Accepted</div>
                   <div className="mt-1 text-2xl font-semibold text-emerald-50">
-                    {stats.passed}
+                    {stats.accepted}
                   </div>
                 </div>
                 <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 backdrop-blur">
@@ -497,8 +518,8 @@ export function AgentLogsPage() {
                     value={searchTypeDraft}
                     onChange={(value) => setSearchTypeDraft(value)}
                     options={[
-                      { value: "applicationId", label: "ID Hồ sơ" },
-                      { value: "documentId", label: "ID Tài liệu" },
+                      { value: "applicationId", label: "Application ID" },
+                      { value: "documentId", label: "Document ID" },
                     ]}
                     className="w-44"
                   />
@@ -507,8 +528,8 @@ export function AgentLogsPage() {
                     size="large"
                     placeholder={
                       searchTypeDraft === "documentId"
-                        ? "Nhập Document ID..."
-                        : "Nhập Application ID..."
+                        ? "Enter Document ID..."
+                        : "Enter Application ID..."
                     }
                     value={searchValueDraft}
                     onChange={(e) => setSearchValueDraft(e.target.value)}
@@ -521,7 +542,7 @@ export function AgentLogsPage() {
                     icon={<SearchOutlined />}
                     onClick={applySearch}
                   >
-                    Tìm
+                    Search
                   </Button>
                 </div>
               </div>
@@ -530,7 +551,7 @@ export function AgentLogsPage() {
                 <Select
                   size="large"
                   value={query.agentType || undefined}
-                  placeholder="Loại agent"
+                  placeholder="Agent type"
                   allowClear
                   onChange={(value) =>
                     setQuery((prev) => ({
@@ -548,7 +569,7 @@ export function AgentLogsPage() {
                   ]}
                 />
 
-                {/* <Select
+                <Select
                   size="large"
                   value={query.status || undefined}
                   placeholder="Status"
@@ -566,7 +587,7 @@ export function AgentLogsPage() {
                     { value: "error", label: "Error" },
                     { value: "done", label: "Done" },
                   ]}
-                /> */}
+                />
 
                 <Button
                   size="large"
@@ -599,7 +620,7 @@ export function AgentLogsPage() {
                 <Card className="rounded-3xl border-0 shadow-sm">
                   <Empty
                     image={Empty.PRESENTED_IMAGE_SIMPLE}
-                    description="Không tìm thấy agent log nào. Thử điều chỉnh bộ lọc hoặc tìm kiếm khác."
+                    description="No agent logs found"
                   />
                 </Card>
               ) : (
@@ -645,12 +666,12 @@ export function AgentLogsPage() {
                             <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-slate-500">
                               <span className="inline-flex items-center gap-1.5">
                                 <FileTextOutlined />
-                                Đơn #{log.applicationId}
+                                App #{log.applicationId}
                               </span>
                               <span>•</span>
                               <span>Doc #{log.documentId}</span>
                               <span>•</span>
-                              <span>Ứng viên #{log.applicantId}</span>
+                              <span>Applicant #{log.applicantId}</span>
                               <span>•</span>
                               <span>{new Date(log.createdAt).toLocaleString()}</span>
                             </div>
@@ -667,7 +688,7 @@ export function AgentLogsPage() {
                           <div className="lg:col-span-9">
                             <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
                               <div className="mb-2 text-sm font-semibold text-slate-700">
-                                Kết quả khuyến nghị của AI 
+                                AI recommendation
                               </div>
                               <p className="text-[15px] leading-7 text-slate-600">
                                 {parsed?.details ||
@@ -699,7 +720,7 @@ export function AgentLogsPage() {
 
                               <div className="rounded-2xl border border-slate-100 bg-white p-4">
                                 <div className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                                  Đầu ra
+                                  Output type
                                 </div>
                                 <div className="mt-2 font-semibold text-slate-800">
                                   {log.status}
@@ -714,7 +735,7 @@ export function AgentLogsPage() {
                             >
                               <div className="flex items-center justify-between">
                                 <span className="text-sm font-medium text-white/90">
-                                  Kết quả
+                                  Decision
                                 </span>
                                 <Badge status="processing" />
                               </div>
@@ -724,7 +745,7 @@ export function AgentLogsPage() {
                               </div>
 
                               <div className="mt-2 text-sm text-white/85">
-                                Mở rộng để xem chi tiết khuyến nghị của AI và so sánh với tài liệu gốc.
+                                Open the comparison modal to inspect the applicant and document details.
                               </div>
                             </div>
 
@@ -734,7 +755,7 @@ export function AgentLogsPage() {
                                 className="h-11 rounded-xl"
                                 onClick={() => openCompareModal(log)}
                               >
-                                So sánh Kết quả
+                                Compare Result
                               </Button>
 
                               <Button
@@ -743,11 +764,11 @@ export function AgentLogsPage() {
                                 onClick={() =>
                                   setSelectedThinking(
                                     parsed?.thinking ||
-                                      "No LLM thinking available."
+                                    "No LLM thinking available."
                                   )
                                 }
                               >
-                                Xem LLM reasoning
+                                View Thinking
                               </Button>
                             </div>
                           </div>
@@ -787,7 +808,7 @@ export function AgentLogsPage() {
           }}
           footer={null}
           width={1180}
-          title="So sánh Kết quả"
+          title="Compare Result"
           destroyOnClose
         >
           <Spin spinning={compareLoading}>
@@ -796,9 +817,8 @@ export function AgentLogsPage() {
                 <div className="rounded-3xl bg-gradient-to-r from-slate-950 via-indigo-950 to-violet-950 p-5 text-white">
                   <div className="flex flex-wrap items-center gap-3">
                     <Tag
-                      className={`rounded-full border px-3 py-1 text-xs font-semibold ${
-                        getResultMeta(compareData.parsed?.result).className
-                      }`}
+                      className={`rounded-full border px-3 py-1 text-xs font-semibold ${getResultMeta(compareData.parsed?.result).className
+                        }`}
                     >
                       {compareData.parsed?.result || "unknown"}
                     </Tag>
@@ -811,7 +831,7 @@ export function AgentLogsPage() {
                   </div>
 
                   <div className="mt-3 text-sm text-white/75">
-                    Đơn #{compareData.log.applicationId} • Ứng viên #{compareData.log.applicantId} • Tài liệu #{compareData.log.documentId}
+                    Application #{compareData.log.applicationId} • Applicant #{compareData.log.applicantId} • Document #{compareData.log.documentId}
                   </div>
 
                   <p className="mt-4 whitespace-pre-wrap text-[15px] leading-7 text-white/90">
@@ -821,10 +841,27 @@ export function AgentLogsPage() {
 
                   {compareData.parsed?.thinking ? (
                     <div className="mt-5 rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur">
-                      <div className="text-xs font-medium uppercase tracking-wide text-white/60">
-                        LLM reasoning
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="text-xs font-medium uppercase tracking-wide text-white/60">
+                          LLM reasoning preview
+                        </div>
+
+                        <Button
+                          size="small"
+                          type="text"
+                          onClick={() => setIsReasoningExpanded((prev) => !prev)}
+                          className="text-white hover:!text-white"
+                        >
+                          {isReasoningExpanded ? "Thu gọn" : "Xem thêm"}
+                        </Button>
                       </div>
-                      <p className="mt-2 whitespace-pre-wrap text-sm leading-7 text-white/85">
+
+                      <p
+                        className={[
+                          "mt-2 whitespace-pre-wrap text-sm leading-7 text-white/85",
+                          isReasoningExpanded ? "" : "line-clamp-4",
+                        ].join(" ")}
+                      >
                         {compareData.parsed.thinking}
                       </p>
                     </div>
@@ -838,72 +875,72 @@ export function AgentLogsPage() {
                   >
                     <div className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900">
                       <FileTextOutlined />
-                      Hồ sơ Ứng viên
+                      Applicant profile
                     </div>
 
                     <div className="grid gap-3 md:grid-cols-2">
                       <StatBox
-                        label="Họ và tên"
+                        label="Full name"
                         value={getValue(compareData.applicant?.fullName)}
                         tone="violet"
                       />
                       <StatBox
-                        label="Ngày sinh"
+                        label="Date of birth"
                         value={getValue(compareData.applicant?.dateOfBirth)}
                         tone="sky"
                       />
                       <StatBox
-                        label="Giới tính"
+                        label="Gender"
                         value={getValue(compareData.applicant?.gender)}
                         tone="emerald"
                       />
                       <StatBox
-                        label="Số CMND/CCCD"
+                        label="ID issue number"
                         value={getValue(compareData.applicant?.idIssueNumber)}
                         tone="amber"
                       />
                       <StatBox
-                        label="Số điện thoại"
+                        label="Contact phone"
                         value={getValue(compareData.applicant?.contactPhone)}
                         tone="rose"
                       />
                       <StatBox
-                        label="Email liên hệ"
+                        label="Contact email"
                         value={getValue(compareData.applicant?.contactEmail)}
                         tone="sky"
                       />
                       <StatBox
-                        label="Tên trường THPT"
+                        label="High school"
                         value={getValue(compareData.applicant?.highSchoolName)}
                         tone="slate"
                       />
                       <StatBox
-                        label="Năm tốt nghiệp"
+                        label="Graduation year"
                         value={getValue(compareData.applicant?.graduationYear)}
                         tone="violet"
                       />
                       <StatBox
-                        label="Khu vực trường THPT"
+                        label="High school district"
                         value={getValue(compareData.applicant?.highSchoolDistrict)}
                       />
                       <StatBox
-                        label="Tỉnh/Thành phố trường THPT"
+                        label="High school province"
                         value={getValue(compareData.applicant?.highSchoolProvince)}
                       />
                       <StatBox
-                        label="Ngày cấp CMND/CCCD"
+                        label="ID issue date"
                         value={getValue(compareData.applicant?.idIssueDate)}
                       />
                       <StatBox
-                        label="Nơi cấp CMND/CCCD"
+                        label="ID issue place"
                         value={getValue(compareData.applicant?.idIssuePlace)}
                       />
                       <StatBox
-                        label="Tên người liên hệ"
+                        label="Contact name"
                         value={getValue(compareData.applicant?.contactName)}
                       />
                       <StatBox
-                        label="Cho phép chia sẻ"
+                        label="Allow share"
                         value={getValue(compareData.applicant?.allowShare)}
                       />
                     </div>
@@ -918,54 +955,86 @@ export function AgentLogsPage() {
                       So sánh với Tài liệu Gốc
                     </div>
 
-                    {compareData.matchedDocument ? (
-                      <div className="space-y-4">
-                        <div className="grid gap-3 md:grid-cols-2">
-                          <StatBox
-                            label="Tên file"
-                            value={getValue(compareData.matchedDocument.fileName)}
-                            tone="violet"
-                          />
-                          <StatBox
-                            label="Loại tài liệu"
-                            value={getValue(compareData.matchedDocument.documentType)}
-                            tone="sky"
-                          />
-                          <StatBox
-                            label="File format"
-                            value={getValue(compareData.matchedDocument.fileFormat)}
-                            tone="emerald"
-                          />
-                          <StatBox
-                            label="Kết quả xác minh"
-                            value={getValue(
-                              compareData.matchedDocument.verificationResult
-                            )}
-                            tone="amber"
-                          />
-                        </div>
+                    {compareData.documents?.length ? (
+                      <div className="space-y-4 max-h-[720px] overflow-auto pr-1">
+                        {compareData.documents.map((doc) => {
+                          const isMatched =
+                            Number(doc.documentId) ===
+                            Number(compareData.log.documentId);
 
-                        <div className="rounded-3xl border border-slate-100 bg-slate-50 p-4">
-                          <div className="text-xs font-medium uppercase tracking-wide text-slate-400 mb-3">
-                            Xem tài liệu
-                          </div>
-                          {renderDocumentPreview(compareData.matchedDocument)}
-                        </div>
+                          return (
+                            <div
+                              key={doc.documentId}
+                              className={[
+                                "rounded-3xl border p-4",
+                                isMatched
+                                  ? "border-violet-200 bg-violet-50"
+                                  : "border-slate-100 bg-white",
+                              ].join(" ")}
+                            >
+                              <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                                <div>
+                                  <div className="font-semibold text-slate-900">
+                                    {doc.fileName || "Unnamed document"}
+                                  </div>
+                                  <div className="text-sm text-slate-500">
+                                    #{doc.documentId} •{" "}
+                                    {doc.documentType || "unknown"} •{" "}
+                                    {doc.fileFormat || "unknown"}
+                                  </div>
+                                </div>
 
-                        {compareData.matchedDocument.verificationDetails ? (
-                          <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4">
-                            <div className="text-xs font-medium uppercase tracking-wide text-amber-500">
-                              Chi tiết xác minh
+                                <Tag
+                                  className={[
+                                    "rounded-full px-3 py-1",
+                                    isMatched
+                                      ? "border-violet-200 bg-violet-100 text-violet-700"
+                                      : "border-slate-200 bg-slate-100 text-slate-600",
+                                  ].join(" ")}
+                                >
+                                  {isMatched
+                                    ? "Matched log document"
+                                    : "Other document"}
+                                </Tag>
+                              </div>
+
+                              <div className="mt-4 rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                                <div className="mb-3 text-xs font-medium uppercase tracking-wide text-slate-400">
+                                  Document preview
+                                </div>
+                                {renderDocumentPreview(doc)}
+                              </div>
+
+                              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                                <StatBox
+                                  label="Verification result"
+                                  value={getValue(doc.verificationResult)}
+                                  tone="amber"
+                                />
+                                <StatBox
+                                  label="Uploaded at"
+                                  value={getValue(doc.uploadedAt)}
+                                  tone="sky"
+                                />
+                              </div>
+
+                              {doc.verificationDetails ? (
+                                <div className="mt-3 rounded-2xl border border-amber-100 bg-amber-50 p-4">
+                                  <div className="text-xs font-medium uppercase tracking-wide text-amber-500">
+                                    Verification details
+                                  </div>
+                                  <p className="mt-2 whitespace-pre-wrap text-sm leading-7 text-amber-900">
+                                    {doc.verificationDetails}
+                                  </p>
+                                </div>
+                              ) : null}
                             </div>
-                            <p className="mt-2 whitespace-pre-wrap text-sm leading-7 text-amber-900">
-                              {compareData.matchedDocument.verificationDetails}
-                            </p>
-                          </div>
-                        ) : null}
+                          );
+                        })}
                       </div>
                     ) : (
                       <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-sm text-slate-500">
-                        Không tìm thấy tài liệu nào khớp với log này. Có thể do tài liệu gốc đã bị xóa hoặc log này không liên quan đến tài liệu cụ thể nào.
+                        No documents found for this applicant.
                       </div>
                     )}
                   </Card>
