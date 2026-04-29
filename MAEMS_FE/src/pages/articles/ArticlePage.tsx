@@ -47,7 +47,9 @@ export function ArticlePage() {
 
   return (
     <GuestLayout>
-      <div className="max-w-4xl mx-auto px-4 md:px-6 py-10">
+      {/* mt-[84px]: bù đúng bằng chiều cao spacer của AppHeader (84px),
+          vì GuestLayout đang dùng -mt-[84px] trên main để hero full-bleed */}
+      <div className="max-w-4xl mx-auto px-4 md:px-6 py-10 mt-[84px]">
         <Breadcrumb
           className="mb-6 text-sm"
           items={[

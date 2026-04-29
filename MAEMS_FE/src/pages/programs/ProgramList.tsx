@@ -194,8 +194,8 @@ export function ProgramList() {
   return (
     <GuestLayout>
 
-      {/* Hero */}
-      <section className="relative py-28 px-6 overflow-hidden">
+      {/* Hero — full viewport height, căn giữa nội dung theo chiều dọc */}
+      <section className="relative min-h-screen px-6 overflow-hidden flex flex-col items-center justify-center">
         <div className="absolute inset-0 bg-gradient-to-br from-orange-900/90 via-orange-700/75 to-gray-900/90" />
         <div
           className="absolute inset-0"
@@ -243,7 +243,7 @@ export function ProgramList() {
       </div>
 
       {/* Filter & Search */}
-      <section className="py-6 sm:py-8 px-6 bg-gray-50/95 backdrop-blur-sm border-b border-gray-100 sticky top-[84px] z-30">
+      <section className="py-6 sm:py-8 px-6 bg-gray-50/95 backdrop-blur-sm border-b border-gray-100 z-30">
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center">
             <div className="flex items-center gap-2 text-gray-500 text-sm flex-shrink-0">

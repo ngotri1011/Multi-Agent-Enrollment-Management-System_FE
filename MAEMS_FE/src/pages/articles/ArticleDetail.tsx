@@ -57,7 +57,7 @@ export function ArticleDetail() {
 
   return (
     <GuestLayout>
-      <div className="max-w-4xl mx-auto px-4 md:px-6 py-10">
+      <div className="max-w-4xl mx-auto px-4 md:px-6 py-10 mt-[84px]">
         <Breadcrumb
           className="mb-6 text-sm"
           items={[

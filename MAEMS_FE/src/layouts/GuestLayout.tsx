@@ -10,7 +10,9 @@ export function GuestLayout({ children }: GuestLayoutProps) {
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <AppHeader />
-      <main className="flex-1">{children}</main>
+      {/* -mt-[84px]: kéo main lên phủ vùng spacer của AppHeader,
+          để hero section bắt đầu từ đầu viewport thay vì tạo khoảng trắng */}
+      <main className="flex-1 -mt-[84px]">{children}</main>
       <AppFooter />
     </div>
   );

@@ -4,6 +4,7 @@ import {
   Button,
   Card,
   Empty,
+  Grid,
   Input,
   Modal,
   Progress,
@@ -17,6 +18,8 @@ import {
   notification,
   Popconfirm,
 } from "antd";
+
+const { useBreakpoint } = Grid;
 import type { ColumnsType } from "antd/es/table";
 import {
   Bot,
@@ -330,12 +333,163 @@ function QrPaymentModal({
   );
 }
 
+// ─── Mobile card list ─────────────────────────────────────────────────────────
+
+/**
+ * Hiển thị danh sách đơn dưới dạng card trên màn hình nhỏ (< md).
+ * Thay thế bảng để tránh scroll ngang khó dùng trên điện thoại.
+ */
+function ApplicationCardList({
+  apps,
+  onSubmit,
+  onView,
+  submittingId,
+}: {
+  apps: ApplicationMe[];
+  onSubmit: (app: ApplicationMe) => void;
+  onView: (id: number) => void;
+  submittingId: number | null;
+}) {
+  return (
+    <div className="flex flex-col gap-3">
+      {apps.map((app) => {
+        const sc = statusConfig[app.status];
+        const canSubmitFinal =
+          app.status === "draft" || app.status === "document_required";
+        const isResubmit = app.status === "document_required";
+        const isSubmitting = submittingId === app.applicationId;
+        const isAiProcessing =
+          app.status === "under_review" || app.status === "submitted";
+
+        return (
+          <div
+            key={app.applicationId}
+            className="bg-white rounded-2xl border border-gray-200/80 shadow-sm p-4 flex flex-col gap-3 active:bg-gray-50 transition-colors"
+          >
+            {/* Tên chương trình + trạng thái */}
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-gray-800 text-sm leading-snug line-clamp-2">
+                  {app.programName?.trim() || "—"}
+                </div>
+                <div className="text-xs text-gray-400 mt-0.5 font-mono">
+                  #{app.applicationId}
+                </div>
+              </div>
+              <div className="flex items-center gap-1 shrink-0 flex-wrap justify-end">
+                <Tag color={sc.color} className="!m-0 text-xs">
+                  {sc.label}
+                </Tag>
+                {isAiProcessing && (
+                  <Tag
+                    color="purple"
+                    className="!m-0 inline-flex items-center gap-0.5 text-xs"
+                  >
+                    <Bot size={11} className="shrink-0" />
+                    AI
+                  </Tag>
+                )}
+              </div>
+            </div>
+
+            {/* Chi tiết bổ sung: cơ sở, loại xét tuyển, ngày nộp, cập nhật */}
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs bg-gray-50/70 rounded-xl px-3 py-2.5">
+              {app.campusName?.trim() && (
+                <div className="min-w-0">
+                  <span className="text-gray-400 block">Cơ sở</span>
+                  <span className="text-gray-700 font-medium truncate block">
+                    {app.campusName}
+                  </span>
+                </div>
+              )}
+              {app.admissionTypeName?.trim() && (
+                <div className="min-w-0">
+                  <span className="text-gray-400 block">Xét tuyển</span>
+                  <span className="text-gray-700 font-medium truncate block">
+                    {app.admissionTypeName}
+                  </span>
+                </div>
+              )}
+              {app.submittedAt && (
+                <div>
+                  <span className="text-gray-400 block">Ngày nộp</span>
+                  <span className="text-gray-700 font-medium">
+                    {formatDate(app.submittedAt)}
+                  </span>
+                </div>
+              )}
+              {app.lastUpdated && (
+                <div>
+                  <span className="text-gray-400 block">Cập nhật</span>
+                  <span className="text-gray-700 font-medium">
+                    {relativeTime(app.lastUpdated)}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Nút thao tác — nằm ngang, chiếm đều chiều rộng */}
+            <div className="flex gap-2 pt-1 border-t border-gray-100">
+              {canSubmitFinal && (
+                <Popconfirm
+                  title={
+                    isResubmit
+                      ? "Xác nhận nộp lại đơn đăng ký"
+                      : "Xác nhận nộp đơn đăng ký"
+                  }
+                  description={
+                    <span className="text-xs text-gray-500">
+                      {isResubmit
+                        ? "Sau khi nộp lại, đơn sẽ được gửi lại vào hệ thống xét duyệt."
+                        : "Sau khi nộp, đơn sẽ được gửi đến hệ thống xét duyệt."}
+                      <br />
+                      Bạn sẽ không thể chỉnh sửa sau khi xác nhận.
+                    </span>
+                  }
+                  okText={isResubmit ? "Xác nhận nộp lại" : "Xác nhận nộp"}
+                  cancelText="Hủy"
+                  okButtonProps={{
+                    className: "!bg-green-600 !border-green-600",
+                  }}
+                  onConfirm={() => onSubmit(app)}
+                >
+                  <Button
+                    size="small"
+                    icon={<SendHorizonal size={14} />}
+                    loading={isSubmitting}
+                    className="!rounded-xl !border-green-400 !text-green-600 hover:!bg-green-50 flex-1"
+                    block
+                  >
+                    {isResubmit ? "Nộp lại" : "Nộp đơn"}
+                  </Button>
+                </Popconfirm>
+              )}
+              <Button
+                type="primary"
+                size="small"
+                icon={<Eye size={14} />}
+                className="!rounded-xl !bg-orange-500 !border-orange-500 hover:!bg-orange-600 flex-1"
+                block
+                onClick={() => onView(app.applicationId)}
+              >
+                Chi tiết
+              </Button>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export function ApplicationList() {
   const navigate = useNavigate();
   // Dùng notification thay vì message để toast hiển thị nổi bật hơn, đặc biệt sau luồng thanh toán.
   const [notifApi, notifContextHolder] = notification.useNotification();
+  // Xác định breakpoint để chọn giữa card list (mobile) và table (desktop).
+  const screens = useBreakpoint();
   const [apps, setApps] = useState<ApplicationMe[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -739,20 +893,23 @@ export function ApplicationList() {
           onExpire={handleQrExpire}
         />
       )}
-      {/* ── Page header ── */}
-      <div className="flex items-start justify-between mb-6 flex-wrap gap-3">
-        <div>
-          <Title level={4} className="!mb-1 !text-gray-800 !font-bold">
+      {/* ── Page header — responsive: trên mobile nút "Đơn mới" xuống dòng chiếm full width ── */}
+      <div className="flex items-start justify-between mb-5 sm:mb-6 flex-wrap gap-3">
+        <div className="min-w-0">
+          <Title
+            level={4}
+            className="!mb-0.5 !text-gray-800 !font-bold !text-lg sm:!text-xl"
+          >
             Đơn đăng ký của tôi
           </Title>
-          <Text className="text-sm text-gray-500">
+          <Text className="text-xs sm:text-sm text-gray-500">
             Xem và quản lý tất cả các đơn đăng ký của bạn
           </Text>
         </div>
         <Button
           type="primary"
           icon={<PlusCircle size={15} />}
-          className="!rounded-xl !bg-orange-500 !border-orange-500 hover:!bg-orange-600"
+          className="!rounded-xl !bg-orange-500 !border-orange-500 hover:!bg-orange-600 w-full sm:w-auto"
           onClick={() => navigate("/applicant/submit-application")}
         >
           Đơn đăng ký mới
@@ -796,33 +953,41 @@ export function ApplicationList() {
         <div className="mb-16 flex flex-col gap-4 pb-10 sm:mb-20 sm:pb-14">
           <Card
             className="rounded-2xl border border-gray-200/80 bg-white shadow-sm shadow-gray-200/40"
-            styles={{ body: { padding: "18px 20px" } }}
+            styles={{ body: { padding: "14px 16px" } }}
           >
-            <div className="rounded-xl border border-gray-100 bg-gradient-to-br from-gray-50/90 to-white px-4 py-3.5">
-              <div className="flex flex-col gap-3">
-                <div className="flex flex-wrap gap-3 items-center">
+            <div className="rounded-xl border border-gray-100 bg-gradient-to-br from-gray-50/90 to-white px-3.5 py-3 sm:px-4 sm:py-3.5">
+              <div className="flex flex-col gap-2.5 sm:gap-3">
+                {/* Thanh tìm kiếm + nút xóa bộ lọc */}
+                <div className="flex gap-2 items-center">
                   <Input
                     allowClear
-                    prefix={<Search size={16} className="text-gray-400" />}
-                    placeholder="Tìm theo chương trình, cơ sở, loại xét tuyển, mã đơn, tên thí sinh…"
+                    prefix={<Search size={15} className="text-gray-400" />}
+                    placeholder={
+                      screens.sm
+                        ? "Tìm theo chương trình, cơ sở, loại xét tuyển, mã đơn…"
+                        : "Tìm kiếm đơn đăng ký…"
+                    }
                     value={searchText}
                     onChange={(e) => setSearchText(e.target.value)}
-                    className="!rounded-xl !border-gray-200 flex-1 min-w-[220px] shadow-sm"
+                    className="!rounded-xl !border-gray-200 flex-1 shadow-sm"
                   />
                   <Button
                     type="link"
-                    className="!px-2 shrink-0 !text-orange-600"
+                    size="small"
+                    className="!px-1.5 shrink-0 !text-orange-600 !text-xs"
                     disabled={!hasActiveFilters}
                     onClick={clearFilters}
                   >
-                    Xóa bộ lọc
+                    Xóa lọc
                   </Button>
                 </div>
-                <div className="flex flex-wrap gap-3 items-center">
+
+                {/* Bộ lọc: 2 cột trên mobile, tự co giãn trên desktop */}
+                <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 sm:gap-3">
                   <Select<ApplicationStatus | "all">
                     value={statusFilter}
                     onChange={setStatusFilter}
-                    className="min-w-[180px] flex-1 sm:flex-none [&_.ant-select-selector]:!rounded-xl"
+                    className="w-full sm:min-w-[180px] sm:flex-1 [&_.ant-select-selector]:!rounded-xl"
                     popupMatchSelectWidth={false}
                     options={[
                       { value: "all", label: "Tất cả trạng thái" },
@@ -832,7 +997,7 @@ export function ApplicationList() {
                   <Select<string>
                     value={programFilter}
                     onChange={setProgramFilter}
-                    className="min-w-[200px] flex-1 sm:flex-none [&_.ant-select-selector]:!rounded-xl"
+                    className="w-full sm:min-w-[200px] sm:flex-1 [&_.ant-select-selector]:!rounded-xl"
                     popupMatchSelectWidth={false}
                     options={[
                       { value: "all", label: "Tất cả chương trình" },
@@ -842,7 +1007,7 @@ export function ApplicationList() {
                   <Select<string>
                     value={campusFilter}
                     onChange={setCampusFilter}
-                    className="min-w-[160px] flex-1 sm:flex-none [&_.ant-select-selector]:!rounded-xl"
+                    className="w-full sm:min-w-[160px] sm:flex-1 [&_.ant-select-selector]:!rounded-xl"
                     popupMatchSelectWidth={false}
                     options={[
                       { value: "all", label: "Tất cả cơ sở" },
@@ -852,7 +1017,7 @@ export function ApplicationList() {
                   <Select<string>
                     value={admissionFilter}
                     onChange={setAdmissionFilter}
-                    className="min-w-[200px] flex-1 sm:flex-none [&_.ant-select-selector]:!rounded-xl"
+                    className="w-full sm:min-w-[200px] sm:flex-1 [&_.ant-select-selector]:!rounded-xl"
                     popupMatchSelectWidth={false}
                     options={[
                       { value: "all", label: "Tất cả loại xét tuyển" },
@@ -868,11 +1033,11 @@ export function ApplicationList() {
             className="rounded-2xl border border-gray-200/80 shadow-md shadow-gray-200/30 overflow-hidden"
             styles={{ body: { padding: 0 } }}
           >
-            <div className="flex flex-col gap-1 border-b border-gray-100 bg-gradient-to-r from-orange-50/40 via-white to-gray-50/60 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+            <div className="flex flex-col gap-1 border-b border-gray-100 bg-gradient-to-r from-orange-50/40 via-white to-gray-50/60 px-4 py-3.5 sm:px-5 sm:py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
               <div className="flex flex-wrap items-center gap-2.5">
                 <Title
                   level={5}
-                  className="!mb-0 !text-gray-800 !font-semibold !text-base"
+                  className="!mb-0 !text-gray-800 !font-semibold !text-sm sm:!text-base"
                 >
                   Danh sách đơn
                 </Title>
@@ -906,9 +1071,12 @@ export function ApplicationList() {
                   </Tag>
                 )}
               </div>
-              <Text className="!mb-0 text-xs text-gray-500 sm:text-right">
-                Chọn một hàng để xem chi tiết hoặc nộp đơn khi được phép.
-              </Text>
+              {/* Gợi ý này chỉ có nghĩa trên desktop nơi hiển thị bảng */}
+              {screens.md && (
+                <Text className="!mb-0 text-xs text-gray-500 sm:text-right">
+                  Chọn một hàng để xem chi tiết hoặc nộp đơn khi được phép.
+                </Text>
+              )}
             </div>
 
             {filteredApps.length === 0 ? (
@@ -929,7 +1097,8 @@ export function ApplicationList() {
                   Đặt lại bộ lọc
                 </Button>
               </Empty>
-            ) : (
+            ) : screens.md ? (
+              /* Desktop (≥ md): hiển thị bảng với cột đầy đủ */
               <Table<ApplicationMe>
                 rowKey="applicationId"
                 columns={applicationColumns}
@@ -949,6 +1118,16 @@ export function ApplicationList() {
                 }}
                 className="[&_.ant-table]:!rounded-none [&_.ant-table-thead>tr>th]:!bg-gray-50/80 [&_.ant-table-thead>tr>th]:!text-xs [&_.ant-table-thead>tr>th]:!font-semibold [&_.ant-table-thead>tr>th]:!text-gray-600 [&_.ant-table-thead>tr>th]:!uppercase [&_.ant-table-thead>tr>th]:!tracking-wide [&_.ant-table-thead>tr>th]:!border-b-gray-200 [&_.ant-table-tbody>tr>td]:!align-middle [&_.ant-table-tbody>tr:hover>td]:!bg-orange-50/30"
               />
+            ) : (
+              /* Mobile (< md): hiển thị card list thân thiện hơn cho ngón tay */
+              <div className="p-4">
+                <ApplicationCardList
+                  apps={filteredApps}
+                  onSubmit={handleSubmitFinal}
+                  onView={(id) => navigate(`/applicant/applications/${id}`)}
+                  submittingId={submittingId}
+                />
+              </div>
             )}
           </Card>
         </div>
