@@ -18,7 +18,7 @@ import {
 import { AdminLayout } from "../../layouts/AdminLayout";
 import { useEffect, useState } from "react";
 import type { Program } from "../../types/program";
-import { createProgram, getallPrograms, getPrograms, updateProgram } from "../../api/programs";
+import { createProgram, getallPrograms, updateProgram } from "../../api/programs";
 import { getActiveMajorsBasic } from "../../api/majors";
 import { getEnrollmentYears } from "../../api/enrollment-years";
 import { CheckCircle, CircleOff, Eye, Pencil, Save, X } from "lucide-react";
