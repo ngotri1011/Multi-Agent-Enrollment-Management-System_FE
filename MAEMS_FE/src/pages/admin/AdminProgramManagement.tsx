@@ -1,22 +1,40 @@
-import { Card, Row, Col, Typography, Button, Tag, Space, Form, Switch, Input, Modal, message, Pagination, Spin, Select } from "antd";
+import {
+  Card,
+  Row,
+  Col,
+  Typography,
+  Button,
+  Tag,
+  Space,
+  Form,
+  Switch,
+  Input,
+  Modal,
+  message,
+  Pagination,
+  Spin,
+  Select,
+} from "antd";
 import { AdminLayout } from "../../layouts/AdminLayout";
 import { useEffect, useState } from "react";
 import type { Program } from "../../types/program";
-import { createProgram, getallPrograms, getPrograms, updateProgram } from "../../api/programs";
+import { createProgram, getallPrograms, updateProgram } from "../../api/programs";
+import { getActiveMajorsBasic } from "../../api/majors";
+import { getEnrollmentYears } from "../../api/enrollment-years";
 import { CheckCircle, CircleOff, Eye, Pencil, Save, X } from "lucide-react";
 
 const { Title, Text } = Typography;
 
 export function AdminProgramManagement() {
-
-  const enrollmentYearOptions = [
-    { label: "2026", value: 1 },
-    { label: "2025", value: 2 },
-    { label: "2024", value: 3 },
-  ];
-
   const [programs, setPrograms] = useState<Program[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingDropdowns, setLoadingDropdowns] = useState(false);
+
+  const [majorOptions, setMajorOptions] = useState<{ label: string; value: number }[]>([]);
+  const [enrollmentYearOptions, setEnrollmentYearOptions] = useState<
+    { label: string; value: number }[]
+  >([]);
+
   const [query, setQuery] = useState({
     pageNumber: 1,
     pageSize: 6,
@@ -41,6 +59,63 @@ export function AdminProgramManagement() {
   const [selectedProgram, setSelectedProgram] = useState<Program | null>(null);
   const [detailForm] = Form.useForm();
 
+  const cleanParams = (params: Record<string, any>) => {
+    return Object.fromEntries(
+      Object.entries(params).filter(([_, v]) => v !== undefined && v !== "")
+    );
+  };
+
+  const fetchPrograms = async () => {
+    try {
+      setLoading(true);
+
+      const res = await getallPrograms(cleanParams(query));
+
+      setPrograms(res.items);
+
+      setPagination({
+        total: res.totalCount,
+        current: res.pageNumber,
+        pageSize: res.pageSize,
+      });
+    } catch (err) {
+      console.error(err);
+      message.error("Không tải được danh sách chương trình");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchDropdownData = async () => {
+    try {
+      setLoadingDropdowns(true);
+
+      const [majors, years] = await Promise.all([
+        getActiveMajorsBasic(),
+        getEnrollmentYears(),
+      ]);
+
+      setMajorOptions(
+        (majors || []).map((item) => ({
+          label: `${item.majorCode} - ${item.majorName}`,
+          value: item.majorId,
+        }))
+      );
+
+      setEnrollmentYearOptions(
+        (years || []).map((item) => ({
+          label: item.year,
+          value: item.enrollmentYearId,
+        }))
+      );
+    } catch (err) {
+      console.error(err);
+      message.error("Không tải được danh sách ngành / năm tuyển sinh");
+    } finally {
+      setLoadingDropdowns(false);
+    }
+  };
+
   // Handle program update
   const handleUpdate = async (values: any) => {
     if (!selectedProgram) return;
@@ -56,15 +131,13 @@ export function AdminProgramManagement() {
       setDetailOpen(false);
       setEditing(false);
 
-      // refresh list
-      const data = await getPrograms();
-      setPrograms(data);
-
+      fetchPrograms();
     } catch (err) {
       console.error(err);
       message.error("Cập nhật chương trình thất bại");
     }
   };
+
   // Handle program creation
   const handleCreate = async (values: any) => {
     try {
@@ -81,10 +154,8 @@ export function AdminProgramManagement() {
       setOpen(false);
       form.resetFields();
 
-      // refresh list
-      const data = await getPrograms();
-      setPrograms(data);
-
+      
+      fetchPrograms();
     } catch (err) {
       console.error(err);
       message.error("Tạo chương trình thất bại");
@@ -93,37 +164,13 @@ export function AdminProgramManagement() {
     }
   };
 
-  //fetch programs from API
   useEffect(() => {
     fetchPrograms();
   }, [query]);
 
-  function cleanParams(params: Record<string, any>) {
-    return Object.fromEntries(
-      Object.entries(params).filter(([_, v]) => v !== undefined && v !== "")
-    );
-  }
-
-  const fetchPrograms = async () => {
-    try {
-      setLoading(true);
-
-      const res = await getallPrograms(cleanParams(query));
-
-      setPrograms(res.items);
-
-      setPagination({
-        total: res.totalCount,
-        current: res.pageNumber,
-        pageSize: res.pageSize,
-      });
-
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    fetchDropdownData();
+  }, []);
 
   return (
     <AdminLayout>
@@ -146,8 +193,6 @@ export function AdminProgramManagement() {
 
       {/* Search & Filters */}
       <div className="flex flex-wrap gap-4 mb-6 items-center">
-
-        {/*  Search */}
         <Input.Search
           placeholder="Tìm kiếm chương trình..."
           allowClear
@@ -161,7 +206,6 @@ export function AdminProgramManagement() {
           className="w-60"
         />
 
-        {/* Enrollment Year Filter */}
         <Select
           placeholder="Lọc theo năm"
           allowClear
@@ -176,7 +220,6 @@ export function AdminProgramManagement() {
           }}
         />
 
-        {/* Sort By */}
         <Select
           placeholder="Sắp xếp theo"
           className="w-48"
@@ -194,7 +237,6 @@ export function AdminProgramManagement() {
           }}
         />
 
-        {/* 🔼🔽 Sort Direction */}
         <div className="flex items-center gap-2">
           <span className="text-gray-500 text-sm">Desc</span>
           <Switch
@@ -218,7 +260,6 @@ export function AdminProgramManagement() {
                 className="rounded-2xl border border-gray-100 shadow-sm"
                 styles={{ body: { padding: "24px" } }}
               >
-                {/* Title */}
                 <div className="flex justify-between items-center mb-6">
                   <Title level={4} className="!mb-0">
                     {program.programName}
@@ -232,7 +273,6 @@ export function AdminProgramManagement() {
                   </Tag>
                 </div>
 
-                {/* Stats */}
                 <div className="space-y-3 mb-6">
                   <div className="flex justify-between">
                     <Text type="secondary">Ngành:</Text>
@@ -250,14 +290,12 @@ export function AdminProgramManagement() {
                   </div>
                 </div>
 
-                {/* Actions */}
                 <Space>
                   <Button
                     onClick={() => {
                       setSelectedProgram(program);
                       setDetailOpen(true);
                       setEditing(false);
-
                       detailForm.setFieldsValue(program);
                     }}
                   >
@@ -269,6 +307,7 @@ export function AdminProgramManagement() {
           ))}
         </Row>
       </Spin>
+
       <div className="flex justify-center mt-6">
         <Pagination
           current={pagination.current}
@@ -284,7 +323,7 @@ export function AdminProgramManagement() {
         />
       </div>
 
-      {/* Create Modal  */}
+      {/* Create Modal */}
       <Modal
         open={open}
         onCancel={() => {
@@ -295,28 +334,23 @@ export function AdminProgramManagement() {
         width={720}
       >
         <Form form={form} layout="vertical" onFinish={handleCreate}>
-
-          {/* HEADER */}
           <div className="mb-6 p-4 rounded-xl bg-purple-50 border border-purple-100">
             <div className="text-purple-600 font-semibold text-sm mb-1">
               Tạo chương trình
             </div>
-            <div className="text-xl font-bold">
-              Tạo chương trình học mới
-            </div>
+            <div className="text-xl font-bold">Tạo chương trình học mới</div>
             <div className="text-gray-500 text-sm">
               Điền thông tin chương trình để thêm vào hệ thống
             </div>
           </div>
 
-          {/* BASIC INFO */}
           <div className="mb-6 p-4 rounded-xl bg-gray-50 border">
             <div className="font-semibold mb-4">Thông tin cơ bản</div>
 
             <Form.Item
               name="programName"
               label="Tên chương trình"
-              rules={[{ required: true }]}
+              rules={[{ required: true, message: "Vui lòng nhập tên chương trình" }]}
             >
               <Input placeholder="e.g. Computer Science" />
             </Form.Item>
@@ -325,17 +359,31 @@ export function AdminProgramManagement() {
               <Form.Item
                 name="majorId"
                 label="Ngành"
-                rules={[{ required: true }]}
+                rules={[{ required: true, message: "Vui lòng chọn ngành" }]}
               >
-                <Input type="number" />
+                <Select
+                  placeholder="Chọn ngành"
+                  options={majorOptions}
+                  loading={loadingDropdowns}
+                  showSearch
+                  optionFilterProp="label"
+                  allowClear
+                />
               </Form.Item>
 
               <Form.Item
                 name="enrollmentYearId"
                 label="Năm Tuyển Sinh"
-                rules={[{ required: true }]}
+                rules={[{ required: true, message: "Vui lòng chọn năm tuyển sinh" }]}
               >
-                <Input type="number" />
+                <Select
+                  placeholder="Chọn năm tuyển sinh"
+                  options={enrollmentYearOptions}
+                  loading={loadingDropdowns}
+                  showSearch
+                  optionFilterProp="label"
+                  allowClear
+                />
               </Form.Item>
             </div>
 
@@ -344,7 +392,6 @@ export function AdminProgramManagement() {
             </Form.Item>
           </div>
 
-          {/* DESCRIPTION */}
           <div className="mb-6 p-4 rounded-xl bg-gray-50 border">
             <div className="font-semibold mb-4">Chi tiết chương trình</div>
 
@@ -357,12 +404,10 @@ export function AdminProgramManagement() {
             </Form.Item>
           </div>
 
-          {/* STATUS */}
           <div className="mb-6 p-4 rounded-xl bg-gray-50 border flex justify-between items-center">
             <div>
               <div className="font-semibold">Trạng thái</div>
-              <div className="text-gray-500 text-sm">
-              </div>
+              <div className="text-gray-500 text-sm"></div>
             </div>
 
             <Form.Item
@@ -375,7 +420,6 @@ export function AdminProgramManagement() {
             </Form.Item>
           </div>
 
-          {/* ACTIONS */}
           <div className="flex justify-end gap-3">
             <Button
               onClick={() => {
@@ -398,7 +442,7 @@ export function AdminProgramManagement() {
         </Form>
       </Modal>
 
-      {/* Detail/Edit Modal  */}
+      {/* Detail/Edit Modal */}
       <Modal
         open={detailOpen}
         onCancel={() => {
@@ -409,8 +453,6 @@ export function AdminProgramManagement() {
         width={800}
       >
         <Form form={detailForm} onFinish={handleUpdate}>
-
-          {/* HEADER */}
           <div className="mb-6 p-4 rounded-xl bg-blue-50 border border-blue-100 flex justify-between items-center">
             <div>
               <div className="text-blue-600 text-sm font-semibold flex items-center gap-2">
@@ -448,10 +490,7 @@ export function AdminProgramManagement() {
             )}
           </div>
 
-          {/* GRID LAYOUT */}
           <div className="grid grid-cols-2 gap-6 mb-6">
-
-            {/* LEFT */}
             <div className="p-4 rounded-xl bg-gray-50 border space-y-4">
               <div className="font-semibold">Thông tin cơ bản</div>
 
@@ -486,9 +525,8 @@ export function AdminProgramManagement() {
               </div>
             </div>
 
-            {/* RIGHT */}
             <div className="p-4 rounded-xl bg-gray-50 border space-y-4">
-              <div className="font-semibold">Thông tin meta</div>
+              <div className="font-semibold">Thông tin</div>
 
               <Form.Item label="Chuyên ngành">
                 <Input value={selectedProgram?.majorName} disabled />
@@ -504,7 +542,6 @@ export function AdminProgramManagement() {
             </div>
           </div>
 
-          {/* FULL WIDTH */}
           <div className="p-4 rounded-xl bg-gray-50 border mb-6 space-y-4">
             <div className="font-semibold">Chi tiết chương trình</div>
 
@@ -517,12 +554,8 @@ export function AdminProgramManagement() {
             </Form.Item>
           </div>
 
-          {/* ACTIONS */}
           <div className="flex justify-end gap-3">
-            <Button
-              icon={<X size={16} />}
-              onClick={() => setDetailOpen(false)}
-            >
+            <Button icon={<X size={16} />} onClick={() => setDetailOpen(false)}>
               Đóng
             </Button>
 

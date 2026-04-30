@@ -14,8 +14,6 @@ import {
   Typography,
   Row,
   Col,
-  InputNumber,
-  Divider,
 } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import type {
@@ -33,230 +31,6 @@ import { getEnrollmentYears } from "../../../api/enrollment-years";
 
 type DetailMode = "view" | "edit";
 
-type RuleFormValues = {
-  admissionTypeName: string;
-  enrollmentYearId: number;
-  type: string;
-  requiredDocumentList: string;
-
-  eligibilityDescription?: string;
-  eligibilityScoreMin?: number;
-  eligibilityScoreFormula?: string;
-  eligibilityRequiredSubjects?: string[];
-  eligibilityElectiveSubjects?: string[];
-  eligibilityElectiveCount?: number;
-  eligibilitySchoolRankMax?: number;
-
-  priorityType?: string;
-  priorityLevels?: string[];
-  priorityBase?: number;
-  priorityStep?: number;
-  priorityDescription?: string;
-
-  isActive: boolean;
-};
-
-function safeParseJson<T>(value: string | undefined, fallback: T): T {
-  if (!value) return fallback;
-  try {
-    return JSON.parse(value) as T;
-  } catch {
-    return fallback;
-  }
-}
-
-function parseDocumentsToText(json: string) {
-  const arr = safeParseJson<string[]>(json, []);
-  return Array.isArray(arr) ? arr.join("\n") : "";
-}
-
-function parseDocumentsToArray(json: string) {
-  const arr = safeParseJson<string[]>(json, []);
-  return Array.isArray(arr) ? arr : [];
-}
-
-function stringifyDocuments(text: string) {
-  return JSON.stringify(
-    text
-      .split("\n")
-      .map((x) => x.trim())
-      .filter(Boolean)
-  );
-}
-
-function parseEligibilityToForm(json?: string) {
-  const parsed = safeParseJson<any>(json, {});
-  return {
-    eligibilityDescription: parsed?.description || "",
-    eligibilityScoreMin: parsed?.requirements?.score?.min,
-    eligibilityScoreFormula: parsed?.requirements?.score?.formula || "",
-    eligibilityRequiredSubjects: parsed?.requirements?.subjects?.required || [],
-    eligibilityElectiveSubjects:
-      parsed?.requirements?.subjects?.elective_list || [],
-    eligibilityElectiveCount: parsed?.requirements?.subjects?.elective_count,
-    eligibilitySchoolRankMax: parsed?.requirements?.schoolrank?.max,
-  };
-}
-
-function parsePriorityToForm(json?: string) {
-  const parsed = safeParseJson<any>(json, {});
-  return {
-    priorityType: parsed?.type || "",
-    priorityLevels: parsed?.levels || [],
-    priorityBase: parsed?.calculation?.base,
-    priorityStep: parsed?.calculation?.step,
-    priorityDescription: parsed?.description || "",
-  };
-}
-
-function buildEligibilityJson(values: RuleFormValues) {
-  const payload = {
-    description: values.eligibilityDescription || "",
-    requirements: {
-      score: {
-        min: values.eligibilityScoreMin ?? undefined,
-        formula: values.eligibilityScoreFormula || "",
-      },
-      subjects: {
-        required: values.eligibilityRequiredSubjects || [],
-        elective_list: values.eligibilityElectiveSubjects || [],
-        elective_count: values.eligibilityElectiveCount ?? undefined,
-      },
-      schoolrank: {
-        max: values.eligibilitySchoolRankMax ?? undefined,
-      },
-    },
-  };
-
-  return JSON.stringify(payload);
-}
-
-function buildPriorityJson(values: RuleFormValues) {
-  const payload = {
-    type: values.priorityType || "",
-    levels: values.priorityLevels || [],
-    calculation: {
-      base: values.priorityBase ?? undefined,
-      step: values.priorityStep ?? undefined,
-    },
-    description: values.priorityDescription || "",
-  };
-
-  return JSON.stringify(payload);
-}
-
-
-function SectionCard({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="mb-3 text-sm font-semibold text-slate-700">{title}</div>
-      {children}
-    </div>
-  );
-}
-
-function RuleFields() {
-  return (
-    <>
-      <Divider style={{ margin: "16px 0 12px" }}>Eligibility Rules</Divider>
-
-      <Row gutter={16}>
-        <Col xs={24} md={12}>
-          <Form.Item name="eligibilityDescription" label="Mô tả">
-            <Input.TextArea rows={2} placeholder="Mô tả điều kiện xét tuyển" />
-          </Form.Item>
-        </Col>
-        <Col xs={24} md={12}>
-          <Form.Item name="eligibilityScoreFormula" label="Công thức điểm">
-            <Input placeholder="Ví dụ: Toán + 2 môn tự chọn cao nhất..." />
-          </Form.Item>
-        </Col>
-      </Row>
-
-      <Row gutter={16}>
-        <Col xs={24} md={8}>
-          <Form.Item name="eligibilityScoreMin" label="Điểm tối thiểu">
-            <InputNumber style={{ width: "100%" }} placeholder="21" />
-          </Form.Item>
-        </Col>
-        <Col xs={24} md={8}>
-          <Form.Item name="eligibilityElectiveCount" label="Số môn tự chọn">
-            <InputNumber style={{ width: "100%" }} placeholder="2" />
-          </Form.Item>
-        </Col>
-        <Col xs={24} md={8}>
-          <Form.Item name="eligibilitySchoolRankMax" label="SchoolRank tối đa">
-            <InputNumber style={{ width: "100%" }} placeholder="55" />
-          </Form.Item>
-        </Col>
-      </Row>
-
-      <Row gutter={16}>
-        <Col xs={24} md={12}>
-          <Form.Item name="eligibilityRequiredSubjects" label="Môn bắt buộc">
-            <Select
-              mode="tags"
-              placeholder="Ví dụ: Toán"
-              tokenSeparators={[","]}
-            />
-          </Form.Item>
-        </Col>
-        <Col xs={24} md={12}>
-          <Form.Item name="eligibilityElectiveSubjects" label="Môn tự chọn">
-            <Select
-              mode="tags"
-              placeholder="Ví dụ: Ngữ văn, Ngoại ngữ..."
-              tokenSeparators={[","]}
-            />
-          </Form.Item>
-        </Col>
-      </Row>
-
-      <Divider style={{ margin: "16px 0 12px" }}>Priority Rules</Divider>
-
-      <Row gutter={16}>
-        <Col xs={24} md={12}>
-          <Form.Item name="priorityType" label="Loại ưu tiên">
-            <Input placeholder="Ví dụ: linear" />
-          </Form.Item>
-        </Col>
-        <Col xs={24} md={12}>
-          <Form.Item name="priorityDescription" label="Mô tả">
-            <Input placeholder="Càng cao hơn điểm sàn thì ưu tiên càng cao" />
-          </Form.Item>
-        </Col>
-      </Row>
-
-      <Row gutter={16}>
-        <Col xs={24} md={12}>
-          <Form.Item name="priorityBase" label="Base">
-            <InputNumber style={{ width: "100%" }} placeholder="21" />
-          </Form.Item>
-        </Col>
-        <Col xs={24} md={12}>
-          <Form.Item name="priorityStep" label="Step">
-            <InputNumber style={{ width: "100%" }} placeholder="2" />
-          </Form.Item>
-        </Col>
-      </Row>
-
-      <Form.Item name="priorityLevels" label="Levels">
-        <Select
-          mode="tags"
-          placeholder="Normal, Good, Great, Excellent"
-          tokenSeparators={[","]}
-        />
-      </Form.Item>
-    </>
-  );
-}
-
 export function AdmissionTypeManagement() {
   const [data, setData] = useState<AdmissionType[]>([]);
   const [years, setYears] = useState<EnrollmentYear[]>([]);
@@ -269,10 +43,10 @@ export function AdmissionTypeManagement() {
     null
   );
 
-  const [createForm] = Form.useForm<RuleFormValues>();
-  const [detailForm] = Form.useForm<RuleFormValues>();
+  const [createForm] = Form.useForm();
+  const [detailForm] = Form.useForm();
 
-  const { Text } = Typography;
+  const { Paragraph, Text } = Typography;
 
   const fetchData = async () => {
     try {
@@ -300,6 +74,42 @@ export function AdmissionTypeManagement() {
     fetchYears();
   }, []);
 
+  const parseList = (json: string) => {
+    try {
+      const arr = JSON.parse(json);
+      return Array.isArray(arr) ? arr : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const parseDocuments = (json: string) => {
+    return parseList(json).join("\n");
+  };
+
+  const stringifyDocuments = (text: string) => {
+    const arr = text
+      .split("\n")
+      .map((x) => x.trim())
+      .filter(Boolean);
+    return JSON.stringify(arr);
+  };
+
+  const parseJsonPretty = (json?: string) => {
+    if (!json) return "";
+    try {
+      return JSON.stringify(JSON.parse(json), null, 2);
+    } catch {
+      return json;
+    }
+  };
+
+  const normalizeJsonString = (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed) return "";
+    return JSON.stringify(JSON.parse(trimmed));
+  };
+
   const findYearId = (year?: string) =>
     years.find((y) => y.year === year)?.enrollmentYearId;
 
@@ -308,18 +118,8 @@ export function AdmissionTypeManagement() {
     createForm.setFieldsValue({
       isActive: true,
       requiredDocumentList: "",
-      eligibilityDescription: "",
-      eligibilityScoreMin: undefined,
-      eligibilityScoreFormula: "",
-      eligibilityRequiredSubjects: [],
-      eligibilityElectiveSubjects: [],
-      eligibilityElectiveCount: undefined,
-      eligibilitySchoolRankMax: undefined,
-      priorityType: "",
-      priorityLevels: [],
-      priorityBase: undefined,
-      priorityStep: undefined,
-      priorityDescription: "",
+      eligibilityRules: "",
+      priorityRules: "",
     });
     setCreateOpen(true);
   };
@@ -328,17 +128,14 @@ export function AdmissionTypeManagement() {
     setSelectedDetail(record);
     setDetailMode("view");
 
-    const eligibility = parseEligibilityToForm(record.eligibilityRules);
-    const priority = parsePriorityToForm(record.priorityRules);
-
     detailForm.resetFields();
     detailForm.setFieldsValue({
       admissionTypeName: record.admissionTypeName,
       enrollmentYearId: findYearId(record.enrollmentYear),
       type: record.type,
-      requiredDocumentList: parseDocumentsToText(record.requiredDocumentList),
-      ...eligibility,
-      ...priority,
+      requiredDocumentList: parseDocuments(record.requiredDocumentList),
+      eligibilityRules: parseJsonPretty(record.eligibilityRules),
+      priorityRules: parseJsonPretty(record.priorityRules),
       isActive: record.isActive,
     });
 
@@ -356,15 +153,15 @@ export function AdmissionTypeManagement() {
     detailForm.resetFields();
   };
 
-  const handleCreateSubmit = async (values: RuleFormValues) => {
+  const handleCreateSubmit = async (values: any) => {
     try {
       const payload: CreateAdmissionTypeRequest = {
         admissionTypeName: values.admissionTypeName,
         enrollmentYearId: values.enrollmentYearId,
         type: values.type,
         requiredDocumentList: stringifyDocuments(values.requiredDocumentList),
-        eligibilityRules: buildEligibilityJson(values),
-        priorityRules: buildPriorityJson(values),
+        eligibilityRules: normalizeJsonString(values.eligibilityRules),
+        priorityRules: normalizeJsonString(values.priorityRules),
         isActive: values.isActive ?? true,
       };
 
@@ -377,7 +174,7 @@ export function AdmissionTypeManagement() {
     }
   };
 
-  const handleDetailSubmit = async (values: RuleFormValues) => {
+  const handleDetailSubmit = async (values: any) => {
     if (!selectedDetail) return;
 
     try {
@@ -387,8 +184,8 @@ export function AdmissionTypeManagement() {
         enrollmentYearId: values.enrollmentYearId,
         type: values.type,
         requiredDocumentList: stringifyDocuments(values.requiredDocumentList),
-        eligibilityRules: buildEligibilityJson(values),
-        priorityRules: buildPriorityJson(values),
+        eligibilityRules: normalizeJsonString(values.eligibilityRules),
+        priorityRules: normalizeJsonString(values.priorityRules),
         isActive: values.isActive ?? true,
       };
 
@@ -425,23 +222,13 @@ export function AdmissionTypeManagement() {
     [years]
   );
 
-  // const detailTags = selectedDetail
-  //   ? [
-  //       { label: "Năm", value: selectedDetail.enrollmentYear },
-  //       { label: "Loại", value: selectedDetail.type || "-" },
-  //       {
-  //         label: "Trạng thái",
-  //         value: selectedDetail.isActive ? (
-  //           <Tag color="green">Active</Tag>
-  //         ) : (
-  //           <Tag color="red">Inactive</Tag>
-  //         ),
-  //       },
-  //     ]
-  //   : [];
-
   return (
-    <Card className="rounded-2xl" styles={{ body: { padding: 20 } }}>
+    <Card
+      className="rounded-2xl"
+      styles={{
+        body: { padding: 20 },
+      }}
+    >
       <div className="mb-4 flex items-center justify-between gap-3">
         <Input placeholder="Tìm kiếm..." style={{ width: 280 }} allowClear />
         <Button type="primary" onClick={openCreate}>
@@ -461,7 +248,7 @@ export function AdmissionTypeManagement() {
         open={createOpen}
         onCancel={() => setCreateOpen(false)}
         onOk={() => createForm.submit()}
-        width={980}
+        width={860}
         destroyOnClose
         centered
       >
@@ -470,64 +257,67 @@ export function AdmissionTypeManagement() {
           form={createForm}
           onFinish={handleCreateSubmit}
         >
-          <SectionCard title="Thông tin chung">
-            <Row gutter={16}>
-              <Col xs={24} md={12}>
-                <Form.Item
-                  name="admissionTypeName"
-                  label="Tên"
-                  rules={[{ required: true, message: "Vui lòng nhập tên" }]}
-                >
-                  <Input />
-                </Form.Item>
-              </Col>
-              <Col xs={24} md={12}>
-                <Form.Item
-                  name="enrollmentYearId"
-                  label="Năm tuyển sinh"
-                  rules={[
-                    {
-                      required: true,
-                      message: "Vui lòng chọn năm tuyển sinh",
-                    },
-                  ]}
-                >
-                  <Select
-                    placeholder="Chọn năm"
-                    options={years.map((y) => ({
-                      label: y.year,
-                      value: y.enrollmentYearId,
-                    }))}
-                  />
-                </Form.Item>
-              </Col>
-            </Row>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="admissionTypeName"
+                label="Tên"
+                rules={[{ required: true, message: "Vui lòng nhập tên" }]}
+              >
+                <Input />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="enrollmentYearId"
+                label="Năm tuyển sinh"
+                rules={[
+                  { required: true, message: "Vui lòng chọn năm tuyển sinh" },
+                ]}
+              >
+                <Select
+                  placeholder="Chọn năm"
+                  options={years.map((y) => ({
+                    label: y.year,
+                    value: y.enrollmentYearId,
+                  }))}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
 
-            <Form.Item name="type" label="Loại">
-              <Input />
-            </Form.Item>
+          <Form.Item name="type" label="Loại">
+            <Input />
+          </Form.Item>
 
-            <Form.Item
-              name="requiredDocumentList"
-              label="Tài liệu yêu cầu"
-              extra="Mỗi dòng là một tài liệu"
-            >
-              <Input.TextArea rows={4} />
-            </Form.Item>
-          </SectionCard>
+          <Form.Item
+            name="requiredDocumentList"
+            label="Tài liệu yêu cầu (mỗi dòng một tài liệu)"
+          >
+            <Input.TextArea rows={4} />
+          </Form.Item>
 
-          <RuleFields />
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="eligibilityRules" label="Eligibility Rules (JSON)">
+                <Input.TextArea rows={6} placeholder='{"description":"..."}' />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="priorityRules" label="Priority Rules (JSON)">
+                <Input.TextArea rows={6} placeholder='{"type":"linear"}' />
+              </Form.Item>
+            </Col>
+          </Row>
 
-          <div style={{ marginTop: 16 }}>
-            <Form.Item
-              name="isActive"
-              label="Kích hoạt"
-              valuePropName="checked"
-              initialValue={true}
-            >
-              <Switch />
-            </Form.Item>
-          </div>
+          <Form.Item
+            name="isActive"
+            label="Kích hoạt"
+            valuePropName="checked"
+            initialValue={true}
+          >
+            <Switch />
+          </Form.Item>
         </Form>
       </Modal>
 
@@ -535,7 +325,7 @@ export function AdmissionTypeManagement() {
         title="Chi tiết phương thức xét tuyển"
         open={detailOpen}
         onCancel={closeDetail}
-        width={1040}
+        width={960}
         destroyOnClose
         centered
         footer={
@@ -562,12 +352,12 @@ export function AdmissionTypeManagement() {
           <>
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
-                <div style={{ fontSize: 20, fontWeight: 700 }}>
+                <div style={{ fontSize: 18, fontWeight: 600 }}>
                   {selectedDetail.admissionTypeName}
                 </div>
                 <Text type="secondary">
-                  ID {selectedDetail.admissionTypeId} · Created at{" "}
-                  {selectedDetail.createdAt || "-"}
+                  ID {selectedDetail.admissionTypeId} · Năm{" "}
+                  {selectedDetail.enrollmentYear}
                 </Text>
               </div>
 
@@ -580,171 +370,57 @@ export function AdmissionTypeManagement() {
 
             {detailMode === "view" ? (
               <Space direction="vertical" size={16} style={{ width: "100%" }}>
-                <SectionCard title="Thông tin chung">
-                  <Descriptions bordered column={3} size="middle">
-                    <Descriptions.Item label="Tên">
-                      {selectedDetail.admissionTypeName}
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Loại">
-                      {selectedDetail.type || "-"}
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Năm tuyển sinh">
-                      {selectedDetail.enrollmentYear}
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Trạng thái">
-                      {selectedDetail.isActive ? (
-                        <Tag color="green">Active</Tag>
-                      ) : (
-                        <Tag color="red">Inactive</Tag>
-                      )}
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Created At">
-                      {selectedDetail.createdAt || "-"}
-                    </Descriptions.Item>
-                    <Descriptions.Item label="ID">
-                      {selectedDetail.admissionTypeId}
-                    </Descriptions.Item>
-                  </Descriptions>
-                </SectionCard>
+                <Descriptions bordered column={2} size="middle">
+                  <Descriptions.Item label="Tên">
+                    {selectedDetail.admissionTypeName}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Loại">
+                    {selectedDetail.type}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Năm tuyển sinh">
+                    {selectedDetail.enrollmentYear}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Trạng thái">
+                    {selectedDetail.isActive ? (
+                      <Tag color="green">Active</Tag>
+                    ) : (
+                      <Tag color="red">Inactive</Tag>
+                    )}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Created At">
+                    {selectedDetail.createdAt || "-"}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Admission Type ID">
+                    {selectedDetail.admissionTypeId}
+                  </Descriptions.Item>
+                </Descriptions>
 
-                <SectionCard title="Tài liệu yêu cầu">
-                  <div className="flex flex-wrap gap-2">
-                    {parseDocumentsToArray(selectedDetail.requiredDocumentList).length
-                      ? parseDocumentsToArray(selectedDetail.requiredDocumentList).map(
-                          (item, index) => (
-                            <Tag key={index} className="m-0 px-3 py-1">
-                              {item}
-                            </Tag>
-                          )
-                        )
-                      : "-"}
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="mb-2 text-sm font-semibold text-slate-700">
+                    Required Documents
                   </div>
-                </SectionCard>
+                  <Paragraph style={{ whiteSpace: "pre-wrap", marginBottom: 0 }}>
+                    {parseDocuments(selectedDetail.requiredDocumentList) || "-"}
+                  </Paragraph>
+                </div>
 
-                <Row gutter={16}>
-                  <Col xs={24} lg={12}>
-                    <SectionCard title="Eligibility Rules">
-                      <Descriptions column={1} size="small">
-                        <Descriptions.Item label="Description">
-                          {safeParseJson<any>(
-                            selectedDetail.eligibilityRules,
-                            {}
-                          )?.description || "-"}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="Score min">
-                          {safeParseJson<any>(
-                            selectedDetail.eligibilityRules,
-                            {}
-                          )?.requirements?.score?.min ?? "-"}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="Formula">
-                          {safeParseJson<any>(
-                            selectedDetail.eligibilityRules,
-                            {}
-                          )?.requirements?.score?.formula || "-"}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="Required subjects">
-                          {safeParseJson<any>(
-                            selectedDetail.eligibilityRules,
-                            {}
-                          )?.requirements?.subjects?.required?.length ? (
-                            <Space wrap>
-                              {safeParseJson<any>(
-                                selectedDetail.eligibilityRules,
-                                {}
-                              )?.requirements?.subjects?.required.map(
-                                (s: string, idx: number) => (
-                                  <Tag key={idx}>{s}</Tag>
-                                )
-                              )}
-                            </Space>
-                          ) : (
-                            "-"
-                          )}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="Elective subjects">
-                          {safeParseJson<any>(
-                            selectedDetail.eligibilityRules,
-                            {}
-                          )?.requirements?.subjects?.elective_list?.length ? (
-                            <Space wrap>
-                              {safeParseJson<any>(
-                                selectedDetail.eligibilityRules,
-                                {}
-                              )?.requirements?.subjects?.elective_list.map(
-                                (s: string, idx: number) => (
-                                  <Tag key={idx}>{s}</Tag>
-                                )
-                              )}
-                            </Space>
-                          ) : (
-                            "-"
-                          )}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="Elective count">
-                          {safeParseJson<any>(
-                            selectedDetail.eligibilityRules,
-                            {}
-                          )?.requirements?.subjects?.elective_count ?? "-"}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="SchoolRank max">
-                          {safeParseJson<any>(
-                            selectedDetail.eligibilityRules,
-                            {}
-                          )?.requirements?.schoolrank?.max ?? "-"}
-                        </Descriptions.Item>
-                      </Descriptions>
-                    </SectionCard>
-                  </Col>
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="mb-2 text-sm font-semibold text-slate-700">
+                    Eligibility Rules
+                  </div>
+                  <pre className="m-0 overflow-x-auto whitespace-pre-wrap text-sm leading-6 text-slate-700">
+                    {parseJsonPretty(selectedDetail.eligibilityRules) || "-"}
+                  </pre>
+                </div>
 
-                  <Col xs={24} lg={12}>
-                    <SectionCard title="Priority Rules">
-                      <Descriptions column={1} size="small">
-                        <Descriptions.Item label="Type">
-                          {safeParseJson<any>(
-                            selectedDetail.priorityRules,
-                            {}
-                          )?.type || "-"}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="Description">
-                          {safeParseJson<any>(
-                            selectedDetail.priorityRules,
-                            {}
-                          )?.description || "-"}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="Levels">
-                          {safeParseJson<any>(
-                            selectedDetail.priorityRules,
-                            {}
-                          )?.levels?.length ? (
-                            <Space wrap>
-                              {safeParseJson<any>(
-                                selectedDetail.priorityRules,
-                                {}
-                              )?.levels.map((s: string, idx: number) => (
-                                <Tag key={idx}>{s}</Tag>
-                              ))}
-                            </Space>
-                          ) : (
-                            "-"
-                          )}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="Base">
-                          {safeParseJson<any>(
-                            selectedDetail.priorityRules,
-                            {}
-                          )?.calculation?.base ?? "-"}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="Step">
-                          {safeParseJson<any>(
-                            selectedDetail.priorityRules,
-                            {}
-                          )?.calculation?.step ?? "-"}
-                        </Descriptions.Item>
-                      </Descriptions>
-                    </SectionCard>
-                  </Col>
-                </Row>
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="mb-2 text-sm font-semibold text-slate-700">
+                    Priority Rules
+                  </div>
+                  <pre className="m-0 overflow-x-auto whitespace-pre-wrap text-sm leading-6 text-slate-700">
+                    {parseJsonPretty(selectedDetail.priorityRules) || "-"}
+                  </pre>
+                </div>
               </Space>
             ) : (
               <Form
@@ -752,63 +428,105 @@ export function AdmissionTypeManagement() {
                 form={detailForm}
                 onFinish={handleDetailSubmit}
               >
-                <SectionCard title="Thông tin chung">
-                  <Row gutter={16}>
-                    <Col xs={24} md={12}>
-                      <Form.Item
-                        name="admissionTypeName"
-                        label="Tên"
-                        rules={[{ required: true, message: "Vui lòng nhập tên" }]}
-                      >
-                        <Input />
-                      </Form.Item>
-                    </Col>
-                    <Col xs={24} md={12}>
-                      <Form.Item
-                        name="enrollmentYearId"
-                        label="Năm tuyển sinh"
-                        rules={[
-                          {
-                            required: true,
-                            message: "Vui lòng chọn năm tuyển sinh",
+                <Row gutter={16}>
+                  <Col span={12}>
+                    <Form.Item
+                      name="admissionTypeName"
+                      label="Tên"
+                      rules={[{ required: true, message: "Vui lòng nhập tên" }]}
+                    >
+                      <Input />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item
+                      name="enrollmentYearId"
+                      label="Năm tuyển sinh"
+                      rules={[
+                        {
+                          required: true,
+                          message: "Vui lòng chọn năm tuyển sinh",
+                        },
+                      ]}
+                    >
+                      <Select
+                        placeholder="Chọn năm"
+                        options={years.map((y) => ({
+                          label: y.year,
+                          value: y.enrollmentYearId,
+                        }))}
+                      />
+                    </Form.Item>
+                  </Col>
+                </Row>
+
+                <Form.Item name="type" label="Loại">
+                  <Input />
+                </Form.Item>
+
+                <Form.Item
+                  name="requiredDocumentList"
+                  label="Tài liệu yêu cầu (mỗi dòng một tài liệu)"
+                >
+                  <Input.TextArea rows={4} />
+                </Form.Item>
+
+                <Row gutter={16}>
+                  <Col span={12}>
+                    <Form.Item
+                      name="eligibilityRules"
+                      label="Eligibility Rules (JSON)"
+                      rules={[
+                        {
+                          validator: (_, value) => {
+                            if (!value || !value.trim()) return Promise.resolve();
+                            try {
+                              JSON.parse(value);
+                              return Promise.resolve();
+                            } catch {
+                              return Promise.reject(
+                                new Error("Eligibility Rules phải là JSON hợp lệ")
+                              );
+                            }
                           },
-                        ]}
-                      >
-                        <Select
-                          placeholder="Chọn năm"
-                          options={years.map((y) => ({
-                            label: y.year,
-                            value: y.enrollmentYearId,
-                          }))}
-                        />
-                      </Form.Item>
-                    </Col>
-                  </Row>
+                        },
+                      ]}
+                    >
+                      <Input.TextArea rows={6} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item
+                      name="priorityRules"
+                      label="Priority Rules (JSON)"
+                      rules={[
+                        {
+                          validator: (_, value) => {
+                            if (!value || !value.trim()) return Promise.resolve();
+                            try {
+                              JSON.parse(value);
+                              return Promise.resolve();
+                            } catch {
+                              return Promise.reject(
+                                new Error("Priority Rules phải là JSON hợp lệ")
+                              );
+                            }
+                          },
+                        },
+                      ]}
+                    >
+                      <Input.TextArea rows={6} />
+                    </Form.Item>
+                  </Col>
+                </Row>
 
-                  <Form.Item name="type" label="Loại">
-                    <Input />
-                  </Form.Item>
-
-                  <Form.Item
-                    name="requiredDocumentList"
-                    label="Tài liệu yêu cầu"
-                    extra="Mỗi dòng là một tài liệu"
-                  >
-                    <Input.TextArea rows={4} />
-                  </Form.Item>
-                </SectionCard>
-
-                <RuleFields />
-
-                <div style={{ marginTop: 16 }}>
-                  <Form.Item
-                    name="isActive"
-                    label="Kích hoạt"
-                    valuePropName="checked"
-                  >
-                    <Switch />
-                  </Form.Item>
-                </div>
+                <Form.Item
+                  name="isActive"
+                  label="Kích hoạt"
+                  valuePropName="checked"
+                >
+                  <Switch />
+                </Form.Item>
               </Form>
             )}
           </>

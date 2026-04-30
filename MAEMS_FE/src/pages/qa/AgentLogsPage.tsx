@@ -569,7 +569,7 @@ export function AgentLogsPage() {
                   ]}
                 />
 
-                <Select
+                {/* <Select
                   size="large"
                   value={query.status || undefined}
                   placeholder="Status"
@@ -587,7 +587,7 @@ export function AgentLogsPage() {
                     { value: "error", label: "Error" },
                     { value: "rejected", label: "Rejected" },
                   ]}
-                />
+                /> */}
 
                 <Button
                   size="large"
