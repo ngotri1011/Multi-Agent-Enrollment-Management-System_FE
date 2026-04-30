@@ -1,4 +1,4 @@
-import { Breadcrumb, Card, Spin, Typography } from "antd";
+import { Breadcrumb, Card, Pagination, Spin, Typography } from "antd";
 import { CalendarDays } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
@@ -23,6 +23,10 @@ function formatVnDate(dateStr?: string) {
 export function ArticlePage() {
   const [loading, setLoading] = useState(false);
   const [articles, setArticles] = useState<ArticleBasic[]>([]);
+  const [pageNumber, setPageNumber] = useState(1);
+  /* pageSize do người dùng chọn qua Pagination */
+  const [pageSize, setPageSize] = useState(10);
+  const [totalCount, setTotalCount] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -30,10 +34,21 @@ export function ArticlePage() {
     async function run() {
       setLoading(true);
       try {
-        const data = await getPublishedArticlesBasic();
-        if (!cancelled) setArticles(data);
+        const { items, totalCount: total } = await getPublishedArticlesBasic({
+          pageNumber,
+          pageSize,
+          sortBy: "updatedAt",
+          sortDesc: true,
+        });
+        if (!cancelled) {
+          setArticles(items);
+          setTotalCount(total);
+        }
       } catch {
-        if (!cancelled) setArticles([]);
+        if (!cancelled) {
+          setArticles([]);
+          setTotalCount(0);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -43,7 +58,7 @@ export function ArticlePage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [pageNumber, pageSize]);
 
   return (
     <GuestLayout>
@@ -63,6 +78,7 @@ export function ArticlePage() {
         </Title>
 
         <div className="flex flex-col gap-6">
+          {/* Danh sách bài viết + trạng thái loading/empty */}
           {loading ? (
             <div className="py-20 flex items-center justify-center">
               <Spin />
@@ -86,11 +102,12 @@ export function ArticlePage() {
                   bodyStyle={{ padding: 0 }}
                 >
                   <div className="flex flex-col sm:flex-row gap-0">
-                    <div className="sm:w-64 sm:shrink-0 h-48 sm:h-auto overflow-hidden">
+                    {/* Container ảnh: cố định 192px (h-48) trên mọi breakpoint để thumbnail không bị kéo dài */}
+                    <div className="sm:w-64 sm:shrink-0 h-48 sm:h-48 sm:max-h-48 overflow-hidden">
                       <img
                         src={article.thumbnail}
                         alt={article.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        className="w-full h-full max-w-full max-h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
                     </div>
                     <div className="p-5 flex flex-col justify-center gap-2">
@@ -112,6 +129,32 @@ export function ArticlePage() {
                 </Card>
               </Link>
             ))
+          )}
+
+          {/* Pagination — chỉ hiển thị khi có dữ liệu */}
+          {!loading && totalCount > 0 && (
+            <div className="flex justify-center pt-2">
+              <Pagination
+                current={pageNumber}
+                pageSize={pageSize}
+                total={totalCount}
+                showSizeChanger
+                pageSizeOptions={[5, 10, 20, 50]}
+                showTotal={(total, range) =>
+                  `${range[0]}–${range[1]} / ${total} bài viết`
+                }
+                onChange={(page, size) => {
+                  // Reset về trang 1 khi người dùng đổi số item mỗi trang
+                  if (size !== pageSize) {
+                    setPageSize(size);
+                    setPageNumber(1);
+                  } else {
+                    setPageNumber(page);
+                  }
+                }}
+                className="select-none"
+              />
+            </div>
           )}
         </div>
       </div>

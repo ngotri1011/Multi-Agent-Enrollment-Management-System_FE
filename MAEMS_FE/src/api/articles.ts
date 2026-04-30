@@ -37,15 +37,16 @@ export async function createArticle(payload: CreateArticleRequest): Promise<Arti
     thumbnail: article.thumbnail,
     authorName: article.authorname,
     status: article.status,
+    isRegisterable: article.isRegisterable,
     createdAt: article.createdAt,
     updatedAt: article.updatedAt,
   };
 } 
 
-//Lấy danh sách article publish basic
+//Lấy danh sách article publish basic — trả về cả items lẫn totalCount để hỗ trợ phân trang
 export async function getPublishedArticlesBasic(
   query: GetPublishedArticlesBasicQuery = {}
-): Promise<ArticleBasic[]> {
+): Promise<{ items: ArticleBasic[]; totalCount: number }> {
   const params: Record<string, string | number | boolean> = {};
   for (const [key, value] of Object.entries(query)) {
     if (value === undefined || value === null) continue;
@@ -59,19 +60,23 @@ export async function getPublishedArticlesBasic(
       params: Object.keys(params).length ? params : undefined,
     }
   );
-  return res.data.data.items.map((article) => ({
-    articleId: article.articleId,
-    title: article.title,
-    thumbnail: article.thumbnail,
-    updatedAt: article.updatedAt,
-    status: article.status,
-  }));
+  const paged = res.data.data;
+  return {
+    items: paged.items.map((article) => ({
+      articleId: article.articleId,
+      title: article.title,
+      thumbnail: article.thumbnail,
+      updatedAt: article.updatedAt,
+      status: article.status,
+    })),
+    totalCount: paged.totalCount,
+  };
 }
 
-//Lấy danh sách article basic
+//Lấy danh sách article basic — trả về cả items lẫn tổng số bản ghi để hỗ trợ phân trang
 export async function getArticlesBasic(
   query: GetArticlesBasicQuery = {}
-): Promise<ArticleBasic[]> {
+): Promise<{ items: ArticleBasic[]; totalCount: number }> {
   const params: Record<string, string | number | boolean> = {};
   for (const [key, value] of Object.entries(query)) {
     if (value === undefined || value === null) continue;
@@ -86,13 +91,17 @@ export async function getArticlesBasic(
     }
   );
 
-  return res.data.data.items.map((article) => ({
-    articleId: article.articleId,
-    title: article.title,
-    thumbnail: article.thumbnail,
-    updatedAt: article.updatedAt,
-    status: article.status,
-  }));
+  const paged = res.data.data;
+  return {
+    items: paged.items.map((article) => ({
+      articleId: article.articleId,
+      title: article.title,
+      thumbnail: article.thumbnail,
+      updatedAt: article.updatedAt,
+      status: article.status,
+    })),
+    totalCount: paged.totalCount,
+  };
 }
 
 //Lấy article by id
@@ -108,6 +117,7 @@ export async function getArticleById(id: number): Promise<Article> {
     thumbnail: article.thumbnail,
     authorName: article.authorname,
     status: article.status,
+    isRegisterable: article.isRegisterable,
     createdAt: article.createdAt,
     updatedAt: article.updatedAt,
   };

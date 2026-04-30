@@ -9,6 +9,7 @@ export type CreateArticleRequest = {
   content: string;
   thumbnail: string;
   status: ArticleStatus;
+  isRegisterable: boolean;
 };
 
 export type Article = {
@@ -17,7 +18,8 @@ export type Article = {
   content: string;
   thumbnail: string;
   authorName: string | null;
-  status: string;
+  status: ArticleStatus;
+  isRegisterable: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -28,9 +30,10 @@ export type ArticleApiResponse = {
   content: string;
   thumbnail: string;
   authorname: string | null;
-  status: string;
+  status: ArticleStatus;
   createdAt: string;
   updatedAt: string;
+  isRegisterable: boolean;
 };
 
 export type ArticleBasic = {
@@ -38,7 +41,7 @@ export type ArticleBasic = {
   title: string;
   thumbnail: string;
   updatedAt: string;
-  status: string;
+  status: ArticleStatus;
 };
 
 export type GetPublishedArticlesBasicQuery = {

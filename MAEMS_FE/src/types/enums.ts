@@ -18,7 +18,7 @@ export type AuthRole = "admin" | "officer" | "qa" | "applicant";
 
 // ─── Article ──────────────────────────────────────────────────────────────────
 
-export type ArticleStatus = "draft" | "publish" | "deleted";
+export type ArticleStatus = "draft" | "publish" | "archived";
 
 // ─── Payment ──────────────────────────────────────────────────────────────────
 export type PaymentStatus =
