@@ -17,7 +17,7 @@ import {
   Upload,
 } from "antd";
 import { SimpleEditor } from "@/components/tiptap-templates/simple/simple-editor";
-import { Newspaper, RefreshCw, Users } from "lucide-react";
+import { ArrowDownUp, ArrowDownWideNarrow, ArrowUpWideNarrow, Newspaper, RefreshCw, Users } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { OfficerLayout } from "../../layouts/OfficerLayout";
 import type {
@@ -407,20 +407,37 @@ export function OfficerArticles() {
                 { label: "Ngày cập nhật", value: "updatedAt" },
               ]}
             />
-            {/* Chọn chiều sắp xếp — chỉ hiện khi đã chọn trường sort */}
+            {/* Chọn chiều sắp xếp — trạng thái chưa chọn dùng icon trung tính ArrowDownUp */}
             {sortBy && (
-              <Select
-                value={sortDesc === undefined ? "" : String(sortDesc)}
-                onChange={(v) => {
-                  setSortDesc(v === "" ? undefined : v === "true");
-                  setPageNumber(1);
-                }}
-                style={{ width: 140 }}
-                options={[
-                  { label: "Giảm dần", value: "true" },
-                  { label: "Tăng dần", value: "false" },
-                ]}
-              />
+              <Tooltip title={sortDesc === true ? "Giảm dần (đang chọn)" : sortDesc === false ? "Tăng dần (đang chọn)" : "Chọn chiều sắp xếp"}>
+                <Button
+                  type={sortDesc !== undefined ? "primary" : "default"}
+                  icon={
+                    sortDesc === undefined ? (
+                      <ArrowDownUp size={16} />
+                    ) : sortDesc === false ? (
+                      <ArrowUpWideNarrow size={16} />
+                    ) : (
+                      <ArrowDownWideNarrow size={16} />
+                    )
+                  }
+                  onClick={() => {
+                    // Luân chuyển: undefined → giảm dần → tăng dần → undefined
+                    if (sortDesc === undefined) {
+                      setSortDesc(true);
+                    } else if (sortDesc === true) {
+                      setSortDesc(false);
+                    } else {
+                      setSortDesc(undefined);
+                    }
+                    setPageNumber(1);
+                  }}
+                  style={{ display: "flex", alignItems: "center" }}
+                >
+                  {/* Label theo 3 trạng thái: chưa chọn / tăng / giảm */}
+                  {sortDesc === undefined ? "Sắp xếp" : sortDesc === false ? "Tăng dần" : "Giảm dần"}
+                </Button>
+              </Tooltip>
             )}
           </div>
         </div>
