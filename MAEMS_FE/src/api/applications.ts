@@ -7,7 +7,7 @@ import type {
   SubmitApplicationFinalResponse,
 } from "../types/application";
 import type { ApiWrapper, PagedResult } from "../types/api.wrapper";
-import type { ApplicationStatus } from "../types/enums";
+import type { ApplicationLevel, ApplicationStatus } from "../types/enums";
 
 export type FetchAllApplicationsParams = {
   programId?: number;
@@ -21,6 +21,7 @@ export type FetchAllApplicationsParams = {
   sortDesc?: boolean;
   pageNumber?: number;
   pageSize?: number;
+  level?: ApplicationLevel;
 };
 
 //Lấy danh sách đơn ĐK của tất cả người dùng

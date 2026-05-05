@@ -14,7 +14,7 @@ export {
   APPLICATION_STATUS_CARD_TW,
   APPLICATION_STATUS_HEX,
 } from "../constants/colors";
-import type { ApplicationStatus } from "./enums";
+import type { ApplicationLevel, ApplicationStatus } from "./enums";
 import type { Document } from "./document";
 
 /**
@@ -57,6 +57,7 @@ export type Application = {
   campusName: string;
   admissionTypeName: string;
   documents: Document[];
+  level: ApplicationLevel | null;
 };
 
 export type CreateApplicationRequest = {

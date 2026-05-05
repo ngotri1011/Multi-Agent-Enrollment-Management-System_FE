@@ -27,3 +27,5 @@ export type PaymentStatus =
   | "processing"
   | "paid"
   | "need_checking";
+
+export type ApplicationLevel = "Normal" | "Good" | "Great" | "Excellent" | null;

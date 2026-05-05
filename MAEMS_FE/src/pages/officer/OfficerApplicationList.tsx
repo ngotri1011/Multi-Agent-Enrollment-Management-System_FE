@@ -51,6 +51,7 @@ import {
   type Application,
   type ApplicationStatus,
 } from "../../types/application";
+import type { ApplicationLevel } from "../../types/enums";
 import type { CampusBasic } from "../../types/campus";
 import type { ProgramBasic } from "../../types/program";
 import { ensureUtc } from "../../utils/date";
@@ -69,7 +70,10 @@ const STATUS_TAG_COLOR: Record<ApplicationStatus, string> = {
   document_required: "warning",
 };
 
-const statusConfig: Record<ApplicationStatus, { label: string; color: string }> = {
+const statusConfig: Record<
+  ApplicationStatus,
+  { label: string; color: string }
+> = {
   draft: {
     label: APPLICATION_STATUS.draft,
     color: STATUS_TAG_COLOR.draft,
@@ -96,6 +100,19 @@ const statusConfig: Record<ApplicationStatus, { label: string; color: string }> 
   },
 };
 
+// ─── Level config ──────────────────────────────────────────────────────────────
+
+/** Ánh xạ từng mức xếp hạng sang màu Tag Ant Design và nhãn hiển thị tiếng Việt. */
+const LEVEL_TAG_CONFIG: Record<
+  NonNullable<ApplicationLevel>,
+  { color: string; label: string }
+> = {
+  Normal: { color: "default", label: "Bình thường" },
+  Good: { color: "geekblue", label: "Khá" },
+  Great: { color: "green", label: "Tốt" },
+  Excellent: { color: "gold", label: "Xuất sắc" },
+};
+
 function isEscalated(app: Application) {
   return app.status === "under_review" || app.requiresReview;
 }
@@ -118,7 +135,9 @@ type DashboardListPreset = "pending" | "need_action";
 
 const DASHBOARD_PRESET_HINT_SUFFIX = " (từ dashboard)";
 
-function dashboardPresetHint(preset: DashboardListPreset | null): string | null {
+function dashboardPresetHint(
+  preset: DashboardListPreset | null,
+): string | null {
   if (preset === "pending")
     return `Đang lọc: ${APPLICATION_PENDING_PRESET_COMBO_LABEL}${DASHBOARD_PRESET_HINT_SUFFIX}`;
   if (preset === "need_action")
@@ -129,7 +148,8 @@ function dashboardPresetHint(preset: DashboardListPreset | null): string | null 
 function sortByLastUpdatedDesc(a: Application, b: Application) {
   // ensureUtc đảm bảo parse đúng UTC từ backend khi so sánh thời gian cập nhật.
   return (
-    new Date(ensureUtc(b.lastUpdated)).getTime() - new Date(ensureUtc(a.lastUpdated)).getTime()
+    new Date(ensureUtc(b.lastUpdated)).getTime() -
+    new Date(ensureUtc(a.lastUpdated)).getTime()
   );
 }
 
@@ -165,7 +185,9 @@ function emptyFilterAvailability(): FilterDimensionAvailability {
 }
 
 /** Một tập hồ sơ (vd. preset đã merge) — mọi chiều lọc lấy từ cùng response. */
-function buildAvailabilityFromApps(apps: Application[]): FilterDimensionAvailability {
+function buildAvailabilityFromApps(
+  apps: Application[],
+): FilterDimensionAvailability {
   const out = emptyFilterAvailability();
   for (const a of apps) {
     out.statuses.add(a.status);
@@ -259,6 +281,11 @@ function normalizeRequiredDocumentList(raw: string | null | undefined) {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 const PRESET_PAGE_SIZE = 20;
+type ApplicationListSortOption =
+  | "applicationId_desc"
+  | "applicationId_asc"
+  | "lastUpdated_desc"
+  | "lastUpdated_asc";
 
 export function OfficerApplicationList() {
   const navigate = useNavigate();
@@ -272,28 +299,38 @@ export function OfficerApplicationList() {
 
   // ── Server-side filter / sort / page params ──────────────────────────────
   const [searchInput, setSearchInput] = useState("");
-  const [search, setSearch]           = useState<string | undefined>();
+  const [search, setSearch] = useState<string | undefined>();
   /** Khởi tạo từ URL ngay mount — tránh loadServerPage gọi API trước khi useEffect đồng bộ query. */
-  const [filterStatus, setFilterStatus] = useState<ApplicationStatus | "all">(() =>
-    parseListQueryState(searchParams).filterStatus
+  const [filterStatus, setFilterStatus] = useState<ApplicationStatus | "all">(
+    () => parseListQueryState(searchParams).filterStatus,
   );
   const [filterCampusId, setFilterCampusId] = useState<number | "all">("all");
   const [filterProgramId, setFilterProgramId] = useState<number | "all">("all");
-  const [filterAdmissionTypeId, setFilterAdmissionTypeId] = useState<number | "all">("all");
+  const [filterAdmissionTypeId, setFilterAdmissionTypeId] = useState<
+    number | "all"
+  >("all");
   const [onlyEscalated, setOnlyEscalated] = useState(false);
-  /** Gộp draft+submitted hoặc under_review+requiresReview (query ?preset=). */
-  const [dashboardPreset, setDashboardPreset] = useState<DashboardListPreset | null>(() =>
-    parseListQueryState(searchParams).dashboardPreset
+  /** Lọc theo mức xếp hạng hồ sơ; "all" nghĩa là không lọc. */
+  const [filterLevel, setFilterLevel] = useState<ApplicationLevel | "all">(
+    "all",
   );
+  /** Gộp draft+submitted hoặc under_review+requiresReview (query ?preset=). */
+  const [dashboardPreset, setDashboardPreset] =
+    useState<DashboardListPreset | null>(
+      () => parseListQueryState(searchParams).dashboardPreset,
+    );
   const [mergedBuffer, setMergedBuffer] = useState<Application[]>([]);
-  const [pageNumber, setPageNumber]   = useState(1);
-  const [pageSize, setPageSize]       = useState(20);
-  const [sortBy, setSortBy]           = useState<string | undefined>();
-  /** Mặc định true: API trả đơn mới nhất trước; false thì ngược lại (khi chưa chọn sort theo cột). */
-  const [sortDesc, setSortDesc]       = useState(true);
+  const [pageNumber, setPageNumber] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  /** Mặc định sort theo mã hồ sơ giảm dần để ưu tiên hồ sơ mới tạo gần nhất. */
+  const [sortBy, setSortBy] = useState<string>("applicationId");
+  /** `true` là giảm dần, `false` là tăng dần. */
+  const [sortDesc, setSortDesc] = useState(true);
   const [campuses, setCampuses] = useState<CampusBasic[]>([]);
   const [programs, setPrograms] = useState<ProgramBasic[]>([]);
-  const [admissionTypes, setAdmissionTypes] = useState<AdmissionTypeBasic[]>([]);
+  const [admissionTypes, setAdmissionTypes] = useState<AdmissionTypeBasic[]>(
+    [],
+  );
   const [filterAvailability, setFilterAvailability] =
     useState<FilterDimensionAvailability>(emptyFilterAvailability);
   const [facetReady, setFacetReady] = useState(false);
@@ -310,11 +347,19 @@ export function OfficerApplicationList() {
   };
 
   // Modals
-  const [rejectModal, setRejectModal] = useState<{ open: boolean; id: number | string }>({
-    open: false, id: "",
+  const [rejectModal, setRejectModal] = useState<{
+    open: boolean;
+    id: number | string;
+  }>({
+    open: false,
+    id: "",
   });
-  const [supplementModal, setSupplementModal] = useState<{ open: boolean; id: number | string }>({
-    open: false, id: "",
+  const [supplementModal, setSupplementModal] = useState<{
+    open: boolean;
+    id: number | string;
+  }>({
+    open: false,
+    id: "",
   });
   const [rejectForm] = Form.useForm();
   const [supplementForm] = Form.useForm();
@@ -342,8 +387,16 @@ export function OfficerApplicationList() {
       programId: filterProgramId !== "all" ? filterProgramId : undefined,
       admissionTypeId:
         filterAdmissionTypeId !== "all" ? filterAdmissionTypeId : undefined,
+      // Truyền level lên API khi người dùng chọn lọc theo xếp hạng.
+      level: filterLevel !== "all" ? filterLevel : undefined,
     }),
-    [search, filterCampusId, filterProgramId, filterAdmissionTypeId]
+    [
+      search,
+      filterCampusId,
+      filterProgramId,
+      filterAdmissionTypeId,
+      filterLevel,
+    ],
   );
 
   const loadDashboardPresetData = useCallback(async () => {
@@ -439,7 +492,9 @@ export function OfficerApplicationList() {
         sortBy: "lastUpdated" as const,
         sortDesc: true as const,
       };
-      const esc = onlyEscalated ? ({ requiresReview: true as const } as const) : {};
+      const esc = onlyEscalated
+        ? ({ requiresReview: true as const } as const)
+        : {};
       const st =
         filterStatus !== "all"
           ? ({ status: filterStatus } as const)
@@ -559,7 +614,9 @@ export function OfficerApplicationList() {
     const start = (pageNumber - 1) * pageSize;
     setApplications(mergedBuffer.slice(start, start + pageSize));
   }, [dashboardPreset, pageNumber, pageSize, mergedBuffer]);
-  useEffect(() => { loadFilterOptions(); }, [loadFilterOptions]);
+  useEffect(() => {
+    loadFilterOptions();
+  }, [loadFilterOptions]);
 
   // ── Table change handler (sort + page) ────────────────────────────────────
   const handleTableChange = (
@@ -567,7 +624,7 @@ export function OfficerApplicationList() {
     _filters: unknown,
     sorter: SorterResult<Application> | SorterResult<Application>[],
   ) => {
-    if (pagination.current)  setPageNumber(pagination.current);
+    if (pagination.current) setPageNumber(pagination.current);
     if (pagination.pageSize) setPageSize(pagination.pageSize);
 
     const s = Array.isArray(sorter) ? sorter[0] : sorter;
@@ -575,7 +632,8 @@ export function OfficerApplicationList() {
       setSortBy(String(s.columnKey));
       setSortDesc(s.order === "descend");
     } else {
-      setSortBy(undefined);
+      // Khi user bỏ sort ở header table, quay về mặc định theo mã hồ sơ.
+      setSortBy("applicationId");
       setSortDesc(true);
     }
   };
@@ -589,7 +647,7 @@ export function OfficerApplicationList() {
         return next;
       });
     },
-    [setSearchParams]
+    [setSearchParams],
   );
 
   const handleStatusChange = (val: ApplicationStatus | "all") => {
@@ -629,6 +687,19 @@ export function OfficerApplicationList() {
     setPageNumber(1);
   };
 
+  const handleSortChange = (val: ApplicationListSortOption) => {
+    // Mapping option UI -> cặp tham số sortBy/sortDesc để API hiểu đúng.
+    const [field, direction] = val.split("_") as [string, "asc" | "desc"];
+    setSortBy(field);
+    setSortDesc(direction === "desc");
+    setPageNumber(1);
+  };
+
+  const handleLevelChange = (val: ApplicationLevel | "all") => {
+    setFilterLevel(val);
+    setPageNumber(1);
+  };
+
   const clearFilters = () => {
     setSearchParams(new URLSearchParams());
     setSearchInput("");
@@ -637,11 +708,12 @@ export function OfficerApplicationList() {
     setFilterCampusId("all");
     setFilterProgramId("all");
     setFilterAdmissionTypeId("all");
+    setFilterLevel("all");
     setOnlyEscalated(false);
     setDashboardPreset(null);
     setMergedBuffer([]);
     setPageNumber(1);
-    setSortBy(undefined);
+    setSortBy("applicationId");
     setSortDesc(true);
   };
 
@@ -654,9 +726,13 @@ export function OfficerApplicationList() {
 
   const handleApprove = async (id: number | string) => {
     const strId = String(id);
-    const targetApp = applications.find((a) => String(a.applicationId) === strId);
+    const targetApp = applications.find(
+      (a) => String(a.applicationId) === strId,
+    );
     if (!targetApp || targetApp.status !== "under_review") {
-      messageApi.warning("Chỉ có thể phê duyệt khi hồ sơ ở trạng thái chờ xét duyệt.");
+      messageApi.warning(
+        "Chỉ có thể phê duyệt khi hồ sơ ở trạng thái chờ xét duyệt.",
+      );
       return;
     }
 
@@ -668,8 +744,8 @@ export function OfficerApplicationList() {
         prev.map((a) =>
           String(a.applicationId) === strId
             ? { ...a, status: "approved" as ApplicationStatus }
-            : a
-        )
+            : a,
+        ),
       );
     } catch {
       messageApi.error("Phê duyệt thất bại, vui lòng thử lại.");
@@ -682,9 +758,13 @@ export function OfficerApplicationList() {
     try {
       await rejectForm.validateFields();
       const strId = String(rejectModal.id);
-      const targetApp = applications.find((a) => String(a.applicationId) === strId);
+      const targetApp = applications.find(
+        (a) => String(a.applicationId) === strId,
+      );
       if (!targetApp || targetApp.status !== "under_review") {
-        messageApi.warning("Chỉ có thể từ chối khi hồ sơ ở trạng thái chờ xét duyệt.");
+        messageApi.warning(
+          "Chỉ có thể từ chối khi hồ sơ ở trạng thái chờ xét duyệt.",
+        );
         return;
       }
 
@@ -695,8 +775,8 @@ export function OfficerApplicationList() {
         prev.map((a) =>
           String(a.applicationId) === strId
             ? { ...a, status: "rejected" as ApplicationStatus }
-            : a
-        )
+            : a,
+        ),
       );
       setRejectModal({ open: false, id: "" });
       rejectForm.resetFields();
@@ -713,7 +793,9 @@ export function OfficerApplicationList() {
         (a) => String(a.applicationId) === String(supplementModal.id),
       );
       if (!targetApp || targetApp.status !== "under_review") {
-        messageApi.warning("Chỉ có thể yêu cầu bổ sung khi hồ sơ đang chờ xét duyệt.");
+        messageApi.warning(
+          "Chỉ có thể yêu cầu bổ sung khi hồ sơ đang chờ xét duyệt.",
+        );
         return;
       }
 
@@ -722,7 +804,10 @@ export function OfficerApplicationList() {
       const docsNeed = String(values.note ?? "");
 
       setActionLoading(strId + "_supplement");
-      const updated = await requestAdditionalDocuments(Number(supplementModal.id), { docsNeed });
+      const updated = await requestAdditionalDocuments(
+        Number(supplementModal.id),
+        { docsNeed },
+      );
 
       messageApi.success("Đã gửi yêu cầu bổ sung tài liệu.");
 
@@ -737,8 +822,8 @@ export function OfficerApplicationList() {
                 assignedOfficerId: updated.assignedOfficerId,
                 assignedOfficerName: updated.assignedOfficerName,
               }
-            : a
-        )
+            : a,
+        ),
       );
 
       setSupplementModal({ open: false, id: "" });
@@ -752,14 +837,18 @@ export function OfficerApplicationList() {
 
   const openSupplementModal = async (record: Application) => {
     if (record.status !== "under_review") {
-      messageApi.warning("Chỉ có thể yêu cầu bổ sung khi hồ sơ đang chờ xét duyệt.");
+      messageApi.warning(
+        "Chỉ có thể yêu cầu bổ sung khi hồ sơ đang chờ xét duyệt.",
+      );
       return;
     }
 
     let suggestedDocs = "";
     try {
       const admissionType = await getAdmissionTypeById(record.admissionTypeId);
-      suggestedDocs = normalizeRequiredDocumentList(admissionType.requiredDocumentList);
+      suggestedDocs = normalizeRequiredDocumentList(
+        admissionType.requiredDocumentList,
+      );
     } catch {
       // Keep modal usable even if suggestion fetch fails.
     }
@@ -777,7 +866,9 @@ export function OfficerApplicationList() {
       key: "applicationId",
       width: 120,
       render: (id: string) => (
-        <Text className="font-mono text-xs text-indigo-600 font-semibold">{id}</Text>
+        <Text className="font-mono text-xs text-indigo-600 font-semibold">
+          {id}
+        </Text>
       ),
     },
     {
@@ -800,7 +891,9 @@ export function OfficerApplicationList() {
       render: (prog: string, record) => (
         <div>
           <Text className="text-gray-700 text-sm block">{prog}</Text>
-          <Text className="text-xs text-gray-400">{record.admissionTypeName}</Text>
+          <Text className="text-xs text-gray-400">
+            {record.admissionTypeName}
+          </Text>
         </div>
       ),
     },
@@ -841,6 +934,28 @@ export function OfficerApplicationList() {
               </Tag>
             )}
           </Space>
+        );
+      },
+    },
+    {
+      title: "Xếp hạng",
+      dataIndex: "level",
+      key: "level",
+      width: 120,
+      // Hiển thị Tag màu theo từng mức xếp hạng; fallback xám khi chưa có dữ liệu.
+      render: (level: ApplicationLevel | null) => {
+        if (!level) {
+          return (
+            <Tag color="default" className="text-xs">
+              Chưa xác định
+            </Tag>
+          );
+        }
+        const cfg = LEVEL_TAG_CONFIG[level];
+        return (
+          <Tag color={cfg.color} className="text-xs font-medium">
+            {cfg.label.toUpperCase()}
+          </Tag>
         );
       },
     },
@@ -945,9 +1060,19 @@ export function OfficerApplicationList() {
     filterCampusId !== "all",
     filterProgramId !== "all",
     filterAdmissionTypeId !== "all",
+    filterLevel !== "all",
     onlyEscalated,
     !!dashboardPreset,
   ].filter(Boolean).length;
+
+  /** Chuẩn hoá giá trị Select sort để luôn khớp với các option đã khai báo. */
+  const currentSortOption: ApplicationListSortOption = useMemo(() => {
+    if (sortBy === "applicationId")
+      return sortDesc ? "applicationId_desc" : "applicationId_asc";
+    if (sortBy === "lastUpdated")
+      return sortDesc ? "lastUpdated_desc" : "lastUpdated_asc";
+    return "applicationId_desc";
+  }, [sortBy, sortDesc]);
 
   const presetHint = dashboardPresetHint(dashboardPreset);
 
@@ -984,170 +1109,214 @@ export function OfficerApplicationList() {
           className="rounded-2xl border border-gray-100 shadow-sm"
           styles={{ body: { padding: "16px 20px" } }}
         >
-        {presetHint && (
-          <Text className="text-xs text-violet-600 block mb-3">{presetHint}</Text>
-        )}
-        <Row gutter={[12, 12]} align="middle">
-          {/* Search */}
-          <Col xs={24} md={6}>
-            <Input
-              placeholder="Tìm mã hồ sơ, thí sinh, ngành..."
-              prefix={<Search size={14} className="text-gray-300" />}
-              value={searchInput}
-              onChange={(e) => handleSearchChange(e.target.value)}
-              allowClear
-              onClear={() => handleSearchChange("")}
-              className="!rounded-xl"
-            />
-          </Col>
-
-          {/* Trạng thái */}
-          <Col xs={12} md={4}>
-            <Select
-              value={filterStatus}
-              onChange={handleStatusChange}
-              className="w-full !rounded-xl"
-              placeholder="Trạng thái"
-              popupClassName={SELECT_DISABLED_OPTION_CURSOR}
-            >
-              <Option value="all">Tất cả trạng thái</Option>
-              {(Object.keys(statusConfig) as ApplicationStatus[]).map((s) => (
-                <Option
-                  key={s}
-                  value={s}
-                  disabled={dimOptionDisabled(
-                    facetReady,
-                    filterAvailability.statuses.has(s),
-                    filterStatus === s,
-                  )}
-                >
-                  {statusConfig[s].label}
-                </Option>
-              ))}
-            </Select>
-          </Col>
-
-          {/* Cơ sở */}
-          <Col xs={12} md={4}>
-            <Select
-              value={filterCampusId}
-              onChange={handleCampusChange}
-              className="w-full !rounded-xl"
-              placeholder="Cơ sở"
-              popupClassName={SELECT_DISABLED_OPTION_CURSOR}
-            >
-              <Option value="all">Tất cả cơ sở</Option>
-              {campuses.map((campus) => (
-                <Option
-                  key={campus.campusId}
-                  value={campus.campusId}
-                  disabled={dimOptionDisabled(
-                    facetReady,
-                    filterAvailability.campusIds.has(campus.campusId),
-                    filterCampusId === campus.campusId,
-                  )}
-                >
-                  {campus.name}
-                </Option>
-              ))}
-            </Select>
-          </Col>
-
-          {/* Ngành */}
-          <Col xs={12} md={4}>
-            <Select
-              value={filterProgramId}
-              onChange={handleProgramChange}
-              className="w-full !rounded-xl"
-              placeholder="Ngành"
-              showSearch
-              optionFilterProp="children"
-              popupClassName={SELECT_DISABLED_OPTION_CURSOR}
-            >
-              <Option value="all">Tất cả ngành</Option>
-              {programs.map((program) => (
-                <Option
-                  key={program.programId}
-                  value={program.programId}
-                  disabled={dimOptionDisabled(
-                    facetReady,
-                    filterAvailability.programIds.has(program.programId),
-                    filterProgramId === program.programId,
-                  )}
-                >
-                  {program.programName}
-                </Option>
-              ))}
-            </Select>
-          </Col>
-
-          {/* Phương thức tuyển sinh */}
-          <Col xs={12} md={4}>
-            <Select
-              value={filterAdmissionTypeId}
-              onChange={handleAdmissionTypeChange}
-              className="w-full !rounded-xl"
-              placeholder="Phương thức"
-              popupClassName={SELECT_DISABLED_OPTION_CURSOR}
-            >
-              <Option value="all">Tất cả phương thức</Option>
-              {admissionTypes.map((admissionType) => (
-                <Option
-                  key={admissionType.admissionTypeId}
-                  value={admissionType.admissionTypeId}
-                  disabled={dimOptionDisabled(
-                    facetReady,
-                    filterAvailability.admissionTypeIds.has(
-                      admissionType.admissionTypeId,
-                    ),
-                    filterAdmissionTypeId === admissionType.admissionTypeId,
-                  )}
-                >
-                  {admissionType.admissionTypeName}
-                </Option>
-              ))}
-            </Select>
-          </Col>
-
-          {/* Hồ sơ cần xem xét */}
-          <Col xs={12} md={4}>
-            <Select
-              value={onlyEscalated ? "escalated" : "all"}
-              onChange={(v) => handleEscalatedChange(v === "escalated")}
-              className="w-full !rounded-xl"
-              popupClassName={SELECT_DISABLED_OPTION_CURSOR}
-            >
-              <Option value="all">Tất cả hồ sơ</Option>
-              <Option
-                value="escalated"
-                disabled={dimOptionDisabled(
-                  facetReady,
-                  filterAvailability.anyRequiresReview,
-                  onlyEscalated,
-                )}
-              >
-                <span className="flex items-center gap-1 text-rose-600">
-                  <AlertTriangle size={13} />
-                  Hồ sơ cần xem xét
-                </span>
-              </Option>
-            </Select>
-          </Col>
-
-          {/* Xoá bộ lọc */}
-          {activeFilterCount > 0 && (
-            <Col xs={24} md={2}>
-              <Button
-                size="small"
-                type="link"
-                className="!p-0 !text-gray-400"
-                onClick={clearFilters}
-              >
-                Xoá bộ lọc ({activeFilterCount})
-              </Button>
-            </Col>
+          {presetHint && (
+            <Text className="text-xs text-violet-600 block mb-3">
+              {presetHint}
+            </Text>
           )}
-        </Row>
+          <Row gutter={[12, 12]} align="middle">
+            {/* Search */}
+            <Col xs={24} md={6}>
+              <Input
+                placeholder="Tìm mã hồ sơ, thí sinh, ngành..."
+                prefix={<Search size={14} className="text-gray-300" />}
+                value={searchInput}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                allowClear
+                onClear={() => handleSearchChange("")}
+                className="!rounded-xl"
+              />
+            </Col>
+
+            {/* Trạng thái */}
+            <Col xs={12} md={4}>
+              <Select
+                value={filterStatus}
+                onChange={handleStatusChange}
+                className="w-full !rounded-xl"
+                placeholder="Trạng thái"
+                popupClassName={SELECT_DISABLED_OPTION_CURSOR}
+              >
+                <Option value="all">Tất cả trạng thái</Option>
+                {(Object.keys(statusConfig) as ApplicationStatus[]).map((s) => (
+                  <Option
+                    key={s}
+                    value={s}
+                    disabled={dimOptionDisabled(
+                      facetReady,
+                      filterAvailability.statuses.has(s),
+                      filterStatus === s,
+                    )}
+                  >
+                    {statusConfig[s].label}
+                  </Option>
+                ))}
+              </Select>
+            </Col>
+
+            {/* Cơ sở */}
+            <Col xs={12} md={4}>
+              <Select
+                value={filterCampusId}
+                onChange={handleCampusChange}
+                className="w-full !rounded-xl"
+                placeholder="Cơ sở"
+                popupClassName={SELECT_DISABLED_OPTION_CURSOR}
+              >
+                <Option value="all">Tất cả cơ sở</Option>
+                {campuses.map((campus) => (
+                  <Option
+                    key={campus.campusId}
+                    value={campus.campusId}
+                    disabled={dimOptionDisabled(
+                      facetReady,
+                      filterAvailability.campusIds.has(campus.campusId),
+                      filterCampusId === campus.campusId,
+                    )}
+                  >
+                    {campus.name}
+                  </Option>
+                ))}
+              </Select>
+            </Col>
+
+            {/* Ngành */}
+            <Col xs={12} md={4}>
+              <Select
+                value={filterProgramId}
+                onChange={handleProgramChange}
+                className="w-full !rounded-xl"
+                placeholder="Ngành"
+                showSearch
+                optionFilterProp="children"
+                popupClassName={SELECT_DISABLED_OPTION_CURSOR}
+              >
+                <Option value="all">Tất cả ngành</Option>
+                {programs.map((program) => (
+                  <Option
+                    key={program.programId}
+                    value={program.programId}
+                    disabled={dimOptionDisabled(
+                      facetReady,
+                      filterAvailability.programIds.has(program.programId),
+                      filterProgramId === program.programId,
+                    )}
+                  >
+                    {program.programName}
+                  </Option>
+                ))}
+              </Select>
+            </Col>
+
+            {/* Phương thức tuyển sinh */}
+            <Col xs={12} md={4}>
+              <Select
+                value={filterAdmissionTypeId}
+                onChange={handleAdmissionTypeChange}
+                className="w-full !rounded-xl"
+                placeholder="Phương thức"
+                popupClassName={SELECT_DISABLED_OPTION_CURSOR}
+              >
+                <Option value="all">Tất cả phương thức</Option>
+                {admissionTypes.map((admissionType) => (
+                  <Option
+                    key={admissionType.admissionTypeId}
+                    value={admissionType.admissionTypeId}
+                    disabled={dimOptionDisabled(
+                      facetReady,
+                      filterAvailability.admissionTypeIds.has(
+                        admissionType.admissionTypeId,
+                      ),
+                      filterAdmissionTypeId === admissionType.admissionTypeId,
+                    )}
+                  >
+                    {admissionType.admissionTypeName}
+                  </Option>
+                ))}
+              </Select>
+            </Col>
+
+            {/* Xếp hạng */}
+            <Col xs={12} md={4}>
+              <Select
+                value={filterLevel}
+                onChange={handleLevelChange}
+                className="w-full !rounded-xl"
+                placeholder="Xếp hạng"
+              >
+                <Option value="all">Tất cả xếp hạng</Option>
+                {/* Liệt kê theo thứ tự từ thấp đến cao để người dùng dễ đọc */}
+                {(
+                  Object.keys(
+                    LEVEL_TAG_CONFIG,
+                  ) as NonNullable<ApplicationLevel>[]
+                ).map((lvl) => (
+                  <Option key={lvl} value={lvl}>
+                    <Tag
+                      color={LEVEL_TAG_CONFIG[lvl].color}
+                      className="text-xs !m-0"
+                    >
+                      {LEVEL_TAG_CONFIG[lvl].label.toUpperCase()}
+                    </Tag>
+                  </Option>
+                ))}
+              </Select>
+            </Col>
+
+            {/* Sắp xếp */}
+            <Col xs={12} md={4}>
+              <Select
+                value={currentSortOption}
+                onChange={handleSortChange}
+                className="w-full !rounded-xl"
+                placeholder="Sắp xếp"
+              >
+                <Option value="applicationId_desc">Mã hồ sơ: mới nhất</Option>
+                <Option value="applicationId_asc">Mã hồ sơ: cũ nhất</Option>
+                <Option value="lastUpdated_desc">Cập nhật: mới nhất</Option>
+                <Option value="lastUpdated_asc">Cập nhật: cũ nhất</Option>
+              </Select>
+            </Col>
+
+            {/* Hồ sơ cần xem xét */}
+            <Col xs={12} md={4}>
+              <Select
+                value={onlyEscalated ? "escalated" : "all"}
+                onChange={(v) => handleEscalatedChange(v === "escalated")}
+                className="w-full !rounded-xl"
+                popupClassName={SELECT_DISABLED_OPTION_CURSOR}
+              >
+                <Option value="all">Tất cả hồ sơ</Option>
+                <Option
+                  value="escalated"
+                  disabled={dimOptionDisabled(
+                    facetReady,
+                    filterAvailability.anyRequiresReview,
+                    onlyEscalated,
+                  )}
+                >
+                  <span className="flex items-center gap-1 text-rose-600">
+                    <AlertTriangle size={13} />
+                    Hồ sơ cần xem xét
+                  </span>
+                </Option>
+              </Select>
+            </Col>
+
+            {/* Xoá bộ lọc */}
+            {activeFilterCount > 0 && (
+              <Col xs={24} md={2}>
+                <Button
+                  size="small"
+                  type="link"
+                  className="!p-0 !text-gray-400"
+                  onClick={clearFilters}
+                >
+                  Xoá bộ lọc ({activeFilterCount})
+                </Button>
+              </Col>
+            )}
+          </Row>
         </Card>
 
         {/* Table */}
@@ -1155,49 +1324,48 @@ export function OfficerApplicationList() {
           className="rounded-2xl border border-gray-100 shadow-sm"
           styles={{ body: { padding: "0" } }}
         >
-        <Spin spinning={loading}>
-          <Table
-            columns={columns}
-            dataSource={applications}
-            rowKey="applicationId"
-            scroll={{ x: 900 }}
-            onChange={handleTableChange}
-            pagination={{
-              current: pageNumber,
-              pageSize,
-              total: totalCount,
-              showSizeChanger: true,
-              showTotal: (total) => `Tổng ${total} hồ sơ`,
-              pageSizeOptions: ["10", "20", "50"],
-              className:
-                "!px-4 !pb-4 !pt-3 !box-border sm:!px-6 sm:!pb-5",
-            }}
-            rowClassName={(record) =>
-              isEscalated(record)
-                ? "bg-rose-50/40 hover:bg-rose-50"
-                : "hover:bg-gray-50 transition-colors"
-            }
-            expandable={{
-              expandedRowRender: (record) =>
-                record.notes ? (
-                  <div className="mx-4 my-2 p-4 rounded-xl bg-indigo-50 border border-indigo-100">
-                    <span className="text-xs font-semibold text-indigo-600 uppercase tracking-wide block mb-2">
-                      Ghi chú từ Agent
-                    </span>
-                    <Text className="text-sm text-gray-700 font-mono whitespace-pre-wrap">
-                      {record.notes}
-                    </Text>
-                  </div>
-                ) : (
-                  <div className="px-4 py-3 text-gray-400 text-sm italic">
-                    Không có ghi chú từ hệ thống.
-                  </div>
-                ),
-              rowExpandable: (record) => !!record.notes,
-            }}
-            size="middle"
-          />
-        </Spin>
+          <Spin spinning={loading}>
+            <Table
+              columns={columns}
+              dataSource={applications}
+              rowKey="applicationId"
+              scroll={{ x: 900 }}
+              onChange={handleTableChange}
+              pagination={{
+                current: pageNumber,
+                pageSize,
+                total: totalCount,
+                showSizeChanger: true,
+                showTotal: (total) => `Tổng ${total} hồ sơ`,
+                pageSizeOptions: ["10", "20", "50"],
+                className: "!px-4 !pb-4 !pt-3 !box-border sm:!px-6 sm:!pb-5",
+              }}
+              rowClassName={(record) =>
+                isEscalated(record)
+                  ? "bg-rose-50/40 hover:bg-rose-50"
+                  : "hover:bg-gray-50 transition-colors"
+              }
+              expandable={{
+                expandedRowRender: (record) =>
+                  record.notes ? (
+                    <div className="mx-4 my-2 p-4 rounded-xl bg-indigo-50 border border-indigo-100">
+                      <span className="text-xs font-semibold text-indigo-600 uppercase tracking-wide block mb-2">
+                        Ghi chú từ Agent
+                      </span>
+                      <Text className="text-sm text-gray-700 font-mono whitespace-pre-wrap">
+                        {record.notes}
+                      </Text>
+                    </div>
+                  ) : (
+                    <div className="px-4 py-3 text-gray-400 text-sm italic">
+                      Không có ghi chú từ hệ thống.
+                    </div>
+                  ),
+                rowExpandable: (record) => !!record.notes,
+              }}
+              size="middle"
+            />
+          </Spin>
         </Card>
       </div>
 
@@ -1258,7 +1426,9 @@ export function OfficerApplicationList() {
           <Form.Item
             name="note"
             label="Nội dung yêu cầu"
-            rules={[{ required: true, message: "Vui lòng nhập nội dung yêu cầu" }]}
+            rules={[
+              { required: true, message: "Vui lòng nhập nội dung yêu cầu" },
+            ]}
           >
             <Input.TextArea
               rows={4}
