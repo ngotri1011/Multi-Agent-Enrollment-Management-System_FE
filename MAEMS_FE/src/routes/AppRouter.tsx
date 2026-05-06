@@ -46,6 +46,8 @@ import { NotFound } from "../pages/notfound/NotFound";
 import { AdminProgramAdmissionConfig } from "../pages/admin/AdminProgramAdmissionConfig";
 import { LlmChatLogManagement } from "../pages/qa/LlmChatLogManagement";
 import { Feedback } from "../pages/qa/Feedback";
+import { AdminFeedback } from "../pages/admin/AdminFeedback";
+import { SystemMonitorPage } from "../pages/admin/SystemMonitor";
 
 export function AppRouter() {
   return (
@@ -297,10 +299,26 @@ export function AppRouter() {
         }
       />
       <Route
+        path="/admin/feedbacks"
+        element={
+          <RoleGuard allowedRoles={["admin"]}>
+            <AdminFeedback />
+          </RoleGuard>
+        }
+      />
+      <Route
         path="/admin/users"
         element={
           <RoleGuard allowedRoles={["admin"]}>
             <AdminUserManagement />
+          </RoleGuard>
+        }
+      />
+      <Route
+        path="/admin/system-monitor"
+        element={
+          <RoleGuard allowedRoles={["admin"]}>
+            <SystemMonitorPage />
           </RoleGuard>
         }
       />
