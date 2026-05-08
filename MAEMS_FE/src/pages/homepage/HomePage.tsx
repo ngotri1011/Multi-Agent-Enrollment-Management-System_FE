@@ -89,27 +89,34 @@ const actors = [
 export function HomePage() {
   return (
     <GuestLayout>
-
       {/* Hero */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-        <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{
-            backgroundImage: "url('')",
-            backgroundColor: "#1a1a2e",
-          }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-br from-orange-900/80 via-orange-800/60 to-gray-900/80" />
+        {/* Lớp nền dự phòng giúp giao diện vẫn ổn khi video chưa tải kịp hoặc trình duyệt không hỗ trợ */}
+        <div className="absolute inset-0 bg-[#1a1a2e]" />
+        {/* Video nền chạy tự động để tạo hero sinh động nhưng không ảnh hưởng thao tác vì đã tắt pointer-events */}
+        <video
+          className="absolute inset-0 h-full w-full object-cover pointer-events-none"
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+        >
+          <source
+            src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260418_080021_d598092b-c4c2-4e53-8e46-94cf9064cd50.mp4"
+            type="video/mp4"
+          />
+        </video>
 
         {/* Dot pattern overlay */}
         <div
           className="absolute inset-0"
           style={{
-            backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.12) 1px, transparent 1px)",
+            backgroundImage:
+              "radial-gradient(circle, rgba(255,255,255,0.12) 1px, transparent 1px)",
             backgroundSize: "28px 28px",
           }}
         />
-
         <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
           <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-4 py-2 mb-6">
             <Sparkles size={14} className="text-orange-300" />
@@ -128,8 +135,8 @@ export function HomePage() {
           </Title>
 
           <Paragraph className="!text-gray-200 text-lg md:text-xl max-w-2xl mx-auto !mb-10 leading-relaxed">
-            Hệ thống đa tác tử hỗ trợ quản lý tuyển sinh với sự hỗ trợ của
-            LLM — tự động, minh bạch và thông minh 24/7 cho Trường Đại học FPT.
+            Hệ thống đa tác tử hỗ trợ quản lý tuyển sinh với sự hỗ trợ của LLM —
+            tự động, minh bạch và thông minh 24/7 cho Trường Đại học FPT.
           </Paragraph>
 
           <div className="flex flex-wrap justify-center gap-4">
@@ -153,11 +160,14 @@ export function HomePage() {
             </Link>
           </div>
         </div>
-
         {/* Chỉ báo cuộn xuống: icon mập hơn, dễ nhìn và thân thiện hơn */}
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
           <div className="w-10 h-10 rounded-full bg-white/15 border border-white/25 flex items-center justify-center shadow-sm">
-            <ChevronDown size={24} strokeWidth={2.75} className="text-white/90" />
+            <ChevronDown
+              size={24}
+              strokeWidth={2.75}
+              className="text-white/90"
+            />
           </div>
         </div>
       </section>
@@ -170,8 +180,8 @@ export function HomePage() {
               Tại sao chọn hệ thống của chúng tôi?
             </Title>
             <Paragraph className="!text-gray-500 text-base max-w-2xl mx-auto">
-              Các tác tử AI và mô hình ngôn ngữ lớn phối hợp để cung cấp hỗ
-              trợ tuyển sinh thông minh, minh bạch và hiệu quả.
+              Các tác tử AI và mô hình ngôn ngữ lớn phối hợp để cung cấp hỗ trợ
+              tuyển sinh thông minh, minh bạch và hiệu quả.
             </Paragraph>
           </div>
           <Row gutter={[24, 24]}>
@@ -202,8 +212,8 @@ export function HomePage() {
               Quy trình xử lý đa tác tử
             </Title>
             <Paragraph className="!text-gray-500 text-base max-w-2xl mx-auto">
-              Theo dõi từng bước khi các tác tử AI chuyên biệt phối hợp xử lý
-              hồ sơ với tính minh bạch và thông minh.
+              Theo dõi từng bước khi các tác tử AI chuyên biệt phối hợp xử lý hồ
+              sơ với tính minh bạch và thông minh.
             </Paragraph>
           </div>
           <div className="space-y-4">
@@ -216,7 +226,10 @@ export function HomePage() {
                   {i + 1}
                 </div>
                 <Text className="text-gray-700 text-sm flex-1">{step}</Text>
-                <CircleCheck size={20} className="text-green-500 flex-shrink-0" />
+                <CircleCheck
+                  size={20}
+                  className="text-green-500 flex-shrink-0"
+                />
               </div>
             ))}
           </div>
@@ -243,8 +256,8 @@ export function HomePage() {
               Dành cho mọi đối tượng
             </Title>
             <Paragraph className="!text-gray-500 text-base max-w-2xl mx-auto">
-              Hệ thống phục vụ đầy đủ các vai trò trong quy trình tuyển sinh,
-              từ thí sinh đến quản trị viên hệ thống.
+              Hệ thống phục vụ đầy đủ các vai trò trong quy trình tuyển sinh, từ
+              thí sinh đến quản trị viên hệ thống.
             </Paragraph>
           </div>
           <Row gutter={[24, 24]}>
@@ -284,8 +297,8 @@ export function HomePage() {
             Sẵn sàng trải nghiệm tuyển sinh thông minh?
           </Title>
           <Paragraph className="!text-orange-100 text-base mb-8 max-w-xl mx-auto">
-            Để hệ thống đa tác tử với LLM hướng dẫn bạn qua quy trình tuyển
-            sinh liền mạch, minh bạch và có hỗ trợ AI tức thì.
+            Để hệ thống đa tác tử với LLM hướng dẫn bạn qua quy trình tuyển sinh
+            liền mạch, minh bạch và có hỗ trợ AI tức thì.
           </Paragraph>
           <Link to="/auth">
             <Button
@@ -298,7 +311,6 @@ export function HomePage() {
           </Link>
         </div>
       </section>
-
     </GuestLayout>
   );
 }

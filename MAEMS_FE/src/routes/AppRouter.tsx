@@ -35,6 +35,7 @@ import { ProgramList } from "../pages/programs/ProgramList";
 import { ProgramDetail } from "../pages/programs/ProgramDetail";
 import { AgentLogsPage } from "../pages/qa/AgentLogsPage";
 import { ContactPage } from "../pages/contact/ContactPage";
+import { MajorAdvisorPage } from "../pages/major-advisor/MajorAdvisorPage";
 import { AdminApplicationList } from "../pages/admin/AdminApplicationList";
 import { AdminStudentManagement } from "../pages/admin/AdminStudentManagement";
 import { AdminProgramManagement } from "../pages/admin/AdminProgramManagement";
@@ -65,6 +66,8 @@ export function AppRouter() {
       <Route path="/tin-tuc" element={<ArticlePage />} />
       <Route path="/tin-tuc/:id" element={<ArticleDetail />} />
       <Route path="/lien-he" element={<ContactPage />} />
+      {/* Trang tư vấn chuyên ngành cho guest, không yêu cầu xác thực đăng nhập. */}
+      <Route path="/major-advisor" element={<MajorAdvisorPage />} />
       <Route path="/auth" element={<AuthPage />} />
 
       {/* applicant */}
