@@ -145,7 +145,7 @@ export function AdminProgramAdmissionConfig() {
       dataIndex: "admissionTypeName",
     },
     {
-      title: "Quota",
+      title: "Chỉ tiêu",
       dataIndex: "quota",
       sorter: true,
     },
@@ -154,7 +154,7 @@ export function AdminProgramAdmissionConfig() {
       dataIndex: "isActive",
       render: (active: boolean) => (
         <Tag color={active ? "green" : "red"}>
-          {active ? "Active" : "Inactive"}
+          {active ? "Đang hoạt động" : "Không hoạt động"}
         </Tag>
       ),
     },
@@ -287,15 +287,15 @@ export function AdminProgramAdmissionConfig() {
             />
           </Form.Item>
 
-          <Form.Item name="quota" label="Quota" rules={[{ required: true }]}>
+          <Form.Item name="quota" label="Chỉ tiêu" rules={[{ required: true }]}>
             <Input type="number" />
           </Form.Item>
 
           <Form.Item name="isActive" label="Trạng thái" initialValue={true}>
             <Select
               options={[
-                { label: "Active", value: true },
-                { label: "Inactive", value: false },
+                { label: "Đang hoạt động", value: true },
+                { label: "Không hoạt động", value: false },
               ]}
             />
           </Form.Item>

@@ -8,6 +8,9 @@ import {
   ShieldCheck,
   DollarSign,
   FileText,
+  Server,
+  HandHelping,
+  Settings,
 } from "lucide-react";
 
 type AdminLayoutProps = {
@@ -60,8 +63,20 @@ const menuItems: SidebarMenuItem[] = [
   {
     key: "settings",
     label: "Cài đặt hệ thống",
-    icon: <FileText size={16} />,
+    icon: <Settings size={16} />,
     path: "/admin/settings",
+  },
+  {
+    key: "system-monitor",
+    label: "Theo dõi hệ thống",
+    icon: <Server size={16} />,
+    path: "/admin/system-monitor",
+  },
+  {
+    key: "feedbacks",
+    label: "Phản hồi",
+    icon: <HandHelping size={16} />,
+    path: "/admin/feedbacks",
   },
 ];
 
