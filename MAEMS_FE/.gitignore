@@ -24,4 +24,4 @@ dist-ssr
 *.sw?
 .env
 .cursorrules
-.agent/rules/antigravity-rules.md
+.agents/*
