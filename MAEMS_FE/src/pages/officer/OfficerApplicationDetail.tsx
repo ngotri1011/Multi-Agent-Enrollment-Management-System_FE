@@ -12,6 +12,7 @@ import {
   Row,
   Space,
   Spin,
+  Tabs,
   Tag,
   Typography,
   message,
@@ -32,10 +33,11 @@ import {
   User,
   XCircle,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getAdmissionTypeById } from "../../api/admission-types";
 import { getApplicantById } from "../../api/applicants";
+import { getApplicantScores } from "../../api/scores";
 import {
   fetchApplicationDetail,
   patchApplication,
@@ -51,7 +53,15 @@ import {
 } from "../../types/application";
 import type { Document } from "../../types/document";
 import type { DocumentStatus } from "../../types/enums";
+import type { Score } from "../../types/score";
+import { ApplicantScoresTab } from "./components/ApplicantScoresTab";
+import {
+  showApiWrapperFailure,
+  showApiWrapperSuccess,
+  showAxiosApiFailure,
+} from "../../utils/apiFeedback";
 import { ensureUtc } from "../../utils/date";
+import { pickPrimaryScore } from "../../utils/scoreDisplay";
 
 const { Title, Text } = Typography;
 
@@ -200,6 +210,41 @@ export function OfficerApplicationDetail() {
   const [applicantLoading, setApplicantLoading] = useState(false);
   const [rejectForm] = Form.useForm();
   const [supplementForm] = Form.useForm();
+
+  const [profileTabKey, setProfileTabKey] = useState("profile");
+  const [applicantScore, setApplicantScore] = useState<Score | null>(null);
+  const [scoresLoading, setScoresLoading] = useState(false);
+
+  const loadApplicantScores = useCallback(async () => {
+    if (!app?.applicantId) return;
+    setScoresLoading(true);
+    try {
+      const wrapper = await getApplicantScores(app.applicantId);
+      if (wrapper.success) {
+        showApiWrapperSuccess(messageApi, wrapper);
+        setApplicantScore(pickPrimaryScore(wrapper.data));
+      } else {
+        showApiWrapperFailure(
+          messageApi,
+          wrapper,
+          "Không tải được điểm thí sinh.",
+        );
+        setApplicantScore(null);
+      }
+    } catch (err) {
+      showAxiosApiFailure(messageApi, err, "Không tải được điểm thí sinh.");
+      setApplicantScore(null);
+    } finally {
+      setScoresLoading(false);
+    }
+  }, [app?.applicantId, messageApi]);
+
+  // Gọi API điểm khi cán bộ chuyển sang tab "Điểm thí sinh"
+  useEffect(() => {
+    if (profileTabKey === "scores" && app?.applicantId) {
+      void loadApplicantScores();
+    }
+  }, [profileTabKey, app?.applicantId, loadApplicantScores]);
 
   const openApplicantProfile = async () => {
     if (!app) return;
@@ -387,89 +432,131 @@ export function OfficerApplicationDetail() {
                   className="rounded-2xl border border-gray-100 shadow-sm"
                   styles={{ body: { padding: "20px 24px" } }}
                 >
-                <div className="flex items-center justify-between mb-4">
-                  <Title level={5} className="!mb-0 !text-gray-700">
-                    Thông tin hồ sơ
-                  </Title>
-                  <Space>
-                    <Tag color={STATUS_CFG[app.status].color} className="text-sm px-3 py-0.5">
-                      {STATUS_CFG[app.status].label}
-                    </Tag>
-                    {app.requiresReview && (
-                      <Tag
-                        color="red"
-                        className="text-xs !inline-flex !items-center gap-1 !m-0"
-                      >
-                        <TriangleAlert className="size-3.5 shrink-0" aria-hidden />
-                        {APPLICATION_REQUIRES_REVIEW_LABEL}
+                <Tabs
+                  activeKey={profileTabKey}
+                  onChange={setProfileTabKey}
+                  destroyOnHidden
+                  tabBarExtraContent={
+                    <Space wrap size={[8, 8]} className="max-sm:justify-end">
+                      <Tag color={STATUS_CFG[app.status].color} className="text-sm px-3 py-0.5 !m-0">
+                        {STATUS_CFG[app.status].label}
                       </Tag>
-                    )}
-                  </Space>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={openApplicantProfile}
-                  className="mb-5 w-full text-left rounded-2xl border border-indigo-100 bg-gradient-to-r from-indigo-50/80 to-white px-4 py-3.5 transition-all hover:border-indigo-200 hover:shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-indigo-100 text-indigo-700 font-bold text-sm">
-                      {initialsFromName(app.applicantName)}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <Text className="!mb-0 font-semibold text-gray-900 text-base">
-                          {app.applicantName}
-                        </Text>
-                        <Tag color="geekblue" className="!m-0 !text-xs">
-                          Hồ sơ thí sinh
+                      {app.requiresReview && (
+                        <Tag
+                          color="red"
+                          className="text-xs !inline-flex !items-center gap-1 !m-0"
+                        >
+                          <TriangleAlert className="size-3.5 shrink-0" aria-hidden />
+                          {APPLICATION_REQUIRES_REVIEW_LABEL}
                         </Tag>
-                      </div>
-                      <Text className="text-xs text-gray-500 block mt-0.5">
-                        Mã thí sinh{" "}
-                        <span className="font-mono text-indigo-600">#{app.applicantId}</span>
-                        {" · "}
-                        Nhấn để xem chi tiết cá nhân
-                      </Text>
-                    </div>
-                    <ChevronRight size={20} className="text-indigo-400 shrink-0" aria-hidden />
-                  </div>
-                </button>
+                      )}
+                    </Space>
+                  }
+                  className={[
+                    "officer-profile-tabs",
+                    "[&_.ant-tabs-nav]:!mb-0",
+                    "[&_.ant-tabs-nav-wrap]:!flex-nowrap",
+                    "[&_.ant-tabs-content-holder]:!min-h-0",
+                    "[&_.ant-tabs-content]:!h-auto",
+                    "[&_.ant-tabs-tabpane]:!p-0",
+                    "[&_.ant-tabs-tabpane-hidden]:!hidden",
+                    "[&_.ant-tabs-tabpane-active]:!block",
+                  ].join(" ")}
+                  items={[
+                    {
+                      key: "profile",
+                      label: "Thông tin hồ sơ",
+                      children: (
+                        <div className="flex flex-col gap-4 pt-1">
+                          <button
+                            type="button"
+                            onClick={openApplicantProfile}
+                            className="w-full text-left rounded-2xl border border-indigo-100 bg-gradient-to-r from-indigo-50/80 to-white px-4 py-3.5 transition-all hover:border-indigo-200 hover:shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-indigo-100 text-indigo-700 font-bold text-sm">
+                                {initialsFromName(app.applicantName)}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <Text className="!mb-0 font-semibold text-gray-900 text-base">
+                                    {app.applicantName}
+                                  </Text>
+                                  <Tag color="geekblue" className="!m-0 !text-xs">
+                                    Hồ sơ thí sinh
+                                  </Tag>
+                                </div>
+                                <Text className="text-xs text-gray-500 block mt-0.5">
+                                  Mã thí sinh{" "}
+                                  <span className="font-mono text-indigo-600">
+                                    #{app.applicantId}
+                                  </span>
+                                  {" · "}
+                                  Nhấn để xem chi tiết cá nhân
+                                </Text>
+                              </div>
+                              <ChevronRight
+                                size={20}
+                                className="text-indigo-400 shrink-0"
+                                aria-hidden
+                              />
+                            </div>
+                          </button>
 
-                <Descriptions column={{ xs: 1, sm: 2 }} size="small">
-                  <Descriptions.Item label="Mã hồ sơ">
-                    <Text className="font-mono text-indigo-600 font-semibold">
-                      {app.applicationId}
-                    </Text>
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Ngành đăng ký">
-                    {app.programName}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Phương thức XT">
-                    {app.admissionTypeName}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Cơ sở">
-                    {app.campusName}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Năm tuyển sinh">
-                    {app.enrollmentYear}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Ngày nộp">
-                    {app.submittedAt
-                      ? new Date(ensureUtc(app.submittedAt)).toLocaleString("vi-VN")
-                      : "—"}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Cập nhật lần cuối">
-                    {app.lastUpdated
-                      ? new Date(ensureUtc(app.lastUpdated)).toLocaleString("vi-VN")
-                      : "—"}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Cán bộ phụ trách">
-                    {app.assignedOfficerName ?? (
-                      <Text className="text-gray-300">Chưa phân công</Text>
-                    )}
-                  </Descriptions.Item>
-                </Descriptions>
+                          <Descriptions
+                            column={{ xs: 1, sm: 2 }}
+                            size="small"
+                            className="!mb-0 [&_.ant-descriptions-view]:!mb-0 [&_.ant-descriptions-row:last-child_td]:!pb-0 [&_.ant-descriptions-row:last-child_th]:!pb-0"
+                          >
+                            <Descriptions.Item label="Mã hồ sơ">
+                              <Text className="font-mono text-indigo-600 font-semibold">
+                                {app.applicationId}
+                              </Text>
+                            </Descriptions.Item>
+                            <Descriptions.Item label="Ngành đăng ký">
+                              {app.programName}
+                            </Descriptions.Item>
+                            <Descriptions.Item label="Phương thức XT">
+                              {app.admissionTypeName}
+                            </Descriptions.Item>
+                            <Descriptions.Item label="Cơ sở">
+                              {app.campusName}
+                            </Descriptions.Item>
+                            <Descriptions.Item label="Năm tuyển sinh">
+                              {app.enrollmentYear}
+                            </Descriptions.Item>
+                            <Descriptions.Item label="Ngày nộp">
+                              {app.submittedAt
+                                ? new Date(ensureUtc(app.submittedAt)).toLocaleString("vi-VN")
+                                : "—"}
+                            </Descriptions.Item>
+                            <Descriptions.Item label="Cập nhật lần cuối">
+                              {app.lastUpdated
+                                ? new Date(ensureUtc(app.lastUpdated)).toLocaleString("vi-VN")
+                                : "—"}
+                            </Descriptions.Item>
+                            <Descriptions.Item label="Cán bộ phụ trách">
+                              {app.assignedOfficerName ?? (
+                                <Text className="text-gray-300">Chưa phân công</Text>
+                              )}
+                            </Descriptions.Item>
+                          </Descriptions>
+                        </div>
+                      ),
+                    },
+                    {
+                      key: "scores",
+                      label: "Điểm thí sinh",
+                      children: (
+                        <ApplicantScoresTab
+                          score={applicantScore}
+                          loading={scoresLoading}
+                          onRefresh={loadApplicantScores}
+                        />
+                      ),
+                    },
+                  ]}
+                />
                 </Card>
 
                 {/* Agent note */}
