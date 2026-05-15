@@ -12,6 +12,7 @@ import {
   Row,
   Space,
   Spin,
+  Tabs,
   Tag,
   Typography,
   message,
@@ -32,10 +33,11 @@ import {
   User,
   XCircle,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getAdmissionTypeById } from "../../api/admission-types";
 import { getApplicantById } from "../../api/applicants";
+import { getApplicantScores } from "../../api/scores";
 import {
   fetchApplicationDetail,
   patchApplication,
@@ -51,7 +53,15 @@ import {
 } from "../../types/application";
 import type { Document } from "../../types/document";
 import type { DocumentStatus } from "../../types/enums";
+import type { Score } from "../../types/score";
+import { ApplicantScoresTab } from "./components/ApplicantScoresTab";
+import {
+  showApiWrapperFailure,
+  showApiWrapperSuccess,
+  showAxiosApiFailure,
+} from "../../utils/apiFeedback";
 import { ensureUtc } from "../../utils/date";
+import { pickPrimaryScore } from "../../utils/scoreDisplay";
 
 const { Title, Text } = Typography;
 
@@ -98,8 +108,8 @@ const DOCUMENT_VERIFICATION: Record<
   DocumentStatus,
   { text: string; status: "success" | "warning" | "error" }
 > = {
-  pending:  { text: "Chờ xác minh",  status: "warning" },
-  verified: { text: "Đã xác minh",  status: "success" },
+  pending: { text: "Chờ xác minh", status: "warning" },
+  verified: { text: "Đã xác minh", status: "success" },
   rejected: { text: "Không hợp lệ", status: "error" },
 };
 
@@ -121,7 +131,9 @@ function verificationBadge(result: DocumentStatus | string | null | undefined) {
     return (
       <Badge
         status="default"
-        text={result == null || result === "" ? "Chưa xác minh" : String(result)}
+        text={
+          result == null || result === "" ? "Chưa xác minh" : String(result)
+        }
       />
     );
   }
@@ -131,19 +143,20 @@ function verificationBadge(result: DocumentStatus | string | null | undefined) {
 
 function isImageFile(fileFormat?: string) {
   const normalized = (fileFormat || "").toLowerCase().trim();
-  return ["png", "jpg", "jpeg", "webp", "gif", "bmp", "svg"].some((ext) =>
-    normalized === ext
-    || normalized === `.${ext}`
-    || normalized.includes(`image/${ext}`)
-    || normalized.includes(ext),
+  return ["png", "jpg", "jpeg", "webp", "gif", "bmp", "svg"].some(
+    (ext) =>
+      normalized === ext ||
+      normalized === `.${ext}` ||
+      normalized.includes(`image/${ext}`) ||
+      normalized.includes(ext),
   );
 }
 
 function isImageDocument(doc: Document) {
   if (isImageFile(doc.fileFormat)) return true;
   const path = (doc.filePath || "").toLowerCase();
-  return [".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".svg"].some((ext) =>
-    path.includes(ext),
+  return [".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".svg"].some(
+    (ext) => path.includes(ext),
   );
 }
 
@@ -178,7 +191,6 @@ function normalizeRequiredDocumentList(raw: string | null | undefined) {
   return String(raw).trim();
 }
 
-
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export function OfficerApplicationDetail() {
@@ -196,10 +208,46 @@ export function OfficerApplicationDetail() {
   const [notesExpanded, setNotesExpanded] = useState(false);
   const [previewDetailExpanded, setPreviewDetailExpanded] = useState(false);
   const [applicantModalOpen, setApplicantModalOpen] = useState(false);
-  const [applicantDetail, setApplicantDetail] = useState<CreateApplicantResponse | null>(null);
+  const [applicantDetail, setApplicantDetail] =
+    useState<CreateApplicantResponse | null>(null);
   const [applicantLoading, setApplicantLoading] = useState(false);
   const [rejectForm] = Form.useForm();
   const [supplementForm] = Form.useForm();
+
+  const [profileTabKey, setProfileTabKey] = useState("profile");
+  const [applicantScore, setApplicantScore] = useState<Score | null>(null);
+  const [scoresLoading, setScoresLoading] = useState(false);
+
+  const loadApplicantScores = useCallback(async () => {
+    if (!app?.applicantId) return;
+    setScoresLoading(true);
+    try {
+      const wrapper = await getApplicantScores(app.applicantId);
+      if (wrapper.success) {
+        showApiWrapperSuccess(messageApi, wrapper);
+        setApplicantScore(pickPrimaryScore(wrapper.data));
+      } else {
+        showApiWrapperFailure(
+          messageApi,
+          wrapper,
+          "Không tải được điểm thí sinh.",
+        );
+        setApplicantScore(null);
+      }
+    } catch (err) {
+      showAxiosApiFailure(messageApi, err, "Không tải được điểm thí sinh.");
+      setApplicantScore(null);
+    } finally {
+      setScoresLoading(false);
+    }
+  }, [app?.applicantId, messageApi]);
+
+  // Gọi API điểm khi cán bộ chuyển sang tab "Điểm thí sinh"
+  useEffect(() => {
+    if (profileTabKey === "scores" && app?.applicantId) {
+      void loadApplicantScores();
+    }
+  }, [profileTabKey, app?.applicantId, loadApplicantScores]);
 
   const openApplicantProfile = async () => {
     if (!app) return;
@@ -236,12 +284,16 @@ export function OfficerApplicationDetail() {
   };
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { loadApp(); }, [id]);
+  useEffect(() => {
+    loadApp();
+  }, [id]);
 
   const handleApprove = async () => {
     if (!app) return;
     if (app.status !== "under_review") {
-      messageApi.warning("Chỉ có thể phê duyệt khi hồ sơ ở trạng thái chờ xét duyệt.");
+      messageApi.warning(
+        "Chỉ có thể phê duyệt khi hồ sơ ở trạng thái chờ xét duyệt.",
+      );
       return;
     }
 
@@ -260,7 +312,9 @@ export function OfficerApplicationDetail() {
   const handleRejectSubmit = async () => {
     if (!app) return;
     if (app.status !== "under_review") {
-      messageApi.warning("Chỉ có thể từ chối khi hồ sơ ở trạng thái chờ xét duyệt.");
+      messageApi.warning(
+        "Chỉ có thể từ chối khi hồ sơ ở trạng thái chờ xét duyệt.",
+      );
       return;
     }
 
@@ -282,7 +336,9 @@ export function OfficerApplicationDetail() {
   const handleSupplementSubmit = async () => {
     if (!app) return;
     if (app.status !== "under_review") {
-      messageApi.warning("Chỉ có thể yêu cầu bổ sung khi hồ sơ đang chờ xét duyệt.");
+      messageApi.warning(
+        "Chỉ có thể yêu cầu bổ sung khi hồ sơ đang chờ xét duyệt.",
+      );
       return;
     }
 
@@ -290,7 +346,9 @@ export function OfficerApplicationDetail() {
       const values = await supplementForm.validateFields();
       const docsNeed = String(values.note ?? "");
       setActionLoading("supplement");
-      const updated = await requestAdditionalDocuments(app.applicationId, { docsNeed });
+      const updated = await requestAdditionalDocuments(app.applicationId, {
+        docsNeed,
+      });
       messageApi.success("Đã gửi yêu cầu bổ sung tài liệu.");
       setApp({
         ...app,
@@ -312,14 +370,18 @@ export function OfficerApplicationDetail() {
   const openSupplementModal = async () => {
     if (!app) return;
     if (app.status !== "under_review") {
-      messageApi.warning("Chỉ có thể yêu cầu bổ sung khi hồ sơ đang chờ xét duyệt.");
+      messageApi.warning(
+        "Chỉ có thể yêu cầu bổ sung khi hồ sơ đang chờ xét duyệt.",
+      );
       return;
     }
 
     let suggestedDocs = "";
     try {
       const admissionType = await getAdmissionTypeById(app.admissionTypeId);
-      suggestedDocs = normalizeRequiredDocumentList(admissionType.requiredDocumentList);
+      suggestedDocs = normalizeRequiredDocumentList(
+        admissionType.requiredDocumentList,
+      );
     } catch {
       // Keep modal usable even when suggestion cannot be loaded.
     }
@@ -382,228 +444,322 @@ export function OfficerApplicationDetail() {
               {/* Left column */}
               <Col xs={24} lg={16}>
                 <div className="flex flex-col gap-6 md:gap-8">
-                {/* Applicant info */}
-                <Card
-                  className="rounded-2xl border border-gray-100 shadow-sm"
-                  styles={{ body: { padding: "20px 24px" } }}
-                >
-                <div className="flex items-center justify-between mb-4">
-                  <Title level={5} className="!mb-0 !text-gray-700">
-                    Thông tin hồ sơ
-                  </Title>
-                  <Space>
-                    <Tag color={STATUS_CFG[app.status].color} className="text-sm px-3 py-0.5">
-                      {STATUS_CFG[app.status].label}
-                    </Tag>
-                    {app.requiresReview && (
-                      <Tag
-                        color="red"
-                        className="text-xs !inline-flex !items-center gap-1 !m-0"
-                      >
-                        <TriangleAlert className="size-3.5 shrink-0" aria-hidden />
-                        {APPLICATION_REQUIRES_REVIEW_LABEL}
-                      </Tag>
-                    )}
-                  </Space>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={openApplicantProfile}
-                  className="mb-5 w-full text-left rounded-2xl border border-indigo-100 bg-gradient-to-r from-indigo-50/80 to-white px-4 py-3.5 transition-all hover:border-indigo-200 hover:shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-indigo-100 text-indigo-700 font-bold text-sm">
-                      {initialsFromName(app.applicantName)}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <Text className="!mb-0 font-semibold text-gray-900 text-base">
-                          {app.applicantName}
-                        </Text>
-                        <Tag color="geekblue" className="!m-0 !text-xs">
-                          Hồ sơ thí sinh
-                        </Tag>
-                      </div>
-                      <Text className="text-xs text-gray-500 block mt-0.5">
-                        Mã thí sinh{" "}
-                        <span className="font-mono text-indigo-600">#{app.applicantId}</span>
-                        {" · "}
-                        Nhấn để xem chi tiết cá nhân
-                      </Text>
-                    </div>
-                    <ChevronRight size={20} className="text-indigo-400 shrink-0" aria-hidden />
-                  </div>
-                </button>
-
-                <Descriptions column={{ xs: 1, sm: 2 }} size="small">
-                  <Descriptions.Item label="Mã hồ sơ">
-                    <Text className="font-mono text-indigo-600 font-semibold">
-                      {app.applicationId}
-                    </Text>
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Ngành đăng ký">
-                    {app.programName}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Phương thức XT">
-                    {app.admissionTypeName}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Cơ sở">
-                    {app.campusName}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Năm tuyển sinh">
-                    {app.enrollmentYear}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Ngày nộp">
-                    {app.submittedAt
-                      ? new Date(ensureUtc(app.submittedAt)).toLocaleString("vi-VN")
-                      : "—"}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Cập nhật lần cuối">
-                    {app.lastUpdated
-                      ? new Date(ensureUtc(app.lastUpdated)).toLocaleString("vi-VN")
-                      : "—"}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Cán bộ phụ trách">
-                    {app.assignedOfficerName ?? (
-                      <Text className="text-gray-300">Chưa phân công</Text>
-                    )}
-                  </Descriptions.Item>
-                </Descriptions>
-                </Card>
-
-                {/* Agent note */}
-                <Card
-                  className={`rounded-2xl shadow-sm ${app.notes ? "border border-indigo-100 bg-indigo-50" : "border border-gray-100"}`}
-                  styles={{ body: { padding: "20px 24px" } }}
-                >
-                <div className="flex items-center gap-2 mb-3">
-                  <ShieldCheck size={18} className={app.notes ? "text-indigo-500" : "text-gray-300"} />
-                  <Title level={5} className={`!mb-0 ${app.notes ? "!text-indigo-700" : "!text-gray-400"}`}>
-                    Ghi chú từ Agent hệ thống
-                  </Title>
-                  {app.notes && (
-                    <Button
-                      type="text"
-                      size="small"
-                      icon={notesExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                      className="!text-indigo-500"
-                      onClick={() => setNotesExpanded((prev) => !prev)}
-                    />
-                  )}
-                </div>
-                {app.notes ? (
-                  <Text className={`text-sm text-gray-700 font-mono whitespace-pre-wrap ${notesExpanded ? "" : "line-clamp-3"}`}>
-                    {app.notes}
-                  </Text>
-                ) : (
-                  <Text className="text-sm text-gray-400 italic">
-                    Chưa có ghi chú từ agent hệ thống.
-                  </Text>
-                )}
-                </Card>
-
-                {/* Documents */}
-                <Card
-                  className="rounded-2xl border border-gray-100 shadow-sm"
-                  styles={{ body: { padding: "20px 24px" } }}
-                >
-                <div className="flex items-center justify-between mb-4">
-                  <Title level={5} className="!mb-0 !text-gray-700">
-                    Tài liệu đính kèm
-                  </Title>
-                  <Tag color={(app.documents?.length ?? 0) > 0 ? "blue" : "orange"}>
-                    {app.documents?.length ?? 0} tài liệu
-                  </Tag>
-                </div>
-
-                {!app.documents?.length ? (
-                  <div className="text-center py-8 text-gray-300">
-                    <FileText size={36} className="mx-auto mb-2" />
-                    <Text className="text-gray-400 text-sm">
-                      Chưa có tài liệu nào được đính kèm
-                    </Text>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-3 gap-4">
-                    {app.documents.map((doc: Document) => {
-                      const isImage = isImageDocument(doc);
-                      const fileUrl = doc.filePath;
-                      return (
-                        <div
-                          key={doc.documentId}
-                          className="group rounded-xl border border-gray-100 hover:border-indigo-200 hover:shadow-sm transition-all overflow-hidden cursor-pointer"
-                          onClick={() => setPreviewDoc(doc)}
+                  {/* Applicant info */}
+                  <Card
+                    className="rounded-2xl border border-gray-100 shadow-sm"
+                    styles={{ body: { padding: "20px 24px" } }}
+                  >
+                    <Tabs
+                      activeKey={profileTabKey}
+                      onChange={setProfileTabKey}
+                      destroyOnHidden
+                      tabBarExtraContent={
+                        <Space
+                          wrap
+                          size={[8, 8]}
+                          className="max-sm:justify-end"
                         >
-                          {/* Thumbnail */}
-                          <div className="relative h-52 bg-gray-50 border-b border-gray-100 overflow-hidden">
-                            {isImage && fileUrl && (
-                              <img
-                                src={fileUrl}
-                                alt={doc.fileName || doc.documentType}
-                                className="w-full h-full object-contain bg-white"
-                                onError={(e) => {
-                                  (e.currentTarget as HTMLImageElement).style.display = "none";
-                                  const fb = e.currentTarget.nextElementSibling as HTMLElement | null;
-                                  if (fb) fb.style.display = "flex";
-                                }}
-                              />
-                            )}
-                            <div
-                              className="absolute inset-0 items-center justify-center flex-col gap-1"
-                              style={{ display: isImage && fileUrl ? "none" : "flex" }}
+                          <Tag
+                            color={STATUS_CFG[app.status].color}
+                            className="text-sm px-3 py-0.5 !m-0"
+                          >
+                            {STATUS_CFG[app.status].label}
+                          </Tag>
+                          {app.requiresReview && (
+                            <Tag
+                              color="red"
+                              className="text-xs !inline-flex !items-center gap-1 !m-0"
                             >
-                              <div className="w-14 h-14 rounded-2xl bg-indigo-50 flex items-center justify-center">
-                                <FileText size={28} className="text-indigo-400" />
-                              </div>
-                              <span className="text-xs text-gray-400 uppercase mt-1">
-                                {doc.fileFormat || "file"}
-                              </span>
-                            </div>
-                            <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                              <Eye size={20} className="text-white" />
-                            </div>
-                          </div>
+                              <TriangleAlert
+                                className="size-3.5 shrink-0"
+                                aria-hidden
+                              />
+                              {APPLICATION_REQUIRES_REVIEW_LABEL}
+                            </Tag>
+                          )}
+                        </Space>
+                      }
+                      className={[
+                        "officer-profile-tabs",
+                        "[&_.ant-tabs-nav]:!mb-0",
+                        "[&_.ant-tabs-nav-wrap]:!flex-nowrap",
+                        "[&_.ant-tabs-content-holder]:!min-h-0",
+                        "[&_.ant-tabs-content]:!h-auto",
+                        "[&_.ant-tabs-tabpane]:!p-0",
+                        "[&_.ant-tabs-tabpane-hidden]:!hidden",
+                        "[&_.ant-tabs-tabpane-active]:!block",
+                      ].join(" ")}
+                      items={[
+                        {
+                          key: "profile",
+                          label: "Thông tin hồ sơ",
+                          children: (
+                            <div className="flex flex-col gap-4 pt-1">
+                              <button
+                                type="button"
+                                onClick={openApplicantProfile}
+                                className="w-full text-left rounded-2xl border border-indigo-100 bg-gradient-to-r from-indigo-50/80 to-white px-4 py-3.5 transition-all hover:border-indigo-200 hover:shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-indigo-100 text-indigo-700 font-bold text-sm">
+                                    {initialsFromName(app.applicantName)}
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <Text className="!mb-0 font-semibold text-gray-900 text-base">
+                                        {app.applicantName}
+                                      </Text>
+                                      <Tag
+                                        color="geekblue"
+                                        className="!m-0 !text-xs"
+                                      >
+                                        Hồ sơ thí sinh
+                                      </Tag>
+                                    </div>
+                                    <Text className="text-xs text-gray-500 block mt-0.5">
+                                      Mã thí sinh{" "}
+                                      <span className="font-mono text-indigo-600">
+                                        #{app.applicantId}
+                                      </span>
+                                      {" · "}
+                                      Nhấn để xem chi tiết cá nhân
+                                    </Text>
+                                  </div>
+                                  <ChevronRight
+                                    size={20}
+                                    className="text-indigo-400 shrink-0"
+                                    aria-hidden
+                                  />
+                                </div>
+                              </button>
 
-                          {/* Info */}
-                          <div className="p-3">
-                            <div className="flex items-start justify-between gap-2">
-                              <Text className="font-medium text-gray-700 text-sm block truncate">
-                                {doc.fileName || doc.documentType}
-                              </Text>
-                              {fileUrl && (
-                                <Button
-                                  size="small"
-                                  type="link"
-                                  icon={<ExternalLink size={13} />}
-                                  href={fileUrl}
-                                  target="_blank"
-                                  className="!p-0 flex-shrink-0"
-                                  onClick={(e) => e.stopPropagation()}
-                                />
-                              )}
+                              <Descriptions
+                                column={{ xs: 1, sm: 2 }}
+                                size="small"
+                                className="!mb-0 [&_.ant-descriptions-view]:!mb-0 [&_.ant-descriptions-row:last-child_td]:!pb-0 [&_.ant-descriptions-row:last-child_th]:!pb-0"
+                              >
+                                <Descriptions.Item label="Mã hồ sơ">
+                                  <Text className="font-mono text-indigo-600 font-semibold">
+                                    {app.applicationId}
+                                  </Text>
+                                </Descriptions.Item>
+                                <Descriptions.Item label="Ngành đăng ký">
+                                  {app.programName}
+                                </Descriptions.Item>
+                                <Descriptions.Item label="Phương thức XT">
+                                  {app.admissionTypeName}
+                                </Descriptions.Item>
+                                <Descriptions.Item label="Cơ sở">
+                                  {app.campusName}
+                                </Descriptions.Item>
+                                <Descriptions.Item label="Năm tuyển sinh">
+                                  {app.enrollmentYear}
+                                </Descriptions.Item>
+                                <Descriptions.Item label="Ngày nộp">
+                                  {app.submittedAt
+                                    ? new Date(
+                                        ensureUtc(app.submittedAt),
+                                      ).toLocaleString("vi-VN")
+                                    : "—"}
+                                </Descriptions.Item>
+                                <Descriptions.Item label="Cập nhật lần cuối">
+                                  {app.lastUpdated
+                                    ? new Date(
+                                        ensureUtc(app.lastUpdated),
+                                      ).toLocaleString("vi-VN")
+                                    : "—"}
+                                </Descriptions.Item>
+                                <Descriptions.Item label="Cán bộ phụ trách">
+                                  {app.assignedOfficerName ?? (
+                                    <Text className="text-gray-300">
+                                      Chưa phân công
+                                    </Text>
+                                  )}
+                                </Descriptions.Item>
+                              </Descriptions>
                             </div>
-                            <div className="flex items-center gap-2 mt-2 flex-wrap">
-                              <Tag className="!text-xs !m-0 !px-1.5">
-                                {doc.documentType}
-                              </Tag>
-                              <Text className="text-xs text-gray-400">
-                                {doc.fileFormat?.toUpperCase()}
-                              </Text>
-                              <Text className="text-xs text-gray-300">
-                                {doc.uploadedAt
-                                  ? new Date(ensureUtc(doc.uploadedAt)).toLocaleDateString("vi-VN")
-                                  : ""}
-                              </Text>
+                          ),
+                        },
+                        {
+                          key: "scores",
+                          label: "Điểm thí sinh",
+                          children: (
+                            <ApplicantScoresTab
+                              score={applicantScore}
+                              loading={scoresLoading}
+                              onRefresh={loadApplicantScores}
+                            />
+                          ),
+                        },
+                      ]}
+                    />
+                  </Card>
+
+                  {/* Agent note */}
+                  <Card
+                    className={`rounded-2xl shadow-sm ${app.notes ? "border border-indigo-100 bg-indigo-50" : "border border-gray-100"}`}
+                    styles={{ body: { padding: "20px 24px" } }}
+                  >
+                    <div className="flex items-center gap-2 mb-3">
+                      <ShieldCheck
+                        size={18}
+                        className={
+                          app.notes ? "text-indigo-500" : "text-gray-300"
+                        }
+                      />
+                      <Title
+                        level={5}
+                        className={`!mb-0 ${app.notes ? "!text-indigo-700" : "!text-gray-400"}`}
+                      >
+                        Ghi chú từ Agent hệ thống
+                      </Title>
+                      {app.notes && (
+                        <Button
+                          type="text"
+                          size="small"
+                          icon={
+                            notesExpanded ? (
+                              <ChevronUp size={16} />
+                            ) : (
+                              <ChevronDown size={16} />
+                            )
+                          }
+                          className="!text-indigo-500"
+                          onClick={() => setNotesExpanded((prev) => !prev)}
+                        />
+                      )}
+                    </div>
+                    {app.notes ? (
+                      <Text
+                        className={`text-sm text-gray-700 font-mono whitespace-pre-wrap ${notesExpanded ? "" : "line-clamp-3"}`}
+                      >
+                        {app.notes}
+                      </Text>
+                    ) : (
+                      <Text className="text-sm text-gray-400 italic">
+                        Chưa có ghi chú từ agent hệ thống.
+                      </Text>
+                    )}
+                  </Card>
+
+                  {/* Documents */}
+                  <Card
+                    className="rounded-2xl border border-gray-100 shadow-sm"
+                    styles={{ body: { padding: "20px 24px" } }}
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <Title level={5} className="!mb-0 !text-gray-700">
+                        Tài liệu đính kèm
+                      </Title>
+                      <Tag
+                        color={
+                          (app.documents?.length ?? 0) > 0 ? "blue" : "orange"
+                        }
+                      >
+                        {app.documents?.length ?? 0} tài liệu
+                      </Tag>
+                    </div>
+
+                    {!app.documents?.length ? (
+                      <div className="text-center py-8 text-gray-300">
+                        <FileText size={36} className="mx-auto mb-2" />
+                        <Text className="text-gray-400 text-sm">
+                          Chưa có tài liệu nào được đính kèm
+                        </Text>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-3 gap-4">
+                        {app.documents.map((doc: Document) => {
+                          const isImage = isImageDocument(doc);
+                          const fileUrl = doc.filePath;
+                          return (
+                            <div
+                              key={doc.documentId}
+                              className="group rounded-xl border border-gray-100 hover:border-indigo-200 hover:shadow-sm transition-all overflow-hidden cursor-pointer"
+                              onClick={() => setPreviewDoc(doc)}
+                            >
+                              {/* Thumbnail */}
+                              <div className="relative h-52 bg-gray-50 border-b border-gray-100 overflow-hidden">
+                                {isImage && fileUrl && (
+                                  <img
+                                    src={fileUrl}
+                                    alt={doc.fileName || doc.documentType}
+                                    className="w-full h-full object-contain bg-white"
+                                    onError={(e) => {
+                                      (
+                                        e.currentTarget as HTMLImageElement
+                                      ).style.display = "none";
+                                      const fb = e.currentTarget
+                                        .nextElementSibling as HTMLElement | null;
+                                      if (fb) fb.style.display = "flex";
+                                    }}
+                                  />
+                                )}
+                                <div
+                                  className="absolute inset-0 items-center justify-center flex-col gap-1"
+                                  style={{
+                                    display:
+                                      isImage && fileUrl ? "none" : "flex",
+                                  }}
+                                >
+                                  <div className="w-14 h-14 rounded-2xl bg-indigo-50 flex items-center justify-center">
+                                    <FileText
+                                      size={28}
+                                      className="text-indigo-400"
+                                    />
+                                  </div>
+                                  <span className="text-xs text-gray-400 uppercase mt-1">
+                                    {doc.fileFormat || "file"}
+                                  </span>
+                                </div>
+                                <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                  <Eye size={20} className="text-white" />
+                                </div>
+                              </div>
+
+                              {/* Info */}
+                              <div className="p-3">
+                                <div className="flex items-start justify-between gap-2">
+                                  <Text className="font-medium text-gray-700 text-sm block truncate">
+                                    {doc.fileName || doc.documentType}
+                                  </Text>
+                                  {fileUrl && (
+                                    <Button
+                                      size="small"
+                                      type="link"
+                                      icon={<ExternalLink size={13} />}
+                                      href={fileUrl}
+                                      target="_blank"
+                                      className="!p-0 flex-shrink-0"
+                                      onClick={(e) => e.stopPropagation()}
+                                    />
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2 mt-2 flex-wrap">
+                                  <Tag className="!text-xs !m-0 !px-1.5">
+                                    {doc.documentType}
+                                  </Tag>
+                                  <Text className="text-xs text-gray-400">
+                                    {doc.fileFormat?.toUpperCase()}
+                                  </Text>
+                                  <Text className="text-xs text-gray-300">
+                                    {doc.uploadedAt
+                                      ? new Date(
+                                          ensureUtc(doc.uploadedAt),
+                                        ).toLocaleDateString("vi-VN")
+                                      : ""}
+                                  </Text>
+                                </div>
+                                <div className="mt-2">
+                                  {verificationBadge(doc.verificationResult)}
+                                </div>
+                              </div>
                             </div>
-                            <div className="mt-2">{verificationBadge(doc.verificationResult)}</div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-                </Card>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </Card>
                 </div>
               </Col>
 
@@ -613,87 +769,90 @@ export function OfficerApplicationDetail() {
                   className="rounded-2xl border border-gray-100 shadow-sm lg:sticky lg:top-4"
                   styles={{ body: { padding: "20px 24px" } }}
                 >
-                <Title level={5} className="!mb-4 !text-gray-700">
-                  Hành động
-                </Title>
+                  <Title level={5} className="!mb-4 !text-gray-700">
+                    Hành động
+                  </Title>
 
-                {isDone ? (
-                  <div className="text-center py-4">
-                    <Tag
-                      color={app.status === "approved" ? "success" : "error"}
-                      className="text-sm px-4 py-1"
-                    >
-                      {STATUS_CFG[app.status].label}
-                    </Tag>
-                    <Text className="block text-gray-400 text-xs mt-2">
-                      Hồ sơ đã được xử lý xong.
-                    </Text>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <Popconfirm
-                      title="Phê duyệt hồ sơ này?"
-                      description="Hành động này không thể hoàn tác."
-                      okText="Phê duyệt"
-                      cancelText="Huỷ"
-                      onConfirm={handleApprove}
-                      disabled={!canReview}
-                    >
+                  {isDone ? (
+                    <div className="text-center py-4">
+                      <Tag
+                        color={app.status === "approved" ? "success" : "error"}
+                        className="text-sm px-4 py-1"
+                      >
+                        {STATUS_CFG[app.status].label}
+                      </Tag>
+                      <Text className="block text-gray-400 text-xs mt-2">
+                        Hồ sơ đã được xử lý xong.
+                      </Text>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <Popconfirm
+                        title="Phê duyệt hồ sơ này?"
+                        description="Hành động này không thể hoàn tác."
+                        okText="Phê duyệt"
+                        cancelText="Huỷ"
+                        onConfirm={handleApprove}
+                        disabled={!canReview}
+                      >
+                        <Button
+                          block
+                          type="primary"
+                          icon={<CheckCircle2 size={15} />}
+                          disabled={!canReview}
+                          loading={actionLoading === "approve"}
+                          className="!rounded-xl !h-10 !bg-emerald-500 !border-emerald-500 hover:!bg-emerald-600"
+                        >
+                          Phê duyệt hồ sơ
+                        </Button>
+                      </Popconfirm>
+
                       <Button
                         block
-                        type="primary"
-                        icon={<CheckCircle2 size={15} />}
+                        danger
+                        icon={<XCircle size={15} />}
                         disabled={!canReview}
-                        loading={actionLoading === "approve"}
-                        className="!rounded-xl !h-10 !bg-emerald-500 !border-emerald-500 hover:!bg-emerald-600"
+                        loading={actionLoading === "reject"}
+                        onClick={() => setRejectModal(true)}
+                        className="!rounded-xl !h-10"
                       >
-                        Phê duyệt hồ sơ
+                        Từ chối hồ sơ
                       </Button>
-                    </Popconfirm>
 
-                    <Button
-                      block
-                      danger
-                      icon={<XCircle size={15} />}
-                      disabled={!canReview}
-                      loading={actionLoading === "reject"}
-                      onClick={() => setRejectModal(true)}
-                      className="!rounded-xl !h-10"
-                    >
-                      Từ chối hồ sơ
-                    </Button>
+                      <Button
+                        block
+                        icon={<FilePlus2 size={15} />}
+                        disabled={!canRequestSupplement}
+                        loading={actionLoading === "supplement"}
+                        onClick={openSupplementModal}
+                        className="!rounded-xl !h-10 !text-amber-600 !border-amber-300 hover:!border-amber-400"
+                      >
+                        Yêu cầu bổ sung tài liệu
+                      </Button>
+                    </div>
+                  )}
 
-                    <Button
-                      block
-                      icon={<FilePlus2 size={15} />}
-                      disabled={!canRequestSupplement}
-                      loading={actionLoading === "supplement"}
-                      onClick={openSupplementModal}
-                      className="!rounded-xl !h-10 !text-amber-600 !border-amber-300 hover:!border-amber-400"
-                    >
-                      Yêu cầu bổ sung tài liệu
-                    </Button>
+                  <div className="mt-5 pt-4 border-t border-gray-100 space-y-2">
+                    <div className="flex justify-between text-xs text-gray-400">
+                      <span>Mã hồ sơ</span>
+                      <span className="font-mono text-indigo-500">
+                        #{app.applicationId}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-xs text-gray-400">
+                      <span>Trạng thái</span>
+                      <Tag
+                        color={STATUS_CFG[app.status].color}
+                        className="!text-xs !m-0"
+                      >
+                        {STATUS_CFG[app.status].label}
+                      </Tag>
+                    </div>
+                    <div className="flex justify-between text-xs text-gray-400">
+                      <span>Tài liệu</span>
+                      <span>{app.documents?.length ?? 0} file</span>
+                    </div>
                   </div>
-                )}
-
-                <div className="mt-5 pt-4 border-t border-gray-100 space-y-2">
-                  <div className="flex justify-between text-xs text-gray-400">
-                    <span>Mã hồ sơ</span>
-                    <span className="font-mono text-indigo-500">
-                      #{app.applicationId}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-xs text-gray-400">
-                    <span>Trạng thái</span>
-                    <Tag color={STATUS_CFG[app.status].color} className="!text-xs !m-0">
-                      {STATUS_CFG[app.status].label}
-                    </Tag>
-                  </div>
-                  <div className="flex justify-between text-xs text-gray-400">
-                    <span>Tài liệu</span>
-                    <span>{app.documents?.length ?? 0} file</span>
-                  </div>
-                </div>
                 </Card>
               </Col>
             </Row>
@@ -715,7 +874,9 @@ export function OfficerApplicationDetail() {
               {app && (
                 <Text className="text-xs text-gray-400 font-normal">
                   Mã thí sinh{" "}
-                  <span className="font-mono text-indigo-500">#{app.applicantId}</span>
+                  <span className="font-mono text-indigo-500">
+                    #{app.applicantId}
+                  </span>
                 </Text>
               )}
             </div>
@@ -724,7 +885,11 @@ export function OfficerApplicationDetail() {
         open={applicantModalOpen}
         onCancel={closeApplicantProfile}
         footer={
-          <Button type="primary" className="!rounded-xl" onClick={closeApplicantProfile}>
+          <Button
+            type="primary"
+            className="!rounded-xl"
+            onClick={closeApplicantProfile}
+          >
             Đóng
           </Button>
         }
@@ -744,7 +909,9 @@ export function OfficerApplicationDetail() {
                   </Text>
                   <Text className="text-xs text-gray-400">
                     User ID{" "}
-                    <span className="font-mono text-gray-600">{applicantDetail.userId}</span>
+                    <span className="font-mono text-gray-600">
+                      {applicantDetail.userId}
+                    </span>
                   </Text>
                 </div>
               </div>
@@ -752,10 +919,17 @@ export function OfficerApplicationDetail() {
               <Text className="!text-xs !font-semibold !text-gray-400 uppercase tracking-wide block mb-2">
                 Thông tin cá nhân
               </Text>
-              <Descriptions column={{ xs: 1, sm: 2 }} size="small" bordered className="!mb-4">
+              <Descriptions
+                column={{ xs: 1, sm: 2 }}
+                size="small"
+                bordered
+                className="!mb-4"
+              >
                 <Descriptions.Item label="Ngày sinh" span={1}>
                   {applicantDetail.dateOfBirth
-                    ? new Date(ensureUtc(applicantDetail.dateOfBirth)).toLocaleDateString("vi-VN")
+                    ? new Date(
+                        ensureUtc(applicantDetail.dateOfBirth),
+                      ).toLocaleDateString("vi-VN")
                     : "—"}
                 </Descriptions.Item>
                 <Descriptions.Item label="Giới tính" span={1}>
@@ -768,7 +942,12 @@ export function OfficerApplicationDetail() {
               <Text className="!text-xs !font-semibold !text-gray-400 uppercase tracking-wide block mb-2">
                 Trường THPT
               </Text>
-              <Descriptions column={{ xs: 1, sm: 2 }} size="small" bordered className="!mb-4">
+              <Descriptions
+                column={{ xs: 1, sm: 2 }}
+                size="small"
+                bordered
+                className="!mb-4"
+              >
                 <Descriptions.Item label="Trường" span={2}>
                   {applicantDetail.highSchoolName || "—"}
                 </Descriptions.Item>
@@ -788,13 +967,20 @@ export function OfficerApplicationDetail() {
               <Text className="!text-xs !font-semibold !text-gray-400 uppercase tracking-wide block mb-2">
                 CCCD / CMND
               </Text>
-              <Descriptions column={{ xs: 1, sm: 2 }} size="small" bordered className="!mb-4">
+              <Descriptions
+                column={{ xs: 1, sm: 2 }}
+                size="small"
+                bordered
+                className="!mb-4"
+              >
                 <Descriptions.Item label="Số">
                   {applicantDetail.idIssueNumber || "—"}
                 </Descriptions.Item>
                 <Descriptions.Item label="Ngày cấp">
                   {applicantDetail.idIssueDate
-                    ? new Date(ensureUtc(applicantDetail.idIssueDate)).toLocaleDateString("vi-VN")
+                    ? new Date(
+                        ensureUtc(applicantDetail.idIssueDate),
+                      ).toLocaleDateString("vi-VN")
                     : "—"}
                 </Descriptions.Item>
                 <Descriptions.Item label="Nơi cấp" span={2}>
@@ -807,7 +993,12 @@ export function OfficerApplicationDetail() {
               <Text className="!text-xs !font-semibold !text-gray-400 uppercase tracking-wide block mb-2">
                 Liên hệ
               </Text>
-              <Descriptions column={{ xs: 1, sm: 2 }} size="small" bordered className="!mb-4">
+              <Descriptions
+                column={{ xs: 1, sm: 2 }}
+                size="small"
+                bordered
+                className="!mb-4"
+              >
                 <Descriptions.Item label="Người liên hệ" span={2}>
                   {applicantDetail.contactName || "—"}
                 </Descriptions.Item>
@@ -834,7 +1025,9 @@ export function OfficerApplicationDetail() {
                 </Descriptions.Item>
                 <Descriptions.Item label="Tạo hồ sơ lúc">
                   {applicantDetail.createdAt
-                    ? new Date(ensureUtc(applicantDetail.createdAt)).toLocaleString("vi-VN")
+                    ? new Date(
+                        ensureUtc(applicantDetail.createdAt),
+                      ).toLocaleString("vi-VN")
                     : "—"}
                 </Descriptions.Item>
               </Descriptions>
@@ -884,7 +1077,9 @@ export function OfficerApplicationDetail() {
 
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div>
-                <Text className="!text-xs !text-gray-400 block">Loại tài liệu</Text>
+                <Text className="!text-xs !text-gray-400 block">
+                  Loại tài liệu
+                </Text>
                 <Text className="!text-sm !text-gray-700 !font-medium">
                   {previewDoc.documentType || "—"}
                 </Text>
@@ -896,20 +1091,26 @@ export function OfficerApplicationDetail() {
                 </Text>
               </div>
               <div>
-                <Text className="!text-xs !text-gray-400 block">Ngày tải lên</Text>
+                <Text className="!text-xs !text-gray-400 block">
+                  Ngày tải lên
+                </Text>
                 <Text className="!text-sm !text-gray-700 !font-medium">
                   {previewDoc.uploadedAt
-                    ? new Date(ensureUtc(previewDoc.uploadedAt)).toLocaleDateString("vi-VN", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })
+                    ? new Date(
+                        ensureUtc(previewDoc.uploadedAt),
+                      ).toLocaleDateString("vi-VN", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })
                     : "—"}
                 </Text>
               </div>
               <div>
                 <Text className="!text-xs !text-gray-400 block">Xác minh</Text>
-                <div className="mt-1">{verificationBadge(previewDoc.verificationResult)}</div>
+                <div className="mt-1">
+                  {verificationBadge(previewDoc.verificationResult)}
+                </div>
               </div>
               {previewDoc.verificationDetails && (
                 <div className="col-span-2">
@@ -919,9 +1120,15 @@ export function OfficerApplicationDetail() {
                     onClick={() => setPreviewDetailExpanded((prev) => !prev)}
                   >
                     <span>Ghi chú duyệt</span>
-                    {previewDetailExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                    {previewDetailExpanded ? (
+                      <ChevronUp size={14} />
+                    ) : (
+                      <ChevronDown size={14} />
+                    )}
                   </button>
-                  <Text className={`!text-sm !text-gray-700 block ${previewDetailExpanded ? "" : "line-clamp-2"}`}>
+                  <Text
+                    className={`!text-sm !text-gray-700 block ${previewDetailExpanded ? "" : "line-clamp-2"}`}
+                  >
                     {previewDoc.verificationDetails}
                   </Text>
                 </div>
@@ -929,7 +1136,11 @@ export function OfficerApplicationDetail() {
             </div>
 
             <div className="flex justify-end">
-              <a href={previewDoc.filePath} target="_blank" rel="noopener noreferrer">
+              <a
+                href={previewDoc.filePath}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 <Button
                   icon={<ExternalLink size={14} />}
                   className="!rounded-lg !border-indigo-200 !text-indigo-600 hover:!bg-indigo-50"
@@ -951,7 +1162,10 @@ export function OfficerApplicationDetail() {
           </div>
         }
         open={rejectModal}
-        onCancel={() => { setRejectModal(false); rejectForm.resetFields(); }}
+        onCancel={() => {
+          setRejectModal(false);
+          rejectForm.resetFields();
+        }}
         onOk={handleRejectSubmit}
         okText="Xác nhận từ chối"
         okButtonProps={{ danger: true, loading: actionLoading === "reject" }}
@@ -981,7 +1195,10 @@ export function OfficerApplicationDetail() {
           </div>
         }
         open={supplementModal}
-        onCancel={() => { setSupplementModal(false); supplementForm.resetFields(); }}
+        onCancel={() => {
+          setSupplementModal(false);
+          supplementForm.resetFields();
+        }}
         onOk={handleSupplementSubmit}
         okText="Gửi yêu cầu"
         okButtonProps={{
@@ -994,7 +1211,9 @@ export function OfficerApplicationDetail() {
           <Form.Item
             name="note"
             label="Nội dung yêu cầu"
-            rules={[{ required: true, message: "Vui lòng nhập nội dung yêu cầu" }]}
+            rules={[
+              { required: true, message: "Vui lòng nhập nội dung yêu cầu" },
+            ]}
           >
             <Input.TextArea
               rows={4}
